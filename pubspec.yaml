@@ -1,0 +1,59 @@
+name: meet_marketers_ai
+description: "Meet Marketers AI — Internal enterprise platform for Account Managers to orchestrate AI-powered marketing deliverables."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Navigation & Deep Linking
+  go_router: ^14.6.2
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+
+  # Firebase
+  firebase_core: ^3.8.1
+  firebase_auth: ^5.3.4
+  cloud_firestore: ^5.5.1
+  firebase_storage: ^12.3.7
+
+  # Typography
+  google_fonts: ^6.2.1
+
+  # Local Caching (Web-safe IndexedDB)
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # File Uploads
+  file_picker: ^8.1.7
+
+  # Utilities
+  intl: ^0.19.0
+  uuid: ^4.5.1
+  equatable: ^2.0.7
+  collection: ^1.19.1
+
+  # AI Engine
+  google_generative_ai: ^0.4.6
+  http: ^1.2.2
+
+  # Media & Launchers
+  url_launcher: ^6.3.1
+  video_player: ^2.9.2
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
