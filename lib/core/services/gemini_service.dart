@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:http/http.dart' as http;
 import '../../firebase_options.dart';
+import '../config/app_config.dart';
 import '../../data/models/content_deliverable_model.dart';
 import '../../data/models/strategy_deliverable_model.dart';
 
@@ -24,7 +25,7 @@ class GeminiService {
     'gemini-pro',
   ];
 
-  String _apiKey = const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+  String _apiKey = AppConfig.geminiApiKey;
 
   void setApiKey(String key) {
     if (key.isNotEmpty) {
