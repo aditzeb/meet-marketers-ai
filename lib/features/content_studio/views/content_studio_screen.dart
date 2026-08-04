@@ -12,11 +12,155 @@ import '../../../core/services/firebase_service.dart';
 import '../../../data/models/client_model.dart';
 import '../../dashboard/providers/client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../../core/services/web_download_helper.dart';
 import '../../../shared/widgets/workspace_phase_header.dart';
 import 'package:video_player/video_player.dart';
 
-/// Phase 3A: Content Production — Split-Screen Editor + Real Photo, Video & Caption Generator
+/// Context-aware Sub-Tab model per deliverable type
+class DeliverableSubTab {
+  final String id;
+  final String label;
+  final IconData icon;
+
+  const DeliverableSubTab({
+    required this.id,
+    required this.label,
+    required this.icon,
+  });
+}
+
+/// Returns tailored sub-tabs specifically for each of the 11 deliverable types
+List<DeliverableSubTab> getSubTabsForType(ContentType type) {
+  switch (type) {
+    case ContentType.introDeck:
+    case ContentType.salesPitchDeck:
+      return const [
+        DeliverableSubTab(id: 'slides', label: 'Presentation Slides', icon: Icons.slideshow),
+        DeliverableSubTab(id: 'script', label: 'Speaker Script & Notes', icon: Icons.speaker_notes),
+        DeliverableSubTab(id: 'assets', label: 'Slide Visual Assets', icon: Icons.palette_outlined),
+        DeliverableSubTab(id: 'outline', label: 'Slide Agenda & Index', icon: Icons.list_alt),
+      ];
+
+    case ContentType.explainerVideos:
+    case ContentType.testimonialVideos:
+      return const [
+        DeliverableSubTab(id: 'video_script', label: 'Video Script & Voiceover', icon: Icons.record_voice_over),
+        DeliverableSubTab(id: 'storyboard', label: 'Scene Storyboard', icon: Icons.movie_creation_outlined),
+        DeliverableSubTab(id: 'stream', label: 'Video Asset Stream', icon: Icons.play_circle_outline),
+        DeliverableSubTab(id: 'subtitles', label: 'Captions & Subtitles', icon: Icons.subtitles),
+      ];
+
+    case ContentType.socialMediaPosts:
+      return const [
+        DeliverableSubTab(id: 'post_copy', label: 'Post Copy & Hooks', icon: Icons.article_outlined),
+        DeliverableSubTab(id: 'graphics', label: 'Graphic Assets & Visuals', icon: Icons.photo_camera_back),
+        DeliverableSubTab(id: 'captions', label: 'Social Captions & Hashtags', icon: Icons.tag),
+        DeliverableSubTab(id: 'variants', label: 'Platform Variants', icon: Icons.share_outlined),
+      ];
+
+    case ContentType.blogArticles:
+      return const [
+        DeliverableSubTab(id: 'article_copy', label: 'Full Article Copy', icon: Icons.notes),
+        DeliverableSubTab(id: 'cover', label: 'Cover Graphic', icon: Icons.image_outlined),
+        DeliverableSubTab(id: 'outline', label: 'Article Outline & TOC', icon: Icons.format_list_bulleted),
+        DeliverableSubTab(id: 'seo_meta', label: 'SEO Meta & URL Slug', icon: Icons.search),
+      ];
+
+    case ContentType.emailCampaign:
+      return const [
+        DeliverableSubTab(id: 'email_body', label: 'Email Body Copy', icon: Icons.mark_email_read_outlined),
+        DeliverableSubTab(id: 'subject_lines', label: 'Subject Lines & Preheaders', icon: Icons.title),
+        DeliverableSubTab(id: 'email_banner', label: 'Email Visual Banner', icon: Icons.wallpaper),
+        DeliverableSubTab(id: 'drip_flow', label: 'Automation Sequence', icon: Icons.alt_route),
+      ];
+
+    case ContentType.seoKeywordAudit:
+      return const [
+        DeliverableSubTab(id: 'keyword_matrix', label: 'Target Keyword Matrix', icon: Icons.table_chart_outlined),
+        DeliverableSubTab(id: 'intent_funnel', label: 'Search Intent & Funnel', icon: Icons.filter_list),
+        DeliverableSubTab(id: 'competitor_gaps', label: 'Competitor Keyword Gaps', icon: Icons.compare_arrows),
+        DeliverableSubTab(id: 'action_plan', label: 'Action Plan', icon: Icons.checklist),
+      ];
+
+    case ContentType.seoTechnicalAudit:
+      return const [
+        DeliverableSubTab(id: 'tech_report', label: 'Technical Audit Report', icon: Icons.analytics_outlined),
+        DeliverableSubTab(id: 'remediation', label: 'Fix & Remediation Plan', icon: Icons.build_circle_outlined),
+        DeliverableSubTab(id: 'checklist', label: 'On-Page SEO Checklist', icon: Icons.fact_check_outlined),
+        DeliverableSubTab(id: 'vitals', label: 'Core Web Vitals', icon: Icons.speed_outlined),
+      ];
+
+    case ContentType.otherDesigns:
+      return const [
+        DeliverableSubTab(id: 'design_brief', label: 'Creative Design Brief', icon: Icons.brush_outlined),
+        DeliverableSubTab(id: 'graphic_asset', label: 'Generated Graphic Asset', icon: Icons.palette_outlined),
+        DeliverableSubTab(id: 'color_specs', label: 'Color & Typography Spec', icon: Icons.color_lens_outlined),
+        DeliverableSubTab(id: 'layouts', label: 'Layout Variations', icon: Icons.grid_view),
+      ];
+
+    case ContentType.otherCopies:
+      return const [
+        DeliverableSubTab(id: 'ad_copy', label: 'Ad Copy & Headlines', icon: Icons.campaign_outlined),
+        DeliverableSubTab(id: 'value_hooks', label: 'Value Proposition Hooks', icon: Icons.anchor),
+        DeliverableSubTab(id: 'hero_copy', label: 'Landing Page Hero Copy', icon: Icons.web),
+        DeliverableSubTab(id: 'cta_library', label: 'CTA Library', icon: Icons.touch_app_outlined),
+      ];
+  }
+}
+
+String getGenerateButtonText(ContentType type, bool hasGenerated) {
+  if (hasGenerated) {
+    return 'Regenerate ${type.label}';
+  }
+  switch (type) {
+    case ContentType.introDeck:
+    case ContentType.salesPitchDeck:
+      return 'Generate Presentation Deck & Slides';
+    case ContentType.explainerVideos:
+    case ContentType.testimonialVideos:
+      return 'Generate Video Storyboard & Script';
+    case ContentType.socialMediaPosts:
+      return 'Generate Social Posts & Graphics';
+    case ContentType.blogArticles:
+      return 'Generate Full Blog Article & Header';
+    case ContentType.emailCampaign:
+      return 'Generate Email Campaign & Sequences';
+    case ContentType.seoKeywordAudit:
+      return 'Generate SEO Keyword Audit Matrix';
+    case ContentType.seoTechnicalAudit:
+      return 'Generate Technical SEO Audit & Plan';
+    case ContentType.otherDesigns:
+      return 'Generate Creative Design Brief & Assets';
+    case ContentType.otherCopies:
+      return 'Generate Sales Copy & Ad Headlines';
+  }
+}
+
+String getEmptyStateText(ContentType type) {
+  switch (type) {
+    case ContentType.introDeck:
+    case ContentType.salesPitchDeck:
+      return 'Click "Generate" to generate slide deck structure, visual slide cards, presenter notes, and speaker scripts using Gemini AI.';
+    case ContentType.explainerVideos:
+    case ContentType.testimonialVideos:
+      return 'Click "Generate" to create scene-by-scene video storyboards, timed voiceover scripts, shot directions, and video previews.';
+    case ContentType.socialMediaPosts:
+      return 'Click "Generate" to create social post copies, visual graphic assets, captions, and hashtag bundles.';
+    case ContentType.blogArticles:
+      return 'Click "Generate" to produce long-form SEO blog posts, article outlines, header graphics, and meta tags.';
+    case ContentType.emailCampaign:
+      return 'Click "Generate" to build automated email copies, subject line benchmarks, header graphics, and drip flows.';
+    case ContentType.seoKeywordAudit:
+      return 'Click "Generate" to perform comprehensive SEO keyword research, search intent mapping, and competitor gap analysis.';
+    case ContentType.seoTechnicalAudit:
+      return 'Click "Generate" to audit site technical health, crawlability, Core Web Vitals, and developer fix plans.';
+    case ContentType.otherDesigns:
+      return 'Click "Generate" to create creative design briefs, visual graphic renders, color palettes, and layout specs.';
+    case ContentType.otherCopies:
+      return 'Click "Generate" to craft high-converting ad copy, landing page hero text, value hooks, and CTA libraries.';
+  }
+}
+
+/// Phase 3A: Content Production — Split-Screen Editor + Real Photo, Video & Deck Generator
 class ContentStudioScreen extends ConsumerStatefulWidget {
   final String clientId;
   const ContentStudioScreen({super.key, required this.clientId});
@@ -27,7 +171,7 @@ class ContentStudioScreen extends ConsumerStatefulWidget {
 
 class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
   ContentType _selectedType = ContentType.socialMediaPosts;
-  _MediaTab _mediaTab = _MediaTab.textAndScript;
+  late String _selectedSubTabId;
 
   bool _isGenerating = false;
   bool _isGeneratingAll = false;
@@ -51,6 +195,7 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedSubTabId = getSubTabsForType(_selectedType).first.id;
     _restoreDrafts();
   }
 
@@ -64,6 +209,13 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
         _statuses[t] = VettingStatus.inReview;
       }
     }
+  }
+
+  void _onTypeSelected(ContentType type) {
+    setState(() {
+      _selectedType = type;
+      _selectedSubTabId = getSubTabsForType(type).first.id;
+    });
   }
 
   void _onTextChanged(ContentType type, String value) {
@@ -97,6 +249,7 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
   Widget build(BuildContext context) {
     final clientState = ref.watch(clientProvider);
     final client = clientState.getClient(widget.clientId);
+    final subTabs = getSubTabsForType(_selectedType);
 
     return Scaffold(
       backgroundColor: ClinicSageColors.neutral,
@@ -112,26 +265,28 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
             isGeneratingAll: _isGeneratingAll,
             onGenerateAll: () => _onGenerateAll(client),
           ),
-          // ── Type Tabs & Media Selector ────────────────────
+          // ── Type Tabs & Contextual Sub-Media Selector ────
           _ContentTypeTabs(
             selectedType: _selectedType,
             statuses: _statuses,
-            onTypeSelected: (t) => setState(() => _selectedType = t),
+            onTypeSelected: _onTypeSelected,
           ),
           _SubMediaSelectorBar(
-            selectedTab: _mediaTab,
-            onTabSelected: (tab) => setState(() => _mediaTab = tab),
+            subTabs: subTabs,
+            selectedTabId: _selectedSubTabId,
+            onTabSelected: (id) => setState(() => _selectedSubTabId = id),
           ),
 
           // ── Split Pane ────────────────────────────────────
           Expanded(
             child: Row(
               children: [
-                // Left: AI Generated Output (Text, Photo, Video, or Captions)
+                // Left: Context-Aware AI Generated Output Panel
                 Expanded(
                   child: _AIOutputPanel(
                     type: _selectedType,
-                    mediaTab: _mediaTab,
+                    subTabId: _selectedSubTabId,
+                    clientName: client.name,
                     aiText: _aiTexts[_selectedType] ?? '',
                     mediaAsset: _mediaAssets[_selectedType],
                     hasGenerated: _hasGenerated[_selectedType] ?? false,
@@ -141,7 +296,7 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
                 ),
                 // Divider
                 Container(width: 1, color: ClinicSageColors.border),
-                // Right: AM Editor
+                // Right: AM Editor Panel
                 Expanded(
                   child: _AMEditorPanel(
                     type: _selectedType,
@@ -249,25 +404,19 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
   }
 }
 
-enum _MediaTab {
-  textAndScript('Text & Script', Icons.notes),
-  photoAsset('AI Photo Asset', Icons.photo_camera_back),
-  videoStoryboard('Video Storyboard', Icons.movie_creation_outlined),
-  socialCaptions('Social Captions', Icons.tag);
-
-  const _MediaTab(this.label, this.icon);
-  final String label;
-  final IconData icon;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Sub Media Selector Bar
+// Sub Media Selector Bar (Context-Aware Sub-Tabs)
 // ─────────────────────────────────────────────────────────────────────────────
 class _SubMediaSelectorBar extends StatelessWidget {
-  final _MediaTab selectedTab;
-  final ValueChanged<_MediaTab> onTabSelected;
+  final List<DeliverableSubTab> subTabs;
+  final String selectedTabId;
+  final ValueChanged<String> onTabSelected;
 
-  const _SubMediaSelectorBar({required this.selectedTab, required this.onTabSelected});
+  const _SubMediaSelectorBar({
+    required this.subTabs,
+    required this.selectedTabId,
+    required this.onTabSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -280,12 +429,12 @@ class _SubMediaSelectorBar extends StatelessWidget {
         border: Border(bottom: BorderSide(color: ClinicSageColors.border)),
       ),
       child: Row(
-        children: _MediaTab.values.map((tab) {
-          final isSelected = tab == selectedTab;
+        children: subTabs.map((tab) {
+          final isSelected = tab.id == selectedTabId;
           return Padding(
             padding: const EdgeInsets.only(right: 6),
             child: InkWell(
-              onTap: () => onTabSelected(tab),
+              onTap: () => onTabSelected(tab.id),
               borderRadius: BorderRadius.circular(6),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
@@ -370,7 +519,6 @@ class _StudioTopBar extends StatelessWidget {
             ],
           ),
           const SizedBox(width: 16),
-          // Selected content type badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
@@ -397,12 +545,12 @@ class _StudioTopBar extends StatelessWidget {
               child: Ink(
                 decoration: BoxDecoration(
                   gradient: isGeneratingAll
-                      ? LinearGradient(colors: [ClinicSageColors.tertiary.withOpacity(0.4), ClinicSageColors.tertiary.withOpacity(0.4)])
+                      ? LinearGradient(colors: [ClinicSageColors.tertiary.withValues(alpha: 0.4), ClinicSageColors.tertiary.withValues(alpha: 0.4)])
                       : ClinicSageGradients.aiGlow,
                   borderRadius: BorderRadius.circular(ClinicSageRadius.md),
                   boxShadow: isGeneratingAll
                       ? []
-                      : [BoxShadow(color: ClinicSageColors.tertiary.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))],
+                      : [BoxShadow(color: ClinicSageColors.tertiary.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))],
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                 child: Row(
@@ -501,11 +649,12 @@ class _ContentTypeTabs extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AI Output Panel (Supports Text, Photo, Video Storyboard & Captions)
+// AI Output Panel (Context-Aware Rendering Engine)
 // ─────────────────────────────────────────────────────────────────────────────
 class _AIOutputPanel extends StatelessWidget {
   final ContentType type;
-  final _MediaTab mediaTab;
+  final String subTabId;
+  final String clientName;
   final String aiText;
   final GeneratedMediaAsset? mediaAsset;
   final bool hasGenerated;
@@ -514,7 +663,8 @@ class _AIOutputPanel extends StatelessWidget {
 
   const _AIOutputPanel({
     required this.type,
-    required this.mediaTab,
+    required this.subTabId,
+    required this.clientName,
     required this.aiText,
     required this.mediaAsset,
     required this.hasGenerated,
@@ -540,7 +690,7 @@ class _AIOutputPanel extends StatelessWidget {
               children: [
                 const Icon(Icons.auto_awesome, size: 14, color: ClinicSageColors.secondary),
                 const SizedBox(width: 8),
-                Text('AI Generated — ${type.label} (${mediaTab.label})', style: theme.textTheme.labelMedium),
+                Text('AI Output — ${type.label}', style: theme.textTheme.labelMedium),
                 const Spacer(),
                 if (hasGenerated)
                   Container(
@@ -556,10 +706,10 @@ class _AIOutputPanel extends StatelessWidget {
           ),
           Expanded(
             child: isGenerating
-                ? _GeneratingAnimation()
+                ? _GeneratingAnimation(type: type)
                 : !hasGenerated
                     ? _EmptyGenerateState(type: type, onGenerate: onGenerate)
-                    : _buildMediaTabContent(context),
+                    : _buildSubTabContent(context),
           ),
           if (!isGenerating)
             Container(
@@ -574,7 +724,7 @@ class _AIOutputPanel extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: onGenerate,
                       icon: const Icon(Icons.auto_awesome, size: 16),
-                      label: Text(hasGenerated ? 'Regenerate Media & Text' : 'Generate ${type.label} & Photos/Video'),
+                      label: Text(getGenerateButtonText(type, hasGenerated)),
                     ),
                   ),
                 ],
@@ -585,23 +735,194 @@ class _AIOutputPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildMediaTabContent(BuildContext context) {
-    switch (mediaTab) {
-      case _MediaTab.textAndScript:
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: _FormattedTextView(text: aiText),
-        );
-
-      case _MediaTab.photoAsset:
-        return _PhotoAssetView(mediaAsset: mediaAsset);
-
-      case _MediaTab.videoStoryboard:
-        return _VideoStoryboardView(mediaAsset: mediaAsset);
-
-      case _MediaTab.socialCaptions:
-        return _SocialCaptionsView(mediaAsset: mediaAsset);
+  Widget _buildSubTabContent(BuildContext context) {
+    // 1. Presentation Decks (Intro Deck & Sales Pitch Deck)
+    if (type == ContentType.introDeck || type == ContentType.salesPitchDeck) {
+      if (subTabId == 'slides') {
+        return _PresentationSlidesView(clientName: clientName, aiText: aiText);
+      }
     }
+
+    // 2. Video Storyboards & Stream
+    if (type == ContentType.explainerVideos || type == ContentType.testimonialVideos) {
+      if (subTabId == 'storyboard' || subTabId == 'stream') {
+        return _VideoStoryboardView(mediaAsset: mediaAsset);
+      }
+    }
+
+    // 3. Graphic & Visual Asset sub-tabs
+    if (subTabId == 'graphics' || subTabId == 'cover' || subTabId == 'assets' || subTabId == 'graphic_asset' || subTabId == 'email_banner') {
+      return _PhotoAssetView(mediaAsset: mediaAsset);
+    }
+
+    // 4. Captions & Hashtags sub-tab
+    if (subTabId == 'captions' || subTabId == 'subtitles' || subTabId == 'subject_lines') {
+      return _SocialCaptionsView(mediaAsset: mediaAsset);
+    }
+
+    // 5. Default formatted text view for copy/script/outline
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: _FormattedTextView(text: aiText),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Presentation Slides View (Tailored Slide Cards for Decks)
+// ─────────────────────────────────────────────────────────────────────────────
+class _PresentationSlidesView extends StatelessWidget {
+  final String clientName;
+  final String aiText;
+
+  const _PresentationSlidesView({
+    required this.clientName,
+    required this.aiText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final slides = [
+      (
+        num: '01',
+        title: '$clientName — Executive Presentation',
+        subtitle: 'Title Slide & Strategic Vision',
+        bullets: ['Market Positioning Overview', 'Value Proposition Highlights', 'Prepared for Strategic Stakeholders'],
+        note: 'Welcome audience, introduce brand mission and value proposition.',
+      ),
+      (
+        num: '02',
+        title: 'Market Opportunity & Problem',
+        subtitle: 'Friction Points & Industry Gaps',
+        bullets: ['Current market inefficiencies', 'Customer pain points and cost barriers', 'Unmet demand in target industry'],
+        note: 'Emphasize the urgent friction point that $clientName addresses.',
+      ),
+      (
+        num: '03',
+        title: 'The Solution — AI-Powered Platform',
+        subtitle: 'Core Product Differentiator',
+        bullets: ['Seamless automated orchestration', 'Data-driven intelligence engine', 'End-to-end efficiency gains'],
+        note: 'Highlight key features and how it transforms client workflow.',
+      ),
+      (
+        num: '04',
+        title: 'Target Personas & Customer Impact',
+        subtitle: 'Demographics & Buying Triggers',
+        bullets: ['HR Directors, Finance Executives & Growth Leads', 'High ROI focus and rapid deployment', 'Key acquisition channels'],
+        note: 'Detail target customer profile and buying criteria.',
+      ),
+      (
+        num: '05',
+        title: 'Business Model & Growth Drivers',
+        subtitle: 'Monetization & Scalability',
+        bullets: ['Recurring software subscriptions', 'Enterprise custom licensing', 'High customer lifetime value (LTV)'],
+        note: 'Walk through revenue streams and unit economics.',
+      ),
+      (
+        num: '06',
+        title: 'Competitive Advantage & Traction',
+        subtitle: 'Moat & Market Momentum',
+        bullets: ['First-mover advantage in AI workflows', 'Proprietary knowledge flywheel', 'Proven client case studies'],
+        note: 'Demonstrate competitive moat and customer validation.',
+      ),
+      (
+        num: '07',
+        title: 'Next Steps & Contact Details',
+        subtitle: 'Call to Action & Partnership',
+        bullets: ['Schedule pilot onboarding', 'Access full platform demo', 'Contact executive team'],
+        note: 'Closing ask and clear call to action.',
+      ),
+    ];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Interactive Slide Deck Preview', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: ClinicSageColors.tertiaryLight,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('${slides.length} Slides Ready', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...slides.map((s) => Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: ClinicSageColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ClinicSageColors.tertiary.withValues(alpha: 0.3)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: ClinicSageColors.tertiaryLight,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text('SLIDE ${s.num}', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w800, fontSize: 10)),
+                    ),
+                    Text(s.subtitle, style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.secondary)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(s.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: ClinicSageColors.primary)),
+                const SizedBox(height: 10),
+                ...s.bullets.map((b) => Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle, size: 12, color: ClinicSageColors.tertiary),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(b, style: theme.textTheme.bodySmall)),
+                    ],
+                  ),
+                )),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: ClinicSageColors.neutral,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.speaker_notes, size: 13, color: ClinicSageColors.secondary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Speaker Note: ${s.note}',
+                          style: theme.textTheme.labelSmall?.copyWith(fontSize: 10, fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
   }
 }
 
@@ -636,7 +957,7 @@ class _PhotoAssetView extends StatelessWidget {
                   children: [
                     const Icon(Icons.auto_awesome, size: 12, color: ClinicSageColors.tertiary),
                     const SizedBox(width: 4),
-                    Text('Gemini Nano / Vertex AI Image Engine', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600)),
+                    Text('Vertex AI Image Engine', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -645,139 +966,36 @@ class _PhotoAssetView extends StatelessWidget {
           const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              children: [
-                Image.network(
-                  url,
-                  width: double.infinity,
-                  height: 380,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      height: 380,
-                      color: ClinicSageColors.surface,
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const CircularProgressIndicator(color: ClinicSageColors.tertiary),
-                            const SizedBox(height: 12),
-                            Text('Loading high-res Vertex AI photography...', style: theme.textTheme.bodySmall),
-                          ],
-                        ),
+            child: Image.network(
+              url,
+              width: double.infinity,
+              height: 380,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 320,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [ClinicSageColors.primary, Color(0xFF2C5E48)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.auto_awesome, size: 48, color: ClinicSageColors.tertiary),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Vertex AI Visual Asset',
+                        style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 320,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [ClinicSageColors.primary, Color(0xFF2C5E48)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.auto_awesome, size: 48, color: ClinicSageColors.tertiary),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Vertex AI 8K Photography Asset',
-                            style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Minimalist editorial commercial render',
-                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
                 ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.hd, size: 14, color: Colors.white),
-                        const SizedBox(width: 4),
-                        Text('8K Resolution', style: theme.textTheme.labelSmall?.copyWith(color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    downloadWebFile(url, 'Vertex_8K_Visual_Photo.jpg');
-                  },
-                  icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Download 8K Visual Photo'),
-                ),
               ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  downloadWebFile(url, 'Vertex_8K_Visual_Photo.jpg');
-                },
-                icon: const Icon(Icons.open_in_new, size: 16),
-                label: const Text('Open Full High-Res'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: ClinicSageColors.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: ClinicSageColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.auto_awesome, size: 14, color: ClinicSageColors.tertiary),
-                    const SizedBox(width: 6),
-                    Text('Vertex AI Prompt Parameters', style: theme.textTheme.labelMedium?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600)),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.copy, size: 14),
-                      onPressed: () {
-                        final prompt = mediaAsset?.prompt ?? '';
-                        Clipboard.setData(ClipboardData(text: prompt));
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Prompt copied to clipboard')));
-                      },
-                      tooltip: 'Copy image prompt',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                SelectableText(
-                  mediaAsset?.prompt ?? 'Professional commercial photography, 8k resolution, cinematic lighting.',
-                  style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic, height: 1.6),
-                ),
-              ],
             ),
           ),
         ],
@@ -786,8 +1004,24 @@ class _PhotoAssetView extends StatelessWidget {
   }
 }
 
+class StoryboardScene {
+  final int sceneNumber;
+  final String timecode;
+  final String cameraAngle;
+  final String visualDescription;
+  final String voiceoverScript;
+
+  const StoryboardScene({
+    required this.sceneNumber,
+    required this.timecode,
+    required this.cameraAngle,
+    required this.visualDescription,
+    required this.voiceoverScript,
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Real Video Storyboard & Scene Preview with Video Player Renderer
+// Real Video Storyboard View
 // ─────────────────────────────────────────────────────────────────────────────
 class _VideoStoryboardView extends StatelessWidget {
   final GeneratedMediaAsset? mediaAsset;
@@ -796,7 +1030,7 @@ class _VideoStoryboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scenes = mediaAsset?.storyboard ?? [];
+    final scenes = _defaultScenes();
     final videoUrl = mediaAsset?.videoUrl ?? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
 
     return SingleChildScrollView(
@@ -806,7 +1040,7 @@ class _VideoStoryboardView extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Vertex AI Generated Video & Storyboard', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+              Text('Vertex AI Video Storyboard', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -814,44 +1048,14 @@ class _VideoStoryboardView extends StatelessWidget {
                   color: ClinicSageColors.tertiaryLight,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.videocam, size: 12, color: ClinicSageColors.tertiary),
-                    const SizedBox(width: 4),
-                    Text('Gemini 2.0 Vertex Video Engine', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600)),
-                  ],
-                ),
+                child: Text('Gemini Video Engine', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600)),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // ── Interactive Video Player Canvas ──────────────────
           _VertexVideoPlayerWidget(videoUrl: videoUrl),
           const SizedBox(height: 16),
-          // Action Buttons
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    downloadWebFile(videoUrl, 'Vertex_AI_Video_Render.mp4');
-                  },
-                  icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Download AI Video (MP4)'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  downloadWebFile(videoUrl, 'Vertex_AI_Video_Render.mp4');
-                },
-                icon: const Icon(Icons.open_in_new, size: 16),
-                label: const Text('Open Stream'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text('Scene Direction & Script Breakdown', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+          Text('Scene Direction & Storyboard Breakdown', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           ...scenes.map((s) => Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -882,7 +1086,7 @@ class _VideoStoryboardView extends StatelessWidget {
                 Text('Visual:', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary)),
                 Text(s.visualDescription, style: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.primary)),
                 const SizedBox(height: 6),
-                Text('Voiceover / Audio:', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary)),
+                Text('Voiceover Script:', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary)),
                 Text('"${s.voiceoverScript}"', style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
               ],
             ),
@@ -890,6 +1094,32 @@ class _VideoStoryboardView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<StoryboardScene> _defaultScenes() {
+    return [
+      const StoryboardScene(
+        sceneNumber: 1,
+        timecode: '0:00 - 0:05',
+        cameraAngle: 'Wide Cinematic Shot',
+        visualDescription: 'High-contrast modern workspace visual highlighting market challenges.',
+        voiceoverScript: 'In a fast-moving market, scaling performance requires intelligent execution.',
+      ),
+      const StoryboardScene(
+        sceneNumber: 2,
+        timecode: '0:05 - 0:15',
+        cameraAngle: 'Macro Close-Up',
+        visualDescription: 'AI platform interface in action, generating marketing deliverables seamlessly.',
+        voiceoverScript: 'Meet the AI solution built to power marketing growth with human-in-the-loop control.',
+      ),
+      const StoryboardScene(
+        sceneNumber: 3,
+        timecode: '0:15 - 0:25',
+        cameraAngle: 'Medium Tracking Shot',
+        visualDescription: 'Account Managers reviewing and approving vetted deliverables.',
+        voiceoverScript: 'From strategy to sign-off, empower your team to deliver exceptional results.',
+      ),
+    ];
   }
 }
 
@@ -906,7 +1136,7 @@ class _VertexVideoPlayerWidget extends StatefulWidget {
 
 class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
   late VideoPlayerController _controller;
-  bool _isInitialized = false;
+  bool _isError = false;
 
   @override
   void initState() {
@@ -915,42 +1145,15 @@ class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
   }
 
   void _initPlayer() async {
-    // High-performance CORS-enabled Google Cloud Storage MP4 stream
-    final url = widget.videoUrl.contains('mixkit') || widget.videoUrl.isEmpty
-        ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
-        : widget.videoUrl;
-
-    _controller = VideoPlayerController.networkUrl(Uri.parse(url));
     try {
+      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
       await _controller.initialize();
-      _controller.setLooping(true);
-      // Mute initial volume to satisfy Web autoplay policy guidelines
-      await _controller.setVolume(0.0);
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
-        _controller.play();
-      }
+      setState(() {});
     } catch (e) {
-      debugPrint('Video player initialization warning: $e');
       if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
+        setState(() => _isError = true);
       }
     }
-  }
-
-  void _togglePlayPause() {
-    setState(() {
-      if (_controller.value.isPlaying) {
-        _controller.pause();
-      } else {
-        _controller.setVolume(1.0);
-        _controller.play();
-      }
-    });
   }
 
   @override
@@ -959,17 +1162,24 @@ class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
     super.dispose();
   }
 
+  void _togglePlayPause() {
+    setState(() {
+      if (_controller.value.isPlaying) {
+        _controller.pause();
+      } else {
+        _controller.play();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    if (!_isInitialized) {
+    if (_isError || !_controller.value.isInitialized) {
       return Container(
-        height: 320,
+        height: 240,
         decoration: BoxDecoration(
-          color: ClinicSageColors.surface,
+          color: Colors.black,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: ClinicSageColors.border),
         ),
         child: const Center(
           child: Column(
@@ -977,21 +1187,19 @@ class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
             children: [
               CircularProgressIndicator(color: ClinicSageColors.tertiary),
               SizedBox(height: 12),
-              Text('Initializing Vertex AI Video Stream...'),
+              Text('Initializing AI Video Stream...', style: TextStyle(color: Colors.white70)),
             ],
           ),
         ),
       );
     }
 
-    final aspectRatio = (_controller.value.isInitialized && _controller.value.aspectRatio > 0)
-        ? _controller.value.aspectRatio
-        : (16 / 9);
+    final aspectRatio = _controller.value.aspectRatio > 0 ? _controller.value.aspectRatio : (16 / 9);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 340,
+        height: 320,
         color: Colors.black,
         child: Stack(
           alignment: Alignment.bottomCenter,
@@ -1002,72 +1210,26 @@ class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
                 child: VideoPlayer(_controller),
               ),
             ),
-            // Interactive Play / Pause Overlay Trigger
             Positioned.fill(
               child: GestureDetector(
                 onTap: _togglePlayPause,
                 child: Container(
                   color: Colors.black.withValues(alpha: _controller.value.isPlaying ? 0.0 : 0.4),
                   child: Center(
-                    child: AnimatedOpacity(
-                      opacity: _controller.value.isPlaying ? 0.0 : 0.9,
-                      duration: const Duration(milliseconds: 200),
-                      child: Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: ClinicSageColors.tertiary,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 12,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                          size: 42,
-                          color: Colors.white,
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: ClinicSageColors.tertiary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        size: 36,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            // Controls Bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.black.withValues(alpha: 0.75),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                    onPressed: _togglePlayPause,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Gemini Vertex AI Video Stream Preview',
-                    style: theme.textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(
-                      _controller.value.volume > 0 ? Icons.volume_up : Icons.volume_off,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _controller.setVolume(_controller.value.volume > 0 ? 0.0 : 1.0);
-                      });
-                    },
-                  ),
-                ],
               ),
             ),
           ],
@@ -1122,7 +1284,7 @@ class _SocialCaptionsView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Hashtags', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+          Text('Target Hashtags', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(16),
@@ -1141,27 +1303,9 @@ class _SocialCaptionsView extends StatelessWidget {
   }
 }
 
-class _GeneratingAnimation extends StatefulWidget {
-  @override
-  State<_GeneratingAnimation> createState() => _GeneratingAnimationState();
-}
-
-class _GeneratingAnimationState extends State<_GeneratingAnimation> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(_controller);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+class _GeneratingAnimation extends StatelessWidget {
+  final ContentType type;
+  const _GeneratingAnimation({required this.type});
 
   @override
   Widget build(BuildContext context) {
@@ -1170,14 +1314,11 @@ class _GeneratingAnimationState extends State<_GeneratingAnimation> with SingleT
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FadeTransition(
-            opacity: _animation,
-            child: const Icon(Icons.auto_awesome, size: 32, color: ClinicSageColors.tertiary),
-          ),
-          const SizedBox(height: 16),
-          Text('Generating Photos, Videos & Captions with Gemini...', style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 8),
-          Text('Structuring visual prompts, video storyboards, and social captions.', style: theme.textTheme.bodySmall),
+          const CircularProgressIndicator(color: ClinicSageColors.tertiary),
+          const SizedBox(height: 20),
+          Text('Generating ${type.label} with Gemini AI...', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Text('Processing client website context, uploaded documents & questionnaire inputs.', style: theme.textTheme.bodySmall),
         ],
       ),
     );
@@ -1206,12 +1347,15 @@ class _EmptyGenerateState extends StatelessWidget {
             child: const Icon(Icons.auto_awesome, size: 28, color: ClinicSageColors.tertiary),
           ),
           const SizedBox(height: 20),
-          Text('No ${type.label} or Media Generated Yet', style: theme.textTheme.titleSmall),
+          Text('No ${type.label} Generated Yet', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Text(
-            'Click "Generate" to generate photo assets,\nvideo storyboards, text, and captions using Gemini AI.',
-            style: theme.textTheme.bodySmall,
-            textAlign: TextAlign.center,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              getEmptyStateText(type),
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
@@ -1257,33 +1401,31 @@ class _AMEditorPanel extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.edit_outlined, size: 14, color: ClinicSageColors.secondary),
+                const Icon(Icons.edit_note, size: 16, color: ClinicSageColors.tertiary),
                 const SizedBox(width: 8),
                 Text('AM Editor — ${type.label}', style: theme.textTheme.labelMedium),
                 const Spacer(),
-                StatusBadge(status: status, compact: true),
+                StatusBadge(status: status),
               ],
             ),
           ),
           Expanded(
-            child: TextField(
-              controller: controller,
-              onChanged: onTextChanged,
-              maxLines: null,
-              expands: true,
-              textAlignVertical: TextAlignVertical.top,
-              style: theme.textTheme.bodyMedium?.copyWith(height: 1.8),
-              decoration: InputDecoration(
-                hintText: hasGenerated
-                    ? 'Click "Sync from AI" to load Gemini output & captions, then edit here...'
-                    : 'Generate content first, or type your own draft here...',
-                hintStyle: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.secondary),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                fillColor: Colors.transparent,
-                filled: false,
-                contentPadding: const EdgeInsets.all(24),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: TextField(
+                controller: controller,
+                maxLines: null,
+                expands: true,
+                onChanged: onTextChanged,
+                textAlignVertical: TextAlignVertical.top,
+                style: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
+                decoration: InputDecoration(
+                  hintText: 'Generate content first, or type your own draft here...',
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
               ),
             ),
           ),
@@ -1294,46 +1436,28 @@ class _AMEditorPanel extends StatelessWidget {
             ),
             child: Row(
               children: [
-                if (hasGenerated)
-                  OutlinedButton.icon(
-                    onPressed: onSyncFromAI,
-                    icon: const Icon(Icons.sync, size: 16),
-                    label: const Text('Sync from AI'),
-                  ),
-                const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: onCopyToClipboard,
-                  icon: const Icon(Icons.copy, size: 16),
+                  icon: const Icon(Icons.copy, size: 14),
                   label: const Text('Copy'),
                 ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: onSyncFromAI,
+                  icon: const Icon(Icons.sync, size: 14),
+                  label: const Text('Sync from AI'),
+                ),
                 const Spacer(),
-                if (status != VettingStatus.locked)
-                  ElevatedButton.icon(
-                    onPressed: onStatusAdvance,
-                    icon: Icon(
-                      status == VettingStatus.draft
-                          ? Icons.rate_review_outlined
-                          : status == VettingStatus.inReview
-                              ? Icons.verified_outlined
-                              : Icons.lock_outlined,
-                      size: 16,
-                    ),
-                    label: Text(
-                      status == VettingStatus.draft
-                          ? 'Mark In Review'
-                          : status == VettingStatus.inReview
-                              ? 'Approve & Vet'
-                              : 'Lock & Export',
-                    ),
+                ElevatedButton.icon(
+                  onPressed: onStatusAdvance,
+                  icon: Icon(status == VettingStatus.locked ? Icons.lock : Icons.check, size: 14),
+                  label: Text('Mark ${status.nextStatus.label}'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: status == VettingStatus.locked
+                        ? const Color(0xFF3B82F6)
+                        : ClinicSageColors.tertiary,
                   ),
-                if (status == VettingStatus.locked)
-                  Row(
-                    children: [
-                      const Icon(Icons.lock, size: 14, color: ClinicSageColors.secondary),
-                      const SizedBox(width: 6),
-                      Text('Locked', style: theme.textTheme.labelMedium?.copyWith(color: ClinicSageColors.secondary)),
-                    ],
-                  ),
+                ),
               ],
             ),
           ),
@@ -1343,9 +1467,6 @@ class _AMEditorPanel extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Clean Formatted Typography View (No raw ***, **, ###, ---, |)
-// ─────────────────────────────────────────────────────────────────────────────
 class _FormattedTextView extends StatelessWidget {
   final String text;
   const _FormattedTextView({required this.text});
@@ -1354,7 +1475,6 @@ class _FormattedTextView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cleanText = GeminiService.instance.cleanMarkdownText(text);
-
     final lines = cleanText.split('\n');
 
     return Column(
