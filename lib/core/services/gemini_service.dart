@@ -119,7 +119,7 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
     );
   }
 
-  /// Generate content deliverable (Script, Copy, Design Brief, Social Post, etc.) tailored strictly to Client
+  /// Generate content deliverable (Script, Copy, Design Brief, Social Post, etc.) ingesting all Step 1 Client Inputs
   Future<String> generateContent({
     required ContentType type,
     required String clientName,
@@ -127,6 +127,8 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
     String? clientId,
     String? websiteUrl,
     Map<String, String>? questionnaire,
+    List<String>? competitors,
+    List<String>? targetRoleModels,
     List<String>? referenceImages,
     List<String>? referenceDocuments,
   }) async {
@@ -138,6 +140,8 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
       industry: industry,
       websiteUrl: websiteUrl,
       questionnaire: questionnaire,
+      competitors: competitors,
+      targetRoleModels: targetRoleModels,
       referenceImages: referenceImages,
       referenceDocuments: referenceDocuments,
       vettedHistory: history,
@@ -324,36 +328,58 @@ Return a JSON object strictly matching this schema:
     required String industry,
     String? websiteUrl,
     Map<String, String>? questionnaire,
+    List<String>? competitors,
+    List<String>? targetRoleModels,
     List<String>? referenceImages,
     List<String>? referenceDocuments,
     List<String>? vettedHistory,
   }) {
-    final qText = questionnaire != null
-        ? questionnaire.entries.map((e) => '${e.key}: ${e.value}').join('\n')
+    final Map<String, String> qLabels = {
+      'targetCustomer': 'Who is your target customer?',
+      'targetCountry': 'What is your target country?',
+      'targetIndustry': 'What is your target industry?',
+      'closestCompetitor': 'Who is your closest competitor?',
+      'keyDifferentiator': 'What is your key differentiator?',
+      'mainSalesChannel': 'What is your main sales channel?',
+    };
+
+    final qText = (questionnaire != null && questionnaire.isNotEmpty)
+        ? questionnaire.entries.map((e) {
+            final label = qLabels[e.key] ?? e.key;
+            return '- $label: ${e.value}';
+          }).join('\n')
+        : 'No specific questionnaire filled yet.';
+
+    final compText = (competitors != null && competitors.isNotEmpty)
+        ? '- Direct Competitors: ${competitors.join(', ')}\n'
+        : '';
+    final roleText = (targetRoleModels != null && targetRoleModels.isNotEmpty)
+        ? '- Target Aspirational Role Models: ${targetRoleModels.join(', ')}\n'
         : '';
     final imagesText = (referenceImages != null && referenceImages.isNotEmpty)
-        ? 'Uploaded Photos & Images for Visual Reference: ${referenceImages.join(', ')}\n'
+        ? '- Reference Photos & Product Images: ${referenceImages.join(', ')}\n'
         : '';
     final docsText = (referenceDocuments != null && referenceDocuments.isNotEmpty)
-        ? 'Uploaded Reference Word Documents & PDFs: ${referenceDocuments.join(', ')}\n'
+        ? '- Reference Brand Guidelines & Word/PDF Docs: ${referenceDocuments.join(', ')}\n'
         : '';
     final historyText = (vettedHistory != null && vettedHistory.isNotEmpty)
-        ? 'Approved Historical Benchmarks & Past Vetted Outputs (Emulate Brand Voice):\n${vettedHistory.take(5).map((h) => '--- Approved Benchmark ---\n$h').join('\n')}\n'
+        ? '\nApproved Historical Benchmarks (Emulate Brand Voice & Preference):\n${vettedHistory.take(5).map((h) => '--- Approved Benchmark ---\n$h').join('\n')}\n'
         : '';
 
     return '''
-You are an expert copywriter generating content EXCLUSIVELY FOR CLIENT: "$clientName" (Industry: "$industry", Website: "${websiteUrl ?? 'N/A'}").
+You are an elite AI marketing strategist generating content EXCLUSIVELY FOR CLIENT: "$clientName" (Industry: "$industry", Website: "${websiteUrl ?? 'N/A'}").
 
-STRICT MANDATE:
-- All generated content MUST be 100% about "$clientName" and its offerings in the $industry industry.
-- DO NOT mention "Meet Marketers AI" or agency software platforms. Speak directly as "$clientName" addressing its target audience in $industry.
+STRICT MANDATE & SCOPING RULES:
+1. All generated content MUST be 100% focused on "$clientName" and its offerings in the $industry industry.
+2. DO NOT mention "Meet Marketers AI" or agency software platforms. Speak directly as "$clientName" addressing its target customers.
+3. Incorporate the following client intake answers, target country, key differentiators, and ICP details:
 
-Ingested Client Information & Questionnaire:
+Ingested Discovery Intake Information for "$clientName":
 $qText
-$imagesText$docsText
+$compText$roleText$imagesText$docsText
 $historyText
 
-Task: Generate a clean, high-converting ${type.label} for "$clientName".
+Task: Generate a clean, conversion-driven ${type.label} tailored specifically for "$clientName".
 
 FORMATTING RULES:
 - Do NOT use markdown asterisks (** or ***), hash headers (###), or table pipes (|).

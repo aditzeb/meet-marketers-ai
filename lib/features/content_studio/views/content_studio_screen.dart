@@ -328,6 +328,8 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
       clientId: client.id,
       websiteUrl: client.websiteUrl,
       questionnaire: client.questionnaireAnswers,
+      competitors: client.competitors,
+      targetRoleModels: client.targetRoleModels,
       referenceImages: client.imageStoragePaths,
       referenceDocuments: client.documentStoragePaths,
     );
@@ -357,6 +359,8 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
         clientId: client.id,
         websiteUrl: client.websiteUrl,
         questionnaire: client.questionnaireAnswers,
+        competitors: client.competitors,
+        targetRoleModels: client.targetRoleModels,
         referenceImages: client.imageStoragePaths,
         referenceDocuments: client.documentStoragePaths,
       );
