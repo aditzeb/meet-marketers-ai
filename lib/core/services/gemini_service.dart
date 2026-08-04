@@ -15,12 +15,15 @@ class GeminiService {
 
   static const String firebaseProjectId = 'meet-marketers-ai';
 
-  /// Standard Gemini Text Generation Models (Excluded video/image model names to prevent 404 text call errors)
+  /// Standard Gemini Text Generation Models (Gemini 3.5 Flash primary engine)
   static const List<String> candidateModels = [
-    'gemini-1.5-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-preview',
+    'gemini-3.5-flash-latest',
+    'gemini-2.5-flash',
     'gemini-2.0-flash-exp',
+    'gemini-1.5-flash',
     'gemini-1.5-pro',
-    'gemini-1.5-flash-latest',
     'gemini-pro',
   ];
 
