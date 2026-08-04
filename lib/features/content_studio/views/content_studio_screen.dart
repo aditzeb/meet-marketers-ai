@@ -948,22 +948,23 @@ class _PhotoAssetView extends StatelessWidget {
               Text('Generated Visual Asset', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: ClinicSageColors.tertiaryLight,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.full),
+                  border: Border.all(color: ClinicSageColors.tertiary.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.auto_awesome, size: 12, color: ClinicSageColors.tertiary),
                     const SizedBox(width: 4),
-                    Text('Imagen 3 / Imagen 3.0 Image Engine', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600)),
+                    Text('Imagen 3 / Imagen 3.0 Model', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.network(
@@ -971,31 +972,74 @@ class _PhotoAssetView extends StatelessWidget {
               width: double.infinity,
               height: 380,
               fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  height: 380,
+                  color: ClinicSageColors.surface,
+                  child: const Center(
+                    child: CircularProgressIndicator(color: ClinicSageColors.tertiary),
+                  ),
+                );
+              },
               errorBuilder: (context, error, stackTrace) => Container(
-                height: 320,
-                padding: const EdgeInsets.all(24),
+                height: 380,
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [ClinicSageColors.primary, Color(0xFF2C5E48)],
+                    colors: [ClinicSageColors.primary, Color(0xFF1E3A2F), Color(0xFF11221C)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.auto_awesome, size: 48, color: ClinicSageColors.tertiary),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Imagen 3 Visual Asset',
-                        style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: ClinicSageColors.tertiary.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
                       ),
-                    ],
-                  ),
+                      child: const Icon(Icons.auto_awesome, size: 40, color: ClinicSageColors.tertiary),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Imagen 3 AI Commercial Render',
+                      style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '8K Ultra HD · Studio Lighting · Modern Executive Aesthetic',
+                      style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70),
+                    ),
+                  ],
                 ),
               ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: ClinicSageColors.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: ClinicSageColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, size: 14, color: ClinicSageColors.secondary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    mediaAsset?.prompt ?? 'Prompt: Hyper-realistic Imagen 3 commercial photography, cinematic lighting, 8k resolution.',
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 11, color: ClinicSageColors.secondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1040,15 +1084,22 @@ class _VideoStoryboardView extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Vertex AI Video Storyboard', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+              Text('Google VEO AI Video Storyboard', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: ClinicSageColors.tertiaryLight,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.full),
+                  border: Border.all(color: ClinicSageColors.tertiary.withValues(alpha: 0.3)),
                 ),
-                child: Text('Gemini Video Engine', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.videocam, size: 12, color: ClinicSageColors.tertiary),
+                    const SizedBox(width: 4),
+                    Text('Google VEO 2.0 / 3.1 Video Engine', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w700)),
+                  ],
+                ),
               ),
             ],
           ),

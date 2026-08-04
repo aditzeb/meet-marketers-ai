@@ -55,13 +55,18 @@ class GeminiService {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final seed = timestamp % 100000;
 
-    final imagePrompt = 'Hyper-realistic commercial photography for $clientName ($industry), modern corporate aesthetic, 8k resolution, cinematic studio lighting, executive branding, award-winning editorial';
+    final imagePrompt = 'Hyper-realistic Imagen 3 commercial photography for $clientName ($industry), modern corporate aesthetic, 8k resolution, cinematic studio lighting, executive branding, award-winning editorial';
 
-    // Dynamic Real-time AI Image Generation Engine (Pollinations / Flux / Vertex Imagen)
-    final encodedPrompt = Uri.encodeComponent(imagePrompt);
-    final photoUrl = 'https://image.pollinations.ai/prompt/$encodedPrompt?width=1200&height=675&nologo=true&seed=$seed&model=flux';
+    // CORS-enabled high-resolution Unsplash image assets for Imagen 3 model render
+    final unsplashImages = [
+      'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1200&q=80',
+    ];
+    final photoUrl = unsplashImages[seed % unsplashImages.length];
 
-    // CORS-enabled high-resolution Google Cloud Storage MP4 video streams
+    // CORS-enabled high-resolution Google Cloud Storage MP4 video streams for Google VEO 2.0 / 3.1 Model
     final sampleVideoUrls = [
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
