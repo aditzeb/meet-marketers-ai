@@ -14,7 +14,7 @@ class AuthScreen extends ConsumerStatefulWidget {
   ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends ConsumerState<AuthScreen> {
+class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStateMixin {
   bool _isSignIn = true;
   bool _obscurePassword = true;
 
@@ -23,11 +23,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
 
+  late AnimationController _logoController;
+  late Animation<double> _logoScale;
+  late Animation<double> _logoOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _logoScale = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
+    );
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.6)),
+    );
+    _logoController.forward();
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _logoController.dispose();
     super.dispose();
   }
 
@@ -39,38 +60,40 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     return Scaffold(
       backgroundColor: ClinicSageColors.neutral,
-      body: isWide ? _WideLayout(
-        leftPanel: _BrandPanel(),
-        rightPanel: _FormPanel(
-          isSignIn: _isSignIn,
-          isLoading: authState.isLoading,
-          errorMessage: authState.error,
-          obscurePassword: _obscurePassword,
-          formKey: _formKey,
-          emailController: _emailController,
-          passwordController: _passwordController,
-          nameController: _nameController,
-          onToggleMode: () => setState(() => _isSignIn = !_isSignIn),
-          onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
-          onSubmit: _onSubmit,
-          onGoogleSignIn: _onGoogleSignIn,
-        ),
-      ) : _NarrowLayout(
-        formPanel: _FormPanel(
-          isSignIn: _isSignIn,
-          isLoading: authState.isLoading,
-          errorMessage: authState.error,
-          obscurePassword: _obscurePassword,
-          formKey: _formKey,
-          emailController: _emailController,
-          passwordController: _passwordController,
-          nameController: _nameController,
-          onToggleMode: () => setState(() => _isSignIn = !_isSignIn),
-          onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
-          onSubmit: _onSubmit,
-          onGoogleSignIn: _onGoogleSignIn,
-        ),
-      ),
+      body: isWide
+          ? Row(
+              children: [
+                Expanded(flex: 5, child: _BrandPanel(logoController: _logoController, logoScale: _logoScale, logoOpacity: _logoOpacity)),
+                Expanded(flex: 4, child: _FormPanel(
+                  isSignIn: _isSignIn,
+                  isLoading: authState.isLoading,
+                  errorMessage: authState.error,
+                  obscurePassword: _obscurePassword,
+                  formKey: _formKey,
+                  emailController: _emailController,
+                  passwordController: _passwordController,
+                  nameController: _nameController,
+                  onToggleMode: () => setState(() => _isSignIn = !_isSignIn),
+                  onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onSubmit: _onSubmit,
+                  onGoogleSignIn: _onGoogleSignIn,
+                )),
+              ],
+            )
+          : _FormPanel(
+              isSignIn: _isSignIn,
+              isLoading: authState.isLoading,
+              errorMessage: authState.error,
+              obscurePassword: _obscurePassword,
+              formKey: _formKey,
+              emailController: _emailController,
+              passwordController: _passwordController,
+              nameController: _nameController,
+              onToggleMode: () => setState(() => _isSignIn = !_isSignIn),
+              onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
+              onSubmit: _onSubmit,
+              onGoogleSignIn: _onGoogleSignIn,
+            ),
     );
   }
 
@@ -98,110 +121,136 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 }
 
-class _WideLayout extends StatelessWidget {
-  final Widget leftPanel;
-  final Widget rightPanel;
-  const _WideLayout({required this.leftPanel, required this.rightPanel});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(flex: 5, child: leftPanel),
-        Expanded(flex: 4, child: rightPanel),
-      ],
-    );
-  }
-}
-
-class _NarrowLayout extends StatelessWidget {
-  final Widget formPanel;
-  const _NarrowLayout({required this.formPanel});
-
-  @override
-  Widget build(BuildContext context) {
-    return formPanel;
-  }
-}
-
 class _BrandPanel extends StatelessWidget {
+  final AnimationController logoController;
+  final Animation<double> logoScale;
+  final Animation<double> logoOpacity;
+
+  const _BrandPanel({
+    required this.logoController,
+    required this.logoScale,
+    required this.logoOpacity,
+  });
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      color: ClinicSageColors.primary,
-      padding: const EdgeInsets.all(64),
+      decoration: const BoxDecoration(
+        gradient: ClinicSageGradients.brandVibrant,
+      ),
+      padding: const EdgeInsets.all(56),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: ClinicSageColors.tertiary,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: const Icon(Icons.auto_awesome, size: 18, color: Colors.white),
+          // Brand logo
+          ScaleTransition(
+            scale: logoScale,
+            child: FadeTransition(
+              opacity: logoOpacity,
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: ClinicSageGradients.tertiary,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: ClinicSageShadows.aiGlow,
+                    ),
+                    child: const Icon(Icons.auto_awesome, size: 20, color: Colors.white),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Meet Marketers AI',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Account Manager Platform',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Text(
-                'Meet Marketers AI',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+            ),
           ),
 
           const Spacer(),
 
+          // Hero text
           Text(
             'Intelligence\nfor Account\nManagers.',
             style: theme.textTheme.displayLarge?.copyWith(
               color: Colors.white,
-              fontSize: 52,
+              fontSize: 50,
+              fontWeight: FontWeight.w700,
               height: 1.1,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
             'Orchestrate AI-powered marketing deliverables\nacross your entire client portfolio — with full\nhuman control at every step.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: Colors.white.withOpacity(0.65),
               height: 1.7,
+              fontSize: 15,
             ),
           ),
 
-          const Spacer(),
+          const SizedBox(height: 40),
 
+          // Feature cards
           ..._features.map((f) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: ClinicSageColors.tertiary,
-                    shape: BoxShape.circle,
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: ClinicSageColors.tertiary.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Icon(f.$2, size: 14, color: ClinicSageColors.tertiaryVibrant),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Text(f, style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withOpacity(0.75),
-                )),
-              ],
+                  const SizedBox(width: 12),
+                  Text(
+                    f.$1,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white.withOpacity(0.80),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
             ),
           )),
 
-          const SizedBox(height: 8),
+          const Spacer(),
+
           Text(
             'Internal platform · Account Managers only',
             style: theme.textTheme.labelSmall?.copyWith(
-              color: Colors.white.withOpacity(0.35),
+              color: Colors.white.withOpacity(0.30),
               letterSpacing: 0.5,
             ),
           ),
@@ -211,10 +260,10 @@ class _BrandPanel extends StatelessWidget {
   }
 
   static const _features = [
-    'Multi-client workspace management',
-    'AI-generated scripts, copy & design briefs',
-    'Human-in-the-loop vetting & approval',
-    'SWOT analysis & social media calendars',
+    ('Multi-client workspace management', Icons.people_outline),
+    ('AI-generated scripts, copy & design briefs', Icons.auto_awesome),
+    ('Human-in-the-loop vetting & approval', Icons.verified_outlined),
+    ('SWOT analysis & social media calendars', Icons.insights_outlined),
   ];
 }
 
@@ -254,175 +303,216 @@ class _FormPanel extends StatelessWidget {
     return Container(
       color: ClinicSageColors.surface,
       child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Padding(
-            padding: const EdgeInsets.all(48),
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isSignIn ? 'Welcome back.' : 'Create account.',
-                    style: theme.textTheme.headlineLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    isSignIn
-                        ? 'Sign in to your Account Manager workspace.'
-                        : 'Set up your AM portal in seconds.',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 36),
-
-                  if (errorMessage != null) ...[
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.all(48),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFDF2F2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFF8B4B4)),
+                        gradient: ClinicSageGradients.tertiarySubtle,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: ClinicSageColors.border),
                       ),
-                      child: Text(errorMessage!, style: const TextStyle(color: Color(0xFF9B1C1C), fontSize: 13)),
+                      child: const Icon(Icons.auto_awesome, size: 22, color: ClinicSageColors.tertiary),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      isSignIn ? 'Welcome back.' : 'Create account.',
+                      style: theme.textTheme.headlineLarge,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isSignIn
+                          ? 'Sign in to your Account Manager workspace.'
+                          : 'Set up your AM portal in seconds.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 32),
+
+                    if (errorMessage != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFDF2F2),
+                          borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                          border: Border.all(color: const Color(0xFFF8B4B4)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, size: 16, color: Color(0xFF9B1C1C)),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(errorMessage!, style: const TextStyle(color: Color(0xFF9B1C1C), fontSize: 13))),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      child: isSignIn
+                          ? const SizedBox.shrink()
+                          : Column(
+                              children: [
+                                _AuthField(
+                                  controller: nameController,
+                                  label: 'Full Name',
+                                  hint: 'Alex Johnson',
+                                  prefixIcon: Icons.person_outline,
+                                  validator: (v) => (v?.isEmpty ?? true) ? 'Name required' : null,
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
+                    ),
+
+                    _AuthField(
+                      controller: emailController,
+                      label: 'Email Address',
+                      hint: 'am@agency.com',
+                      prefixIcon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) {
+                        if (v?.isEmpty ?? true) return 'Email required';
+                        if (!v!.contains('@')) return 'Enter a valid email';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
-                  ],
 
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 200),
-                    child: isSignIn
-                        ? const SizedBox.shrink()
-                        : Column(
-                            children: [
-                              _AuthField(
-                                controller: nameController,
-                                label: 'Full Name',
-                                hint: 'Alex Johnson',
-                                prefixIcon: Icons.person_outline,
-                                validator: (v) => (v?.isEmpty ?? true) ? 'Name required' : null,
-                              ),
-                              const SizedBox(height: 16),
-                            ],
+                    _AuthField(
+                      controller: passwordController,
+                      label: 'Password',
+                      hint: '••••••••',
+                      prefixIcon: Icons.lock_outline,
+                      obscureText: obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          size: 18,
+                          color: ClinicSageColors.secondary,
+                        ),
+                        onPressed: onToggleObscure,
+                      ),
+                      validator: (v) {
+                        if (v?.isEmpty ?? true) return 'Password required';
+                        if (v!.length < 6) return 'Minimum 6 characters';
+                        return null;
+                      },
+                    ),
+
+                    if (isSignIn) ...[
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {},
+                          child: const Text('Forgot password?'),
+                        ),
+                      ),
+                    ] else
+                      const SizedBox(height: 24),
+
+                    // Primary CTA Button with gradient
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                        child: InkWell(
+                          onTap: isLoading ? null : onSubmit,
+                          borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: isLoading
+                                  ? LinearGradient(colors: [ClinicSageColors.tertiary.withOpacity(0.5), ClinicSageColors.tertiary.withOpacity(0.5)])
+                                  : ClinicSageGradients.tertiary,
+                              borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                              boxShadow: isLoading ? [] : ClinicSageShadows.button,
+                            ),
+                            child: Center(
+                              child: isLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : Text(
+                                      isSignIn ? 'Sign In' : 'Create Account',
+                                      style: theme.textTheme.titleSmall?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
                           ),
-                  ),
-
-                  _AuthField(
-                    controller: emailController,
-                    label: 'Email Address',
-                    hint: 'am@agency.com',
-                    prefixIcon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (v) {
-                      if (v?.isEmpty ?? true) return 'Email required';
-                      if (!v!.contains('@')) return 'Enter a valid email';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  _AuthField(
-                    controller: passwordController,
-                    label: 'Password',
-                    hint: '••••••••',
-                    prefixIcon: Icons.lock_outline,
-                    obscureText: obscurePassword,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                        size: 18,
-                        color: ClinicSageColors.secondary,
-                      ),
-                      onPressed: onToggleObscure,
-                    ),
-                    validator: (v) {
-                      if (v?.isEmpty ?? true) return 'Password required';
-                      if (v!.length < 6) return 'Minimum 6 characters';
-                      return null;
-                    },
-                  ),
-
-                  if (isSignIn) ...[
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {},
-                        child: const Text('Forgot password?'),
+                        ),
                       ),
                     ),
-                  ],
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                  SizedBox(
-                    width: double.infinity,
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : onSubmit,
-                      child: isLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(isSignIn ? 'Sign In' : 'Create Account'),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('or', style: theme.textTheme.bodySmall),
+                        ),
+                        const Expanded(child: Divider()),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 16),
 
-                  const SizedBox(height: 16),
-
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('or', style: theme.textTheme.bodySmall),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: isLoading ? null : onGoogleSignIn,
+                        icon: const Icon(Icons.account_circle, size: 20, color: ClinicSageColors.tertiary),
+                        label: const Text('Continue as Account Manager'),
                       ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 46,
-                    child: OutlinedButton.icon(
-                      onPressed: isLoading ? null : onGoogleSignIn,
-                      icon: const Icon(Icons.account_circle, size: 20, color: ClinicSageColors.tertiary),
-                      label: const Text('Continue as Account Manager'),
                     ),
-                  ),
 
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 28),
 
-                  Center(
-                    child: RichText(
-                      text: TextSpan(
-                        style: theme.textTheme.bodySmall,
-                        children: [
-                          TextSpan(text: isSignIn ? "Don't have an account? " : 'Already have an account? '),
-                          WidgetSpan(
-                            child: GestureDetector(
-                              onTap: onToggleMode,
-                              child: Text(
-                                isSignIn ? 'Sign Up' : 'Sign In',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: ClinicSageColors.tertiary,
-                                  fontWeight: FontWeight.w600,
+                    Center(
+                      child: RichText(
+                        text: TextSpan(
+                          style: theme.textTheme.bodySmall,
+                          children: [
+                            TextSpan(text: isSignIn ? "Don't have an account? " : 'Already have an account? '),
+                            WidgetSpan(
+                              child: GestureDetector(
+                                onTap: onToggleMode,
+                                child: Text(
+                                  isSignIn ? 'Sign Up' : 'Sign In',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: ClinicSageColors.tertiary,
+                                    fontWeight: FontWeight.w700,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: ClinicSageColors.tertiary,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

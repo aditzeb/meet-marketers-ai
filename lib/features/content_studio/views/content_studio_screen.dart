@@ -14,7 +14,6 @@ import '../../dashboard/providers/client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/services/web_download_helper.dart';
 import '../../../shared/widgets/workspace_phase_header.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 /// Phase 3A: Content Production — Split-Screen Editor + Real Photo, Video & Caption Generator
@@ -27,7 +26,7 @@ class ContentStudioScreen extends ConsumerStatefulWidget {
 }
 
 class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
-  ContentType _selectedType = ContentType.script;
+  ContentType _selectedType = ContentType.socialMediaPosts;
   _MediaTab _mediaTab = _MediaTab.textAndScript;
 
   bool _isGenerating = false;
@@ -70,6 +69,7 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
   void _onTextChanged(ContentType type, String value) {
     final key = 'draft_${widget.clientId}_${type.value}';
     HiveCacheService.instance.saveDraftBuffer(key, value);
+    HiveCacheService.instance.saveVettedDeliverable(widget.clientId, type.value, value);
 
     final am = ref.read(authProvider).user;
     final amId = am?.id ?? 'am-default';
@@ -95,7 +95,6 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final clientState = ref.watch(clientProvider);
     final client = clientState.getClient(widget.clientId);
 
@@ -171,8 +170,11 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
       type: _selectedType,
       clientName: client.name,
       industry: client.industry,
+      clientId: client.id,
       websiteUrl: client.websiteUrl,
       questionnaire: client.questionnaireAnswers,
+      referenceImages: client.imageStoragePaths,
+      referenceDocuments: client.documentStoragePaths,
     );
 
     final media = await GeminiService.instance.generateMediaAsset(
@@ -197,8 +199,11 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
         type: t,
         clientName: client.name,
         industry: client.industry,
+        clientId: client.id,
         websiteUrl: client.websiteUrl,
         questionnaire: client.questionnaireAnswers,
+        referenceImages: client.imageStoragePaths,
+        referenceDocuments: client.documentStoragePaths,
       );
       final media = await GeminiService.instance.generateMediaAsset(
         type: t,
@@ -339,7 +344,7 @@ class _StudioTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      height: 64,
+      height: 58,
       padding: const EdgeInsets.symmetric(horizontal: ClinicSageSpacing.lg),
       decoration: const BoxDecoration(
         color: ClinicSageColors.surface,
@@ -347,28 +352,80 @@ class _StudioTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              gradient: ClinicSageGradients.aiGlow,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.video_library_outlined, size: 14, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(client.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-              Text('Content Studio · Phase 3A', style: theme.textTheme.labelSmall),
+              Text(client.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text('Content Studio · Phase 3 of 4', style: theme.textTheme.labelSmall?.copyWith(fontSize: 10)),
             ],
           ),
+          const SizedBox(width: 16),
+          // Selected content type badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              gradient: ClinicSageGradients.tertiarySubtle,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.full),
+              border: Border.all(color: ClinicSageColors.border),
+            ),
+            child: Text(
+              selectedType.label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: ClinicSageColors.tertiary,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
+            ),
+          ),
           const Spacer(),
-          ElevatedButton.icon(
-            onPressed: isGeneratingAll ? null : onGenerateAll,
-            icon: isGeneratingAll
-                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.auto_awesome, size: 16),
-            label: Text(isGeneratingAll ? 'Generating Media...' : 'Generate All Content & Media'),
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+            child: InkWell(
+              onTap: isGeneratingAll ? null : onGenerateAll,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: isGeneratingAll
+                      ? LinearGradient(colors: [ClinicSageColors.tertiary.withOpacity(0.4), ClinicSageColors.tertiary.withOpacity(0.4)])
+                      : ClinicSageGradients.aiGlow,
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                  boxShadow: isGeneratingAll
+                      ? []
+                      : [BoxShadow(color: ClinicSageColors.tertiary.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    isGeneratingAll
+                        ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+                    const SizedBox(width: 7),
+                    Text(
+                      isGeneratingAll ? 'Generating Media...' : 'Generate All Content',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.arrow_forward_ios, size: 14),
-            color: ClinicSageColors.secondary,
-            tooltip: 'Go to Review',
+          OutlinedButton.icon(
             onPressed: () => GoRouter.of(context).go(AppRoutes.clientReviewPath(client.id)),
+            icon: const Icon(Icons.verified_outlined, size: 14),
+            label: const Text('Go to Review'),
           ),
         ],
       ),

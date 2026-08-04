@@ -184,7 +184,10 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         'content': item.vettedText.isNotEmpty ? item.vettedText : item.aiText,
       };
 
-      // Save each individual deliverable doc to Firestore
+      // Save each individual deliverable doc to Firestore & local flywheel store
+      final finalContent = item.vettedText.isNotEmpty ? item.vettedText : item.aiText;
+      await HiveCacheService.instance.saveVettedDeliverable(client.id, item.type.value, finalContent);
+
       await FirebaseService.instance.saveDeliverable(
         amId,
         client.id,
@@ -281,8 +284,9 @@ class _ReviewTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final allLocked = approvedCount == totalCount && totalCount > 0;
     return Container(
-      height: 64,
+      height: 58,
       padding: const EdgeInsets.symmetric(horizontal: ClinicSageSpacing.lg),
       decoration: const BoxDecoration(
         color: ClinicSageColors.surface,
@@ -290,36 +294,54 @@ class _ReviewTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              gradient: allLocked
+                  ? const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)])
+                  : ClinicSageGradients.tertiary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              allLocked ? Icons.lock : Icons.verified_outlined,
+              size: 14,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 12),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(client.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-              Text('Review & Approval · Phase 4', style: theme.textTheme.labelSmall),
+              Text(client.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text('Review & Approval · Phase 4 of 4', style: theme.textTheme.labelSmall?.copyWith(fontSize: 10)),
             ],
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 20),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
-              color: approvedCount == totalCount ? ClinicSageColors.statusVettedBg : ClinicSageColors.neutral,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: ClinicSageColors.border),
+              color: allLocked ? ClinicSageColors.statusVettedBg : ClinicSageColors.neutral,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.full),
+              border: Border.all(
+                color: allLocked ? const Color(0xFFA7D8BF) : ClinicSageColors.border,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  approvedCount == totalCount ? Icons.lock : Icons.pending_actions,
-                  size: 14,
-                  color: approvedCount == totalCount ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
+                  allLocked ? Icons.lock : Icons.pending_actions,
+                  size: 12,
+                  color: allLocked ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Text(
                   '$approvedCount / $totalCount locked',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: approvedCount == totalCount ? ClinicSageColors.tertiary : ClinicSageColors.primary,
-                    fontWeight: FontWeight.w600,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: allLocked ? ClinicSageColors.tertiary : ClinicSageColors.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
                   ),
                 ),
               ],
@@ -332,12 +354,36 @@ class _ReviewTopBar extends StatelessWidget {
             label: const Text('Copy JSON'),
           ),
           const SizedBox(width: 8),
-          ElevatedButton.icon(
-            onPressed: isSavingBundle ? null : onSaveBundleToFirestore,
-            icon: isSavingBundle
-                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.cloud_upload, size: 16),
-            label: Text(isSavingBundle ? 'Saving...' : 'Save Bundle to Firestore'),
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+            child: InkWell(
+              onTap: isSavingBundle ? null : onSaveBundleToFirestore,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: isSavingBundle
+                      ? LinearGradient(colors: [ClinicSageColors.tertiary.withOpacity(0.4), ClinicSageColors.tertiary.withOpacity(0.4)])
+                      : ClinicSageGradients.tertiary,
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                  boxShadow: isSavingBundle ? [] : ClinicSageShadows.button,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    isSavingBundle
+                        ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.cloud_upload_outlined, size: 14, color: Colors.white),
+                    const SizedBox(width: 7),
+                    Text(
+                      isSavingBundle ? 'Saving...' : 'Save to Firestore',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -354,35 +400,92 @@ class _ReviewMetrics extends StatelessWidget {
     final theme = Theme.of(context);
     final pct = total > 0 ? (approved / total * 100).round() : 0;
 
-    return ClinicCard(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: ClinicSageColors.surface,
+        borderRadius: BorderRadius.circular(ClinicSageRadius.lg),
+        border: Border.all(color: ClinicSageColors.border),
+        boxShadow: ClinicSageShadows.card,
+      ),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Campaign Approval Progress', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Text('$pct% of deliverables locked for client presentation', style: theme.textTheme.bodySmall),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        gradient: ClinicSageGradients.tertiary,
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: const Icon(Icons.analytics_outlined, size: 13, color: Colors.white),
+                    ),
+                    const SizedBox(width: 10),
+                    Text('Campaign Approval Progress', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                  ],
+                ),
                 const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: total > 0 ? approved / total : 0,
-                    minHeight: 6,
-                    backgroundColor: ClinicSageColors.neutral,
-                    valueColor: const AlwaysStoppedAnimation<Color>(ClinicSageColors.tertiary),
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      '$pct%',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: ClinicSageColors.tertiary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'of deliverables locked for client presentation',
+                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 12),
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Stack(
+                              children: [
+                                Container(height: 8, color: ClinicSageColors.neutral),
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 600),
+                                  curve: Curves.easeOutCubic,
+                                  height: 8,
+                                  width: double.infinity,
+                                  child: FractionallySizedBox(
+                                    widthFactor: total > 0 ? approved / total : 0,
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: ClinicSageGradients.tertiary,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           const SizedBox(width: 40),
-          _MiniStat(count: approved, label: 'Locked', color: ClinicSageColors.statusApproved),
+          _MiniStat(count: approved, label: 'Locked', color: const Color(0xFF3B82F6)),
           const SizedBox(width: 24),
           _MiniStat(count: vetted, label: 'Vetted', color: ClinicSageColors.statusVetted),
           const SizedBox(width: 24),
-          _MiniStat(count: inReview, label: 'In Review', color: const Color(0xFF8B7A4E)),
+          _MiniStat(count: inReview, label: 'In Review', color: const Color(0xFFF59E0B)),
           const SizedBox(width: 24),
           _MiniStat(count: draft, label: 'Draft', color: ClinicSageColors.statusDraft),
         ],
@@ -647,18 +750,28 @@ class _ReviewCardState extends State<_ReviewCard> {
 
   IconData _typeIcon(ContentType type) {
     switch (type) {
-      case ContentType.script:
-        return Icons.videocam_outlined;
-      case ContentType.copy:
-        return Icons.text_fields;
-      case ContentType.designBrief:
-        return Icons.palette_outlined;
-      case ContentType.socialPost:
+      case ContentType.socialMediaPosts:
         return Icons.share_outlined;
-      case ContentType.emailCopy:
+      case ContentType.blogArticles:
+        return Icons.article_outlined;
+      case ContentType.emailCampaign:
         return Icons.email_outlined;
-      case ContentType.pressRelease:
-        return Icons.newspaper_outlined;
+      case ContentType.seoKeywordAudit:
+        return Icons.manage_search_outlined;
+      case ContentType.seoTechnicalAudit:
+        return Icons.troubleshoot_outlined;
+      case ContentType.introDeck:
+        return Icons.slideshow_outlined;
+      case ContentType.salesPitchDeck:
+        return Icons.bar_chart_outlined;
+      case ContentType.explainerVideos:
+        return Icons.video_library_outlined;
+      case ContentType.testimonialVideos:
+        return Icons.rate_review_outlined;
+      case ContentType.otherDesigns:
+        return Icons.palette_outlined;
+      case ContentType.otherCopies:
+        return Icons.description_outlined;
     }
   }
 }

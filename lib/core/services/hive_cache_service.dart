@@ -10,6 +10,7 @@ class HiveCacheService {
   static const String draftsBoxName = 'mm_drafts_cache';
   static const String deliverablesBoxName = 'mm_deliverables_cache';
   static const String userBoxName = 'mm_user_session';
+  static const String vettedKnowledgeBoxName = 'mm_vetted_knowledge';
 
   bool _isInitialized = false;
 
@@ -21,6 +22,7 @@ class HiveCacheService {
       await Hive.openBox(draftsBoxName);
       await Hive.openBox(deliverablesBoxName);
       await Hive.openBox(userBoxName);
+      await Hive.openBox(vettedKnowledgeBoxName);
       _isInitialized = true;
       debugPrint('HiveCacheService initialized successfully.');
     } catch (e) {
@@ -99,5 +101,43 @@ class HiveCacheService {
       return Map<String, dynamic>.from(data);
     }
     return null;
+  }
+
+  // ── Step 4: Vetted Reference Flywheel Caching ────────────────────────────
+  Future<void> saveVettedDeliverable(String clientId, String deliverableType, String content) async {
+    if (content.trim().isEmpty) return;
+    try {
+      final box = Hive.box(vettedKnowledgeBoxName);
+      final key = '${clientId}_$deliverableType';
+      await box.put(key, {
+        'clientId': clientId,
+        'type': deliverableType,
+        'content': content.trim(),
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('Warning saving vetted deliverable: $e');
+    }
+  }
+
+  List<String> getVettedHistory(String clientId) {
+    try {
+      final box = Hive.box(vettedKnowledgeBoxName);
+      final list = <String>[];
+      for (var key in box.keys) {
+        if (key.toString().startsWith(clientId)) {
+          final item = box.get(key);
+          if (item is Map && item['content'] != null) {
+            final contentStr = item['content'].toString();
+            if (contentStr.isNotEmpty) {
+              list.add(contentStr);
+            }
+          }
+        }
+      }
+      return list;
+    } catch (e) {
+      return [];
+    }
   }
 }

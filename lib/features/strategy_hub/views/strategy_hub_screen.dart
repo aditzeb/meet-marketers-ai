@@ -229,7 +229,7 @@ class _StrategyTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      height: 64,
+      height: 58,
       padding: const EdgeInsets.symmetric(horizontal: ClinicSageSpacing.lg),
       decoration: const BoxDecoration(
         color: ClinicSageColors.surface,
@@ -237,31 +237,65 @@ class _StrategyTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)]),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.insights_outlined, size: 14, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(client.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-              Text('Strategy Hub · Phase 3B', style: theme.textTheme.labelSmall),
+              Text(client.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text('Strategy Hub · Phase 2 of 4', style: theme.textTheme.labelSmall?.copyWith(fontSize: 10)),
             ],
           ),
           const Spacer(),
           OutlinedButton(
             onPressed: () => GoRouter.of(context).go(AppRoutes.clientContentPath(client.id)),
-            child: const Text('← Content Studio'),
+            child: const Text('Content Studio →'),
           ),
           const SizedBox(width: 8),
-          ElevatedButton.icon(
-            onPressed: isGenerating ? null : onGenerate,
-            icon: isGenerating
-                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.auto_awesome, size: 16),
-            label: Text(isGenerating ? 'Generating Strategy...' : 'Generate All Strategy'),
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+            child: InkWell(
+              onTap: isGenerating ? null : onGenerate,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: isGenerating
+                      ? LinearGradient(colors: [const Color(0xFF8B5CF6).withOpacity(0.4), const Color(0xFF8B5CF6).withOpacity(0.4)])
+                      : const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)]),
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                  boxShadow: isGenerating
+                      ? []
+                      : [BoxShadow(color: const Color(0xFF8B5CF6).withOpacity(0.30), blurRadius: 12, offset: const Offset(0, 4))],
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    isGenerating
+                        ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+                    const SizedBox(width: 7),
+                    Text(
+                      isGenerating ? 'Generating...' : 'Generate Strategy',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: 8),
-          ElevatedButton(
+          OutlinedButton(
             onPressed: () => GoRouter.of(context).go(AppRoutes.clientReviewPath(client.id)),
-            style: ElevatedButton.styleFrom(backgroundColor: ClinicSageColors.primary),
             child: const Text('Go to Review →'),
           ),
         ],
@@ -281,7 +315,6 @@ class _SwotTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(ClinicSageSpacing.lg),
       child: Column(
@@ -1025,9 +1058,4 @@ final _mockPersonas = [
     channels: ['LinkedIn', 'G2 Reviews'],
     aiSummary: 'Data-driven decision maker who needs clear attribution before committing budget.',
   ),
-];
-
-final _mockCalendarEvents = [
-  CalendarEvent(id: 'evt-1', title: 'Product Benefits Post', platform: 'LinkedIn', scheduledDate: DateTime.now().add(const Duration(days: 1)), contentType: 'post'),
-  CalendarEvent(id: 'evt-2', title: 'Customer Transformation Story', platform: 'Instagram', scheduledDate: DateTime.now().add(const Duration(days: 2)), contentType: 'video'),
 ];

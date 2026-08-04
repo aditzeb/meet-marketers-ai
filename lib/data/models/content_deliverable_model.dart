@@ -136,12 +136,17 @@ class ContentDeliverableModel extends Equatable {
 }
 
 enum ContentType {
-  script('script', 'Video Script'),
-  copy('copy', 'Ad Copy'),
-  designBrief('designBrief', 'Design Brief'),
-  socialPost('socialPost', 'Social Post'),
-  emailCopy('emailCopy', 'Email Copy'),
-  pressRelease('pressRelease', 'Press Release');
+  socialMediaPosts('socialMediaPosts', 'Social Media Posts'),
+  blogArticles('blogArticles', 'Blog Articles'),
+  emailCampaign('emailCampaign', 'Email Campaign'),
+  seoKeywordAudit('seoKeywordAudit', 'SEO Keyword Audit'),
+  seoTechnicalAudit('seoTechnicalAudit', 'SEO Technical Audit'),
+  introDeck('introDeck', 'Introduction Deck'),
+  salesPitchDeck('salesPitchDeck', 'Sales Pitch Deck'),
+  explainerVideos('explainerVideos', 'Explainer Videos'),
+  testimonialVideos('testimonialVideos', 'Testimonial Videos'),
+  otherDesigns('otherDesigns', 'Other Designs'),
+  otherCopies('otherCopies', 'Other Copies');
 
   const ContentType(this.value, this.label);
   final String value;
@@ -150,7 +155,7 @@ enum ContentType {
   static ContentType fromString(String value) {
     return ContentType.values.firstWhere(
       (e) => e.value == value,
-      orElse: () => ContentType.copy,
+      orElse: () => ContentType.socialMediaPosts,
     );
   }
 }

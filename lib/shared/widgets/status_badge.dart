@@ -21,12 +21,12 @@ class StatusBadge extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 8 : 10,
+        horizontal: compact ? 7 : 10,
         vertical: compact ? 3 : 5,
       ),
       decoration: BoxDecoration(
         color: config.backgroundColor,
-        borderRadius: BorderRadius.circular(ClinicSageRadius.sm),
+        borderRadius: BorderRadius.circular(ClinicSageRadius.full),
         border: Border.all(color: config.borderColor),
       ),
       child: Row(
@@ -38,14 +38,22 @@ class StatusBadge extends StatelessWidget {
             decoration: BoxDecoration(
               color: config.dotColor,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: config.dotColor.withOpacity(0.4),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Text(
             compact ? _shortLabel(status) : status.label,
             style: theme.textTheme.labelSmall?.copyWith(
               color: config.textColor,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
+              fontSize: compact ? 10 : 11,
             ),
           ),
         ],
@@ -91,30 +99,30 @@ class _StatusConfig {
         );
       case VettingStatus.inReview:
         return const _StatusConfig(
-          backgroundColor: Color(0xFFF5F2E8),
-          borderColor: Color(0xFFE0D9C0),
-          textColor: Color(0xFF8B7A4E),
-          dotColor: Color(0xFF8B7A4E),
+          backgroundColor: Color(0xFFFEF3C7),
+          borderColor: Color(0xFFFDE68A),
+          textColor: Color(0xFF92400E),
+          dotColor: Color(0xFFF59E0B),
         );
       case VettingStatus.vetted:
         return const _StatusConfig(
           backgroundColor: ClinicSageColors.statusVettedBg,
-          borderColor: Color(0xFFC0D9C8),
+          borderColor: Color(0xFFA7D8BF),
           textColor: ClinicSageColors.statusVetted,
           dotColor: ClinicSageColors.statusVetted,
         );
       case VettingStatus.locked:
-        return const _StatusConfig(
-          backgroundColor: ClinicSageColors.statusApprovedBg,
-          borderColor: Color(0xFFA8C8B0),
-          textColor: ClinicSageColors.statusApproved,
-          dotColor: ClinicSageColors.statusApproved,
+        return _StatusConfig(
+          backgroundColor: const Color(0xFFEFF6FF),
+          borderColor: const Color(0xFFBFDBFE),
+          textColor: const Color(0xFF1D4ED8),
+          dotColor: const Color(0xFF3B82F6),
         );
     }
   }
 }
 
-/// Client status chip
+/// Client status chip — premium pill style
 class ClientStatusChip extends StatelessWidget {
   final String label;
   final bool isActive;
@@ -125,20 +133,38 @@ class ClientStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: isActive ? ClinicSageColors.statusVettedBg : ClinicSageColors.statusDraftBg,
-        borderRadius: BorderRadius.circular(ClinicSageRadius.sm),
+        borderRadius: BorderRadius.circular(ClinicSageRadius.full),
         border: Border.all(
-          color: isActive ? const Color(0xFFC0D9C8) : const Color(0xFFD0DAD5),
+          color: isActive ? const Color(0xFFA7D8BF) : const Color(0xFFD0DAD5),
         ),
       ),
-      child: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: isActive ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: isActive ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
+              shape: BoxShape.circle,
+              boxShadow: isActive
+                  ? [BoxShadow(color: ClinicSageColors.tertiary.withOpacity(0.5), blurRadius: 4, spreadRadius: 1)]
+                  : [],
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: isActive ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -25,7 +25,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final clientState = ref.watch(clientProvider);
     final authState = ref.watch(authProvider);
-    final sidebarWidth = _sidebarCollapsed ? 64.0 : 260.0;
+    final sidebarWidth = _sidebarCollapsed ? 64.0 : 264.0;
 
     return Scaffold(
       backgroundColor: ClinicSageColors.neutral,
@@ -33,10 +33,20 @@ class _AppShellState extends ConsumerState<AppShell> {
         children: [
           // ── Sidebar ───────────────────────────────────────
           AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
+            duration: const Duration(milliseconds: 250),
             curve: Curves.easeInOut,
             width: sidebarWidth,
-            decoration: ClinicSageDecorations.sidebar,
+            decoration: const BoxDecoration(
+              color: ClinicSageColors.surface,
+              border: Border(right: BorderSide(color: ClinicSageColors.border)),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x06000000),
+                  blurRadius: 20,
+                  offset: Offset(4, 0),
+                ),
+              ],
+            ),
             child: _sidebarCollapsed
                 ? _CollapsedSidebar(onExpand: () => setState(() => _sidebarCollapsed = false))
                 : _ExpandedSidebar(
@@ -123,7 +133,7 @@ class _ExpandedSidebar extends StatelessWidget {
         // ── Brand Header ──────────────────────────────────
         Container(
           height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: ClinicSageColors.border)),
           ),
@@ -131,24 +141,39 @@ class _ExpandedSidebar extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
-                    color: ClinicSageColors.primary,
-                    borderRadius: BorderRadius.circular(7),
+                    gradient: ClinicSageGradients.brandVibrant,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: ClinicSageShadows.aiGlow,
                   ),
                   child: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    'Meet Marketers',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.3,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Meet Marketers',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      Text(
+                        'AI Platform',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: ClinicSageColors.tertiary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 IconButton(
@@ -156,7 +181,7 @@ class _ExpandedSidebar extends StatelessWidget {
                   icon: const Icon(Icons.chevron_left, size: 18),
                   color: ClinicSageColors.secondary,
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                   tooltip: 'Collapse sidebar',
                 ),
               ],
@@ -165,18 +190,44 @@ class _ExpandedSidebar extends StatelessWidget {
         ),
 
         // ── Dashboard Link ────────────────────────────────
+        const SizedBox(height: 8),
         _SidebarNavItem(
           icon: Icons.grid_view_rounded,
           label: 'Dashboard',
           onTap: () => GoRouter.of(context).go(AppRoutes.dashboard),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'CLIENT PORTFOLIOS',
-            style: theme.textTheme.labelSmall,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'CLIENT PORTFOLIOS',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w700,
+                    color: ClinicSageColors.secondary,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: ClinicSageColors.tertiaryLight,
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.full),
+                ),
+                child: Text(
+                  '${clients.length}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: ClinicSageColors.tertiary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 8),
@@ -189,54 +240,106 @@ class _ExpandedSidebar extends StatelessWidget {
             style: theme.textTheme.bodyMedium,
             decoration: InputDecoration(
               hintText: 'Search clients...',
-              prefixIcon: const Icon(Icons.search, size: 16, color: ClinicSageColors.secondary),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              prefixIcon: const Icon(Icons.search, size: 15, color: ClinicSageColors.secondary),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
               isDense: true,
               filled: true,
               fillColor: ClinicSageColors.neutral,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(ClinicSageRadius.md),
                 borderSide: const BorderSide(color: ClinicSageColors.border),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(ClinicSageRadius.md),
                 borderSide: const BorderSide(color: ClinicSageColors.border),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(ClinicSageRadius.md),
                 borderSide: const BorderSide(color: ClinicSageColors.tertiary, width: 1.5),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
 
         // ── Client List ───────────────────────────────────
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            itemCount: clients.length,
-            itemBuilder: (context, index) {
-              final client = clients[index];
-              final isSelected = client.id == activeClientId;
-              return _ClientListTile(
-                client: client,
-                isSelected: isSelected,
-                onTap: () => onClientSelected(client.id),
-              );
-            },
-          ),
+          child: clients.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: ClinicSageColors.neutral,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.people_outline, size: 24, color: ClinicSageColors.secondary),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'No clients yet',
+                        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500, color: ClinicSageColors.primary),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Create your first workspace below',
+                        style: theme.textTheme.labelSmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  itemCount: clients.length,
+                  itemBuilder: (context, index) {
+                    final client = clients[index];
+                    final isSelected = client.id == activeClientId;
+                    return _ClientListTile(
+                      client: client,
+                      isSelected: isSelected,
+                      onTap: () => onClientSelected(client.id),
+                    );
+                  },
+                ),
         ),
 
         // ── New Client Button ─────────────────────────────
         Padding(
-          padding: const EdgeInsets.all(12),
-          child: OutlinedButton.icon(
-            onPressed: onNewClient,
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text('New Client Workspace'),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 38),
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+            child: InkWell(
+              onTap: onNewClient,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: ClinicSageGradients.tertiary,
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                  boxShadow: ClinicSageShadows.button,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.add, size: 16, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(
+                      'New Client Workspace',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -252,7 +355,7 @@ class _ExpandedSidebar extends StatelessWidget {
   }
 }
 
-class _ClientListTile extends ConsumerWidget {
+class _ClientListTile extends ConsumerStatefulWidget {
   final ClientModel client;
   final bool isSelected;
   final VoidCallback onTap;
@@ -263,13 +366,33 @@ class _ClientListTile extends ConsumerWidget {
     required this.onTap,
   });
 
-  void _confirmDelete(BuildContext context, WidgetRef ref) {
+  @override
+  ConsumerState<_ClientListTile> createState() => _ClientListTileState();
+}
+
+class _ClientListTileState extends ConsumerState<_ClientListTile> {
+  bool _isHovered = false;
+
+  void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Client Project'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFDF2F2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9B1C1C)),
+            ),
+            const SizedBox(width: 12),
+            const Text('Delete Client Project'),
+          ],
+        ),
         content: Text(
-          'Are you sure you want to delete "${client.name}"? This will permanently delete the client and all associated deliverables directly from Firestore.',
+          'Are you sure you want to delete "${widget.client.name}"? This will permanently delete the client and all associated deliverables directly from Firestore.',
         ),
         actions: [
           TextButton(
@@ -277,12 +400,15 @@ class _ClientListTile extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF9B1C1C),
+              foregroundColor: Colors.white,
+            ),
             onPressed: () {
               Navigator.of(ctx).pop();
-              ref.read(clientProvider.notifier).deleteClient(client.id);
+              ref.read(clientProvider.notifier).deleteClient(widget.client.id);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Client "${client.name}" deleted from Firestore.')),
+                SnackBar(content: Text('Client "${widget.client.name}" deleted from Firestore.')),
               );
             },
             child: const Text('Delete'),
@@ -293,87 +419,116 @@ class _ClientListTile extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-          decoration: BoxDecoration(
-            color: isSelected ? ClinicSageColors.tertiaryLight : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: isSelected ? ClinicSageColors.tertiary : ClinicSageColors.neutral,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isSelected ? ClinicSageColors.tertiary : ClinicSageColors.border,
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    client.name.isNotEmpty ? client.name.substring(0, 1) : 'C',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: isSelected ? Colors.white : ClinicSageColors.primary,
-                      fontWeight: FontWeight.w600,
+    // Generate a consistent accent color from client name
+    final accentColors = [
+      ClinicSageColors.tertiary,
+      const Color(0xFF3B82F6),
+      const Color(0xFF8B5CF6),
+      const Color(0xFFF59E0B),
+      const Color(0xFFEF4444),
+    ];
+    final accentIndex = widget.client.name.isNotEmpty ? widget.client.name.codeUnitAt(0) % accentColors.length : 0;
+    final accent = accentColors[accentIndex];
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: widget.isSelected
+                  ? ClinicSageColors.tertiaryLight
+                  : _isHovered
+                      ? ClinicSageColors.neutral
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+              border: widget.isSelected
+                  ? Border.all(color: ClinicSageColors.tertiary.withOpacity(0.3), width: 1)
+                  : Border.all(color: Colors.transparent),
+            ),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    gradient: widget.isSelected
+                        ? LinearGradient(colors: [accent, accent.withOpacity(0.7)])
+                        : null,
+                    color: widget.isSelected ? null : ClinicSageColors.neutral,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: widget.isSelected ? accent : ClinicSageColors.border,
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      client.name,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: ClinicSageColors.primary,
+                  child: Center(
+                    child: Text(
+                      widget.client.name.isNotEmpty ? widget.client.name.substring(0, 1).toUpperCase() : 'C',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: widget.isSelected ? Colors.white : ClinicSageColors.primary,
+                        fontWeight: FontWeight.w700,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      client.industry,
-                      style: theme.textTheme.labelSmall,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 16, color: ClinicSageColors.secondary),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 120),
-                onSelected: (val) {
-                  if (val == 'delete') {
-                    _confirmDelete(context, ref);
-                  }
-                },
-                itemBuilder: (ctx) => [
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, size: 16, color: Colors.red.shade600),
-                        const SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Colors.red.shade600, fontSize: 13)),
-                      ],
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.client.name,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: ClinicSageColors.primary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        widget.client.industry,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: widget.isSelected ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                if (_isHovered || widget.isSelected)
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, size: 14, color: ClinicSageColors.secondary.withOpacity(0.7)),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 120),
+                    onSelected: (val) {
+                      if (val == 'delete') {
+                        _confirmDelete(context);
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, size: 15, color: Colors.red.shade600),
+                            const SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Colors.red.shade600, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -381,7 +536,7 @@ class _ClientListTile extends ConsumerWidget {
   }
 }
 
-class _SidebarNavItem extends StatelessWidget {
+class _SidebarNavItem extends StatefulWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -395,37 +550,53 @@ class _SidebarNavItem extends StatelessWidget {
   });
 
   @override
+  State<_SidebarNavItem> createState() => _SidebarNavItemState();
+}
+
+class _SidebarNavItemState extends State<_SidebarNavItem> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            decoration: BoxDecoration(
-              color: isSelected ? ClinicSageColors.tertiaryLight : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 18,
-                  color: isSelected ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  label,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected ? ClinicSageColors.tertiary : ClinicSageColors.primary,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              decoration: BoxDecoration(
+                color: widget.isSelected
+                    ? ClinicSageColors.tertiaryLight
+                    : _isHovered
+                        ? ClinicSageColors.neutral
+                        : Colors.transparent,
+                borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    widget.icon,
+                    size: 17,
+                    color: widget.isSelected ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 10),
+                  Text(
+                    widget.label,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: widget.isSelected ? ClinicSageColors.tertiary : ClinicSageColors.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -451,16 +622,27 @@ class _AMFooter extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: const BoxDecoration(
+        color: ClinicSageColors.surface,
         border: Border(top: BorderSide(color: ClinicSageColors.border)),
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: ClinicSageColors.primary,
-            child: Text(
-              userName.isNotEmpty ? userName.substring(0, 1) : 'A',
-              style: theme.textTheme.labelSmall?.copyWith(color: Colors.white),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              gradient: ClinicSageGradients.brandVibrant,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+            ),
+            child: Center(
+              child: Text(
+                userName.isNotEmpty ? userName.substring(0, 1).toUpperCase() : 'A',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -468,18 +650,36 @@ class _AMFooter extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(userName, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500, color: ClinicSageColors.primary), overflow: TextOverflow.ellipsis),
-                Text(userEmail, style: theme.textTheme.labelSmall, overflow: TextOverflow.ellipsis),
+                Text(
+                  userName,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: ClinicSageColors.primary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  userEmail,
+                  style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout, size: 16),
-            color: ClinicSageColors.secondary,
-            onPressed: onSignOut,
-            tooltip: 'Sign out',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          Tooltip(
+            message: 'Sign out',
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(6),
+              child: InkWell(
+                onTap: onSignOut,
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  child: const Icon(Icons.logout, size: 15, color: ClinicSageColors.secondary),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -495,23 +695,51 @@ class _CollapsedSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(height: 16),
-        IconButton(
-          onPressed: onExpand,
-          icon: const Icon(Icons.chevron_right, size: 20),
-          color: ClinicSageColors.secondary,
-          tooltip: 'Expand sidebar',
+        const SizedBox(height: 14),
+        Tooltip(
+          message: 'Expand sidebar',
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              onTap: onExpand,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: const Icon(Icons.chevron_right, size: 20, color: ClinicSageColors.secondary),
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 8),
         Container(
-          width: 32,
-          height: 32,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          width: 34,
+          height: 34,
+          margin: const EdgeInsets.symmetric(horizontal: 15),
           decoration: BoxDecoration(
-            color: ClinicSageColors.primary,
-            borderRadius: BorderRadius.circular(8),
+            gradient: ClinicSageGradients.brandVibrant,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: ClinicSageShadows.aiGlow,
           ),
           child: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+        ),
+        const SizedBox(height: 16),
+        const Divider(indent: 12, endIndent: 12),
+        const SizedBox(height: 8),
+        Tooltip(
+          message: 'Dashboard',
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              onTap: () => GoRouter.of(context).go(AppRoutes.dashboard),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: const Icon(Icons.grid_view_rounded, size: 18, color: ClinicSageColors.secondary),
+              ),
+            ),
+          ),
         ),
       ],
     );

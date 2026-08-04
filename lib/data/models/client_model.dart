@@ -12,6 +12,8 @@ class ClientModel extends Equatable {
   final List<String> competitors;
   final List<String> targetRoleModels;
   final String? pitchDeckStoragePath;
+  final List<String> imageStoragePaths;
+  final List<String> documentStoragePaths;
   final ClientStatus status;
   final DateTime createdAt;
   final DateTime lastActivity;
@@ -26,6 +28,8 @@ class ClientModel extends Equatable {
     this.competitors = const [],
     this.targetRoleModels = const [],
     this.pitchDeckStoragePath,
+    this.imageStoragePaths = const [],
+    this.documentStoragePaths = const [],
     this.status = ClientStatus.active,
     required this.createdAt,
     required this.lastActivity,
@@ -44,6 +48,12 @@ class ClientModel extends Equatable {
       competitors: List<String>.from(json['competitors'] as List? ?? []),
       targetRoleModels: List<String>.from(json['targetRoleModels'] as List? ?? []),
       pitchDeckStoragePath: json['pitchDeckStoragePath'] as String?,
+      imageStoragePaths: List<String>.from(
+        json['imageStoragePaths'] as List? ?? json['referenceImages'] as List? ?? [],
+      ),
+      documentStoragePaths: List<String>.from(
+        json['documentStoragePaths'] as List? ?? json['referenceDocuments'] as List? ?? [],
+      ),
       status: ClientStatus.fromString(json['status'] as String? ?? 'active'),
       createdAt: _parseTimestamp(json['createdAt']),
       lastActivity: _parseTimestamp(json['lastActivity']),
@@ -60,6 +70,8 @@ class ClientModel extends Equatable {
       'competitors': competitors,
       'targetRoleModels': targetRoleModels,
       'pitchDeckStoragePath': pitchDeckStoragePath,
+      'imageStoragePaths': imageStoragePaths,
+      'documentStoragePaths': documentStoragePaths,
       'status': status.value,
       'createdAt': createdAt.toIso8601String(),
       'lastActivity': lastActivity.toIso8601String(),
@@ -75,6 +87,8 @@ class ClientModel extends Equatable {
     List<String>? competitors,
     List<String>? targetRoleModels,
     String? pitchDeckStoragePath,
+    List<String>? imageStoragePaths,
+    List<String>? documentStoragePaths,
     ClientStatus? status,
     DateTime? lastActivity,
   }) {
@@ -88,6 +102,8 @@ class ClientModel extends Equatable {
       competitors: competitors ?? this.competitors,
       targetRoleModels: targetRoleModels ?? this.targetRoleModels,
       pitchDeckStoragePath: pitchDeckStoragePath ?? this.pitchDeckStoragePath,
+      imageStoragePaths: imageStoragePaths ?? this.imageStoragePaths,
+      documentStoragePaths: documentStoragePaths ?? this.documentStoragePaths,
       status: status ?? this.status,
       createdAt: createdAt,
       lastActivity: lastActivity ?? this.lastActivity,
@@ -107,7 +123,7 @@ class ClientModel extends Equatable {
   @override
   List<Object?> get props => [
     id, name, industry, websiteUrl, logoUrl, questionnaireAnswers,
-    competitors, targetRoleModels, pitchDeckStoragePath, status, createdAt, lastActivity,
+    competitors, targetRoleModels, pitchDeckStoragePath, imageStoragePaths, documentStoragePaths, status, createdAt, lastActivity,
   ];
 }
 
@@ -140,23 +156,19 @@ enum ClientStatus {
 
 /// Standard questionnaire fields for the discovery intake form
 abstract class QuestionnaireKeys {
-  static const String brandVoice = 'brandVoice';
-  static const String targetAudience = 'targetAudience';
-  static const String coreDifferentiator = 'coreDifferentiator';
-  static const String primaryGoal = 'primaryGoal';
-  static const String contentPillars = 'contentPillars';
-  static const String pastWins = 'pastWins';
-  static const String painPoints = 'painPoints';
-  static const String budgetRange = 'budgetRange';
+  static const String targetCustomer = 'targetCustomer';
+  static const String targetCountry = 'targetCountry';
+  static const String targetIndustry = 'targetIndustry';
+  static const String closestCompetitor = 'closestCompetitor';
+  static const String keyDifferentiator = 'keyDifferentiator';
+  static const String mainSalesChannel = 'mainSalesChannel';
 
   static const Map<String, String> labels = {
-    brandVoice: 'Brand Voice & Tone',
-    targetAudience: 'Target Audience Description',
-    coreDifferentiator: 'Core Differentiator / USP',
-    primaryGoal: 'Primary Marketing Goal',
-    contentPillars: 'Content Pillars (comma separated)',
-    pastWins: 'Past Marketing Wins',
-    painPoints: 'Current Pain Points',
-    budgetRange: 'Approximate Budget Range',
+    targetCustomer: 'Who is your target customer? (Eg HR Director)',
+    targetCountry: 'What is your target country? (Eg Singapore)',
+    targetIndustry: 'What is your target industry? (Eg Finance)',
+    closestCompetitor: 'Who is your closest competitor?',
+    keyDifferentiator: 'What is your key differentiator?',
+    mainSalesChannel: 'What is your main sales channel? (Eg online ads, direct sales, distributors)',
   };
 }

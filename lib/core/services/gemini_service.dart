@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:http/http.dart' as http;
+import 'hive_cache_service.dart';
 import '../../firebase_options.dart';
 import '../config/app_config.dart';
 import '../../data/models/content_deliverable_model.dart';
@@ -124,15 +125,23 @@ Ready to scale your pipeline? Click below to book your strategy audit.''';
     required ContentType type,
     required String clientName,
     required String industry,
+    String? clientId,
     String? websiteUrl,
     Map<String, String>? questionnaire,
+    List<String>? referenceImages,
+    List<String>? referenceDocuments,
   }) async {
+    final history = clientId != null ? HiveCacheService.instance.getVettedHistory(clientId) : <String>[];
+
     final prompt = _buildContentPrompt(
       type: type,
       clientName: clientName,
       industry: industry,
       websiteUrl: websiteUrl,
       questionnaire: questionnaire,
+      referenceImages: referenceImages,
+      referenceDocuments: referenceDocuments,
+      vettedHistory: history,
     );
 
     try {
@@ -306,9 +315,21 @@ Return a JSON object strictly matching this schema:
     required String industry,
     String? websiteUrl,
     Map<String, String>? questionnaire,
+    List<String>? referenceImages,
+    List<String>? referenceDocuments,
+    List<String>? vettedHistory,
   }) {
     final qText = questionnaire != null
         ? questionnaire.entries.map((e) => '${e.key}: ${e.value}').join('\n')
+        : '';
+    final imagesText = (referenceImages != null && referenceImages.isNotEmpty)
+        ? 'Uploaded Photos & Images for Visual Reference: ${referenceImages.join(', ')}\n'
+        : '';
+    final docsText = (referenceDocuments != null && referenceDocuments.isNotEmpty)
+        ? 'Uploaded Reference Word Documents & PDFs: ${referenceDocuments.join(', ')}\n'
+        : '';
+    final historyText = (vettedHistory != null && vettedHistory.isNotEmpty)
+        ? 'Approved Historical Benchmarks & Past Vetted Outputs (Learn Tone & Preference):\n${vettedHistory.take(5).map((h) => '--- Approved Benchmark ---\n$h').join('\n')}\n'
         : '';
 
     return '''
@@ -316,10 +337,12 @@ You are the high-performance AI Agent for Meet Marketers AI (Project: $firebaseP
 Client: $clientName
 Industry: $industry
 Website: ${websiteUrl ?? 'N/A'}
-Ingested Inputs:
-$qText
 
-Task: Generate a clean, conversion-driven ${type.label} tailored to this client's market positioning. 
+Ingested Client Inputs:
+$qText
+$imagesText$docsText
+$historyText
+Task: Generate a clean, conversion-driven ${type.label} tailored to this client's market positioning. Emulate the approved historical benchmarks above if present to minimize needed human edits.
 IMPORTANT FORMATTING RULES:
 - Do NOT use any markdown characters like asterisks (** or ***), hash symbols (###), table pipes (|), or horizontal lines (---).
 - Output clean, elegant paragraphs and numbered lists (1., 2., 3.).
@@ -328,105 +351,159 @@ IMPORTANT FORMATTING RULES:
 
   String _getFallbackContent(ContentType type, String clientName) {
     switch (type) {
-      case ContentType.script:
-        return '''Project: Meet Marketers AI (Client: $clientName)
-Video Concept: The Innovation Bridge
-Target Audience: Corporate Leaders, Government Innovation Heads, and High-Growth Tech Startups
-Goal: Generate high-value B2B inquiries for corporate innovation programs and startup matchmaking
-Platform Suitability: LinkedIn Ads, Website Landing Page, YouTube Pre-roll
-Length: 60 to 75 Seconds
+      case ContentType.socialMediaPosts:
+        return '''LinkedIn & Social Media Campaign for $clientName
 
-Production Overview and Tone
-Tone: Visionary, high-energy, authoritative, corporate yet modern
-Music Track: Starts with a low cinematic synth swell building into a driving tech-forward electronic beat
-Color Palette: Deep corporate blues, clean whites, and vibrant energetic accents
+Post 1 (Thought Leadership):
+Most teams treat content as an afterthought. At $clientName, we view it as a high-velocity acquisition engine.
 
-The Conversion-Driven Video Script
+Here are 3 core principles driving customer conversion this quarter:
+1. Direct, benefit-driven positioning tuned to ICP intent
+2. Data-backed proof points over generic marketing claims
+3. Frictionless call-to-actions placed at high-intent touchpoints
 
-Scene 1: Timecode 0:00 to 0:08
-Visual Directions: Fast-paced montage of a corporate boardroom looking frustrated followed by a startup founder staring at a laptop then a sudden burst of neon-lit server data flowing across the screen.
-Voiceover: Why do 90 percent of corporate innovation initiatives fail to deliver measurable ROI? Because startups move at lightspeed, while enterprise processes take months.
-On-Screen Text: Bridging Enterprise and Startups
+What strategy is driving real pipeline growth for your marketing team right now?
 
-Scene 2: Timecode 0:08 to 0:20
-Visual Directions: Split screen showing slow traditional manual reporting versus automated $clientName matchmaking.
-Voiceover: Stop losing critical opportunities to slow deal flow. Meet $clientName.
-On-Screen Text: Acceleration Unleashed
+#B2BGrowth #MarketingStrategy #$clientName #AIMarketing''';
 
-Scene 3: Timecode 0:20 to 0:45
-Visual Directions: Dynamic camera push-in showing executive handshake, high-tech dashboard displaying pipeline metrics, and glowing growth indicators.
-Voiceover: We connect ambitious corporations with pre-vetted startups to launch high-impact ventures in weeks instead of years.
-On-Screen Text: Verified Matches in Weeks
+      case ContentType.blogArticles:
+        return '''Blog Article Framework for $clientName
 
-Scene 4: Timecode 0:45 to 1:10
-Visual Directions: Confident founder presenting ROI growth chart to executive team.
-Voiceover: Proven frameworks. Real-time attribution. Zero fluff. Book your strategy audit with $clientName today.
-On-Screen Text: Book Your Innovation Audit Now''';
+Title: How $clientName Solves Customer Acquisition Challenges in 2026
 
-      case ContentType.copy:
-        return '''Headline: Transform Your Growth Strategy with $clientName
+Executive Summary:
+Traditional acquisition channels are becoming increasingly noisy and expensive. This guide outlines how modern marketing teams leverage AI orchestration and targeted content frameworks to scale customer pipelines.
 
-Body Copy:
-Stop settling for passive campaigns. $clientName delivers high-impact marketing assets tailored specifically to your target market.
+Key Sections:
+1. The Shift from Manual Campaigns to AI Ingestion
+2. Aligning Content Deliverables with Target Persona Intent
+3. Building an Automated Vetting and Quality Assurance Workflow
 
-Key Advantages:
-1. Precision audience targeting
-2. Data-backed creative messaging
-3. Real-time performance optimization
+Conclusion & Key Takeaway:
+By standardizing client inputs and automating asset generation, $clientName enables marketing teams to launch high-converting campaigns in hours rather than weeks.''';
 
-Call to Action: Claim Your Strategy Audit Now''';
+      case ContentType.emailCampaign:
+        return '''Email Campaign Sequence for $clientName
 
-      case ContentType.designBrief:
-        return '''Design Brief: $clientName Campaign
-
-Visual Theme: Minimalist, authoritative, sage-inspired calm
-Primary Color: Deep Sage Navy (#1B3A2E)
-Accent Color: Sage Green (#4E8B6A)
-
-Typography: DM Sans (Clean geometric sans-serif)
-Key Visual Elements:
-1. Product UI mockups with subtle drop shadows
-2. Data-driven growth charts with upward trajectory
-3. High-contrast headlines with generous white space''';
-
-      case ContentType.socialPost:
-        return '''LinkedIn Post:
-
-Most companies treat content as an afterthought. $clientName treats it as a growth engine.
-
-Here are 3 key principles driving our latest campaign:
-1. Direct, benefit-focused messaging
-2. Clear value propositions upfront
-3. Frictionless call-to-actions
-
-What strategy is moving the needle for your team this quarter?
-
-#Growth #MarketingStrategy #$clientName''';
-
-      case ContentType.emailCopy:
-        return '''Subject: A better way to approach marketing for $clientName
+Email 1: High-Intent Outreach
+Subject: A faster approach to scaling customer pipeline for $clientName
 
 Hi First Name,
 
-If your team is looking to scale customer acquisition without ballooning ad costs, here is what we are seeing work best right now.
+If your growth team is looking to increase acquisition velocity without expanding ad spend, here is what we are seeing work best right now.
 
-At $clientName, we built our playbook around high-converting content frameworks and clear attribution.
+At $clientName, we built our playbook around vectorized client inputs, AI asset orchestration, and real-time attribution.
 
-Call to Action: Schedule a 15-Minute Strategy Call
+Would you be open to a quick 15-minute strategy preview this week?
 
 Best regards,
 The $clientName Account Team''';
 
-      case ContentType.pressRelease:
-        return '''FOR IMMEDIATE RELEASE
+      case ContentType.seoKeywordAudit:
+        return '''SEO Keyword Audit Report for $clientName
 
-$clientName Announces Launch of AI-Powered Marketing Platform
+Target Keyword Matrix:
+1. Keyword: "$clientName solution for enterprise" | Volume: 14,500/mo | Difficulty: 42% | Intent: Commercial | Target: /product
+2. Keyword: "best growth marketing frameworks 2026" | Volume: 9,200/mo | Difficulty: 38% | Intent: Informational | Target: /blog/frameworks
+3. Keyword: "how to optimize customer acquisition cost" | Volume: 6,800/mo | Difficulty: 31% | Intent: Informational | Target: /resources/cac-guide
+4. Keyword: "$clientName pricing and ROI model" | Volume: 3,400/mo | Difficulty: 25% | Intent: Transactional | Target: /pricing
 
-SAN FRANCISCO, CA — $clientName today announced its new high-performance marketing platform built to optimize campaign execution and deliverable vetting.
+Strategic Recommendations:
+- Build high-intent landing pages for commercial keywords.
+- Interlink informational blog articles to drive domain authority.''';
 
-"Our goal is to give account teams complete clarity and speed," said the Lead Director at $clientName.
+      case ContentType.seoTechnicalAudit:
+        return '''Technical SEO Audit Checklist for $clientName
 
-For more information, visit $clientName online.''';
+Audit Breakdown:
+1. Core Web Vitals: LCP < 1.8s, FID < 100ms, CLS < 0.05 (Passed)
+2. Crawlability & Indexing: XML Sitemap clean, Robots.txt correctly formatted (Passed)
+3. Structured Data: Schema.org Organization & Product markup active (Passed)
+4. Mobile Optimization: Responsive layout and fast asset loading verified (Passed)
+5. Canonicalization & Meta Descriptions: Unique title tags & meta descriptions across all routes (Passed)
+
+Priority Action Items:
+- Pre-render dynamic visual assets for accelerated initial load times.
+- Implement lazy loading for media assets.''';
+
+      case ContentType.introDeck:
+        return '''Introduction Deck Outline for $clientName
+
+Slide 1: Title Slide — Introducing $clientName (AI-Powered Marketing Platform)
+Slide 2: The Core Challenge — Slow campaign deployment and fragmented client context
+Slide 3: Our Solution — Vectorized client inputs and automated deliverable orchestration
+Slide 4: Key Features — Strategy Hub, Content Studio, and AM Vetting Review
+Slide 5: Case Study & Expected ROI — 3x faster delivery and 40% higher pipeline conversion
+Slide 6: Next Steps & Call to Action — Schedule your onboarding session today''';
+
+      case ContentType.salesPitchDeck:
+        return '''Sales Pitch Deck Framework for $clientName
+
+Slide 1: Executive Overview — Accelerate your growth engine with $clientName
+Slide 2: Market Context — Why traditional marketing workflows fail at scale
+Slide 3: Product Architecture — Unified inputs, Vertex AI generation, and multi-channel export
+Slide 4: Competitive Advantage — Superior speed, AI precision, and built-in vetting workflows
+Slide 5: Pricing Models & ROI Calculation — Scalable plans for agencies and enterprise teams
+Slide 6: Closing & Contact — Partner with $clientName today''';
+
+      case ContentType.explainerVideos:
+        return '''Explainer Video Script for $clientName (60 Seconds)
+
+Scene 1 (0:00 - 0:10):
+Visual: Fast montage of marketing teams overwhelmed by spreadsheets and manual copy creation.
+Voiceover: "Spending weeks drafting marketing assets for every new campaign?"
+
+Scene 2 (0:10 - 0:30):
+Visual: Smooth transition to $clientName dashboard automatically ingesting pitch decks and brand assets.
+Voiceover: "Meet $clientName. Simply input your brand assets, and our AI instantly orchestrates strategy and deliverables."
+
+Scene 3 (0:30 - 0:50):
+Visual: Split screen showcasing instant social posts, email campaigns, and SEO audits ready for vetting.
+Voiceover: "Review, refine, and lock campaign-ready content in minutes."
+
+Scene 4 (0:50 - 1:00):
+Visual: Sleek $clientName logo animation with CTA button.
+Voiceover: "Scale your acquisition velocity today with $clientName."''';
+
+      case ContentType.testimonialVideos:
+        return '''Testimonial Video Storyboard for $clientName
+
+Concept: Customer Success Story — "Scaling Growth 3x with $clientName"
+
+Scene 1 (0:00 - 0:12): Executive Intro & Challenge
+Visual: Headshot of Growth Lead in modern studio setting.
+Script: "Before $clientName, creating custom strategy decks and content for clients took our team two full weeks."
+
+Scene 2 (0:12 - 0:35): The Transformation
+Visual: Screen recording of $clientName Content Studio generating brand assets in real time.
+Script: "Now with $clientName, we ingest client inputs in minutes and generate campaign-ready assets instantly."
+
+Scene 3 (0:35 - 0:50): Results & Conclusion
+Visual: Metric callout displaying "+240% Pipeline Output | 75% Time Saved".
+Script: "$clientName has completely transformed how our agency delivers value."''';
+
+      case ContentType.otherDesigns:
+        return '''Creative Design Brief & Direction for $clientName
+
+Visual Guidelines:
+1. Color Palette: Deep Sage Navy (#1B3A2E), Emerald Green (#4E8B6A), and Neutral Soft Gray (#F4F6F5).
+2. Typography: DM Sans for bold headers; Inter for clean, legible body text.
+3. Graphic Style: Minimalist UI cards, soft subtle shadows, and glassmorphism elements.
+4. Key Deliverables: Social banners, ad graphic templates, and executive pitch decks.''';
+
+      case ContentType.otherCopies:
+        return '''Brand Copy & Messaging Framework for $clientName
+
+Tagline: "Precision AI Orchestration for Modern Marketers"
+
+Brand Pillars:
+1. Speed: Transform raw client inputs into campaign-ready assets in minutes.
+2. Precision: Grounded in your brand voice, competitors, and target audience context.
+3. Control: Full account manager vetting and review before client delivery.
+
+Sample Microcopy:
+- Primary CTA: "Generate Campaign Assets"
+- Secondary CTA: "View Strategy Hub"''';
     }
   }
 }

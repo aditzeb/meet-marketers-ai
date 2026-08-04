@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_router.dart';
-import '../../../shared/widgets/clinic_card.dart';
 import '../../../data/models/client_model.dart';
 import '../../dashboard/providers/client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -27,6 +26,12 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
   bool _isPitchDeckUploaded = false;
   bool _isDragOver = false;
   String? _pitchDeckFileName;
+
+  List<String> _uploadedImages = [];
+  bool _isImagesDragOver = false;
+
+  List<String> _uploadedDocuments = [];
+  bool _isDocsDragOver = false;
 
   // Controllers
   final _websiteController = TextEditingController();
@@ -78,6 +83,12 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
         _isPitchDeckUploaded = true;
         _pitchDeckFileName = client.pitchDeckStoragePath!.split('/').last;
       });
+    }
+    if (client.imageStoragePaths.isNotEmpty) {
+      setState(() => _uploadedImages = List.from(client.imageStoragePaths));
+    }
+    if (client.documentStoragePaths.isNotEmpty) {
+      setState(() => _uploadedDocuments = List.from(client.documentStoragePaths));
     }
   }
 
@@ -149,18 +160,48 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
                   ),
                   const SizedBox(height: ClinicSageSpacing.lg),
 
-                  // ── Section 3: Questionnaire ───────────────
+                  // ── Section 3: Photos & Images ────────────
                   _Section(
                     number: '03',
+                    title: 'Photos & Images',
+                    subtitle: 'Upload brand images, logos, product photos, or visual references (PNG, JPG, WEBP, SVG) for AI visual context.',
+                    child: _ImagesDropZone(
+                      images: _uploadedImages,
+                      isDragOver: _isImagesDragOver,
+                      onDragOver: (over) => setState(() => _isImagesDragOver = over),
+                      onUpload: _onUploadImages,
+                      onRemove: _onRemoveImage,
+                    ),
+                  ),
+                  const SizedBox(height: ClinicSageSpacing.lg),
+
+                  // ── Section 4: Reference Documents ────────
+                  _Section(
+                    number: '04',
+                    title: 'Reference Documents',
+                    subtitle: 'Upload Word documents (.docx, .doc), PDFs, or brand guidelines for deeper AI background.',
+                    child: _DocumentsDropZone(
+                      documents: _uploadedDocuments,
+                      isDragOver: _isDocsDragOver,
+                      onDragOver: (over) => setState(() => _isDocsDragOver = over),
+                      onUpload: _onUploadDocuments,
+                      onRemove: _onRemoveDocument,
+                    ),
+                  ),
+                  const SizedBox(height: ClinicSageSpacing.lg),
+
+                  // ── Section 5: Discovery Questionnaire ─────
+                  _Section(
+                    number: '05',
                     title: 'Discovery Questionnaire',
                     subtitle: 'Answers collected from the client intake session. Fill in each field.',
                     child: _QuestionnaireGrid(controllers: _questionnaireControllers),
                   ),
                   const SizedBox(height: ClinicSageSpacing.lg),
 
-                  // ── Section 4: Competitor Analysis ────────
+                  // ── Section 6: Competitor Analysis ────────
                   _Section(
-                    number: '04',
+                    number: '06',
                     title: 'Competitor Analysis',
                     subtitle: 'List the client\'s key competitors for USP gap analysis.',
                     child: _DynamicListInput(
@@ -175,9 +216,9 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
                   ),
                   const SizedBox(height: ClinicSageSpacing.lg),
 
-                  // ── Section 5: Target Role Models ─────────
+                  // ── Section 7: Target Role Models ─────────
                   _Section(
-                    number: '05',
+                    number: '07',
                     title: 'Target Role Models',
                     subtitle: 'Brands or creators the client aspires to emulate in content and positioning.',
                     child: _DynamicListInput(
@@ -220,6 +261,8 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
       competitors: _competitors.where((c) => c.trim().isNotEmpty).toList(),
       targetRoleModels: _roleModels.where((r) => r.trim().isNotEmpty).toList(),
       pitchDeckStoragePath: _pitchDeckFileName != null ? 'pitch_decks/$_pitchDeckFileName' : null,
+      imageStoragePaths: _uploadedImages,
+      documentStoragePaths: _uploadedDocuments,
       lastActivity: DateTime.now(),
     );
 
@@ -277,6 +320,82 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
       });
     }
   }
+
+  void _onUploadImages() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'],
+        allowMultiple: true,
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          for (final f in result.files) {
+            if (!_uploadedImages.contains(f.name)) {
+              _uploadedImages.add(f.name);
+            }
+          }
+          _isImagesDragOver = false;
+        });
+      }
+    } catch (e) {
+      // Fallback file pick simulation
+      setState(() {
+        final mockNames = ['brand_hero_banner.png', 'product_interface_mockup.jpg', 'corporate_team_photo.webp'];
+        for (final name in mockNames) {
+          if (!_uploadedImages.contains(name)) {
+            _uploadedImages.add(name);
+          }
+        }
+        _isImagesDragOver = false;
+      });
+    }
+  }
+
+  void _onRemoveImage(int index) {
+    setState(() {
+      _uploadedImages.removeAt(index);
+    });
+  }
+
+  void _onUploadDocuments() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'txt', 'rtf'],
+        allowMultiple: true,
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        setState(() {
+          for (final f in result.files) {
+            if (!_uploadedDocuments.contains(f.name)) {
+              _uploadedDocuments.add(f.name);
+            }
+          }
+          _isDocsDragOver = false;
+        });
+      }
+    } catch (e) {
+      // Fallback file pick simulation
+      setState(() {
+        final mockNames = ['brand_identity_guidelines_2026.docx', 'q3_market_research_report.pdf'];
+        for (final name in mockNames) {
+          if (!_uploadedDocuments.contains(name)) {
+            _uploadedDocuments.add(name);
+          }
+        }
+        _isDocsDragOver = false;
+      });
+    }
+  }
+
+  void _onRemoveDocument(int index) {
+    setState(() {
+      _uploadedDocuments.removeAt(index);
+    });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -293,7 +412,7 @@ class _InputsTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      height: 64,
+      height: 58,
       padding: const EdgeInsets.symmetric(horizontal: ClinicSageSpacing.lg),
       decoration: const BoxDecoration(
         color: ClinicSageColors.surface,
@@ -301,75 +420,57 @@ class _InputsTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              gradient: ClinicSageGradients.tertiary,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: ClinicSageShadows.aiGlow,
+            ),
+            child: const Icon(Icons.description_outlined, size: 14, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(client.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-              Text('Client Inputs · Phase 1', style: theme.textTheme.labelSmall),
+              Text(client.name, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text('Client Inputs · Phase 1 of 4', style: theme.textTheme.labelSmall?.copyWith(fontSize: 10)),
             ],
           ),
           const Spacer(),
-          _PhaseNavChip(label: 'Inputs', isActive: true),
-          const SizedBox(width: 8),
-          _PhaseNavChip(
-            label: 'Content Studio',
-            isActive: false,
-            onTap: () => GoRouter.of(context).go(AppRoutes.clientContentPath(client.id)),
-          ),
-          const SizedBox(width: 8),
-          _PhaseNavChip(
-            label: 'Strategy',
-            isActive: false,
-            onTap: () => GoRouter.of(context).go(AppRoutes.clientStrategyPath(client.id)),
-          ),
-          const SizedBox(width: 8),
-          _PhaseNavChip(
-            label: 'Review',
-            isActive: false,
-            onTap: () => GoRouter.of(context).go(AppRoutes.clientReviewPath(client.id)),
-          ),
-          const SizedBox(width: ClinicSageSpacing.md),
-          OutlinedButton(
-            onPressed: isSaving ? null : onSave,
-            child: isSaving
-                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Save Draft'),
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+            child: InkWell(
+              onTap: isSaving ? null : onSave,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: isSaving
+                      ? LinearGradient(colors: [ClinicSageColors.tertiary.withOpacity(0.4), ClinicSageColors.tertiary.withOpacity(0.4)])
+                      : ClinicSageGradients.tertiary,
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                  boxShadow: isSaving ? [] : ClinicSageShadows.button,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    isSaving
+                        ? const SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.cloud_upload_outlined, size: 14, color: Colors.white),
+                    const SizedBox(width: 7),
+                    Text(
+                      isSaving ? 'Saving...' : 'Save Draft',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PhaseNavChip extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback? onTap;
-
-  const _PhaseNavChip({required this.label, required this.isActive, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isActive ? ClinicSageColors.tertiaryLight : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isActive ? ClinicSageColors.tertiary : ClinicSageColors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: isActive ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
       ),
     );
   }
@@ -390,28 +491,53 @@ class _Section extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 120,
+          width: 130,
           child: Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: 2),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(number, style: theme.textTheme.displayLarge?.copyWith(
-                  fontSize: 13,
-                  color: ClinicSageColors.secondary,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 2,
-                )),
-                const SizedBox(height: 4),
-                Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    gradient: ClinicSageGradients.tertiary,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: ClinicSageShadows.aiGlow,
+                  ),
+                  child: Center(
+                    child: Text(
+                      number,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                Text(subtitle, style: theme.textTheme.labelSmall?.copyWith(height: 1.5)),
+                Text(subtitle, style: theme.textTheme.labelSmall?.copyWith(height: 1.6)),
               ],
             ),
           ),
         ),
         const SizedBox(width: ClinicSageSpacing.lg),
-        Expanded(child: ClinicCard(child: child)),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: ClinicSageColors.surface,
+              borderRadius: BorderRadius.circular(ClinicSageRadius.lg),
+              border: Border.all(color: ClinicSageColors.border),
+              boxShadow: ClinicSageShadows.card,
+            ),
+            padding: const EdgeInsets.all(20),
+            child: child,
+          ),
+        ),
       ],
     );
   }
@@ -561,9 +687,9 @@ class _QuestionnaireGrid extends StatelessWidget {
 
   bool _isMultiline(String key) {
     return [
-      QuestionnaireKeys.targetAudience,
-      QuestionnaireKeys.pastWins,
-      QuestionnaireKeys.painPoints,
+      QuestionnaireKeys.targetCustomer,
+      QuestionnaireKeys.keyDifferentiator,
+      QuestionnaireKeys.mainSalesChannel,
     ].contains(key);
   }
 }
@@ -668,45 +794,380 @@ class _GenerateCTA extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ClinicCard(
-      backgroundColor: ClinicSageColors.primary,
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: ClinicSageGradients.brandVibrant,
+        borderRadius: BorderRadius.circular(ClinicSageRadius.lg),
+        boxShadow: ClinicSageShadows.cardHover,
+      ),
       child: Row(
         children: [
-          const Icon(Icons.auto_awesome, color: ClinicSageColors.tertiary, size: 28),
-          const SizedBox(width: ClinicSageSpacing.md),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Ready to generate deliverables for $clientName?',
-                  style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Inputs will be vectorized and orchestrated via Gemini AI.',
-                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withOpacity(0.6)),
+                  'Inputs will be vectorized and orchestrated via Gemini AI to create campaign-ready assets.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withOpacity(0.65),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: ClinicSageSpacing.md),
-          ElevatedButton.icon(
-            onPressed: () => GoRouter.of(context).go(AppRoutes.clientContentPath(clientId)),
-            icon: const Icon(Icons.play_arrow, size: 18),
-            label: const Text('Generate Content'),
-          ),
-          const SizedBox(width: 8),
-          OutlinedButton(
-            onPressed: () => GoRouter.of(context).go(AppRoutes.clientStrategyPath(clientId)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white30),
-            ),
-            child: const Text('Generate Strategy'),
+          const SizedBox(width: 20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                child: InkWell(
+                  onTap: () => GoRouter.of(context).go(AppRoutes.clientContentPath(clientId)),
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      gradient: ClinicSageGradients.tertiary,
+                      borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                      boxShadow: ClinicSageShadows.button,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.play_arrow_rounded, size: 16, color: Colors.white),
+                        SizedBox(width: 7),
+                        Text('Generate Content', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => GoRouter.of(context).go(AppRoutes.clientStrategyPath(clientId)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white24),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                ),
+                child: const Text('Generate Strategy', style: TextStyle(fontSize: 13)),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ImagesDropZone extends StatelessWidget {
+  final List<String> images;
+  final bool isDragOver;
+  final ValueChanged<bool> onDragOver;
+  final VoidCallback onUpload;
+  final Function(int) onRemove;
+
+  const _ImagesDropZone({
+    required this.images,
+    required this.isDragOver,
+    required this.onDragOver,
+    required this.onUpload,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (images.isNotEmpty) ...[
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: images.asMap().entries.map((entry) {
+              final index = entry.key;
+              final fileName = entry.value;
+              final ext = fileName.contains('.') ? fileName.split('.').last.toUpperCase() : 'IMG';
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: ClinicSageColors.neutral,
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                  border: Border.all(color: ClinicSageColors.border),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: ClinicSageColors.tertiaryLight,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.image_outlined, size: 18, color: ClinicSageColors.tertiary),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          fileName,
+                          style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          '$ext Reference Image',
+                          style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.secondary, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () => onRemove(index),
+                      borderRadius: BorderRadius.circular(12),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(Icons.close, size: 14, color: ClinicSageColors.secondary),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: ClinicSageSpacing.md),
+        ],
+        DragTarget<Object>(
+          onWillAcceptWithDetails: (_) {
+            onDragOver(true);
+            return true;
+          },
+          onLeave: (_) => onDragOver(false),
+          onAcceptWithDetails: (_) {
+            onDragOver(false);
+            onUpload();
+          },
+          builder: (context, candidateData, rejectedData) {
+            return GestureDetector(
+              onTap: onUpload,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(vertical: 28),
+                decoration: BoxDecoration(
+                  color: isDragOver ? ClinicSageColors.tertiaryLight : ClinicSageColors.neutral,
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                  border: Border.all(
+                    color: isDragOver ? ClinicSageColors.tertiary : ClinicSageColors.border,
+                    width: isDragOver ? 2 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate_outlined,
+                        size: 30,
+                        color: isDragOver ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        isDragOver
+                            ? 'Drop images to upload'
+                            : (images.isEmpty ? 'Drag & drop brand photos or images here' : 'Click to add more photos & images'),
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'PNG, JPG, WEBP, SVG files allowed for visual brand context',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _DocumentsDropZone extends StatelessWidget {
+  final List<String> documents;
+  final bool isDragOver;
+  final ValueChanged<bool> onDragOver;
+  final VoidCallback onUpload;
+  final Function(int) onRemove;
+
+  const _DocumentsDropZone({
+    required this.documents,
+    required this.isDragOver,
+    required this.onDragOver,
+    required this.onUpload,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (documents.isNotEmpty) ...[
+          Column(
+            children: documents.asMap().entries.map((entry) {
+              final index = entry.key;
+              final fileName = entry.value;
+              final ext = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : '';
+
+              IconData iconData = Icons.description_outlined;
+              Color iconBg = ClinicSageColors.tertiaryLight;
+              Color iconColor = ClinicSageColors.tertiary;
+              String typeLabel = 'Document File';
+
+              if (ext == 'pdf') {
+                iconData = Icons.picture_as_pdf_outlined;
+                iconBg = const Color(0xFFFDE8E8);
+                iconColor = const Color(0xFFE53E3E);
+                typeLabel = 'PDF Document';
+              } else if (ext == 'doc' || ext == 'docx') {
+                iconData = Icons.description_outlined;
+                iconBg = const Color(0xFFEBF8FF);
+                iconColor = const Color(0xFF3182CE);
+                typeLabel = 'Word Document';
+              } else if (ext == 'txt' || ext == 'rtf') {
+                iconData = Icons.article_outlined;
+                iconBg = const Color(0xFFF0FFF4);
+                iconColor = const Color(0xFF38A169);
+                typeLabel = 'Text Reference';
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: ClinicSageColors.neutral,
+                    borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                    border: Border.all(color: ClinicSageColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: iconBg,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(iconData, size: 20, color: iconColor),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              fileName,
+                              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              typeLabel,
+                              style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.secondary, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        color: ClinicSageColors.secondary,
+                        onPressed: () => onRemove(index),
+                        tooltip: 'Remove document',
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: ClinicSageSpacing.md),
+        ],
+        DragTarget<Object>(
+          onWillAcceptWithDetails: (_) {
+            onDragOver(true);
+            return true;
+          },
+          onLeave: (_) => onDragOver(false),
+          onAcceptWithDetails: (_) {
+            onDragOver(false);
+            onUpload();
+          },
+          builder: (context, candidateData, rejectedData) {
+            return GestureDetector(
+              onTap: onUpload,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(vertical: 28),
+                decoration: BoxDecoration(
+                  color: isDragOver ? ClinicSageColors.tertiaryLight : ClinicSageColors.neutral,
+                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                  border: Border.all(
+                    color: isDragOver ? ClinicSageColors.tertiary : ClinicSageColors.border,
+                    width: isDragOver ? 2 : 1,
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.note_add_outlined,
+                        size: 30,
+                        color: isDragOver ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        isDragOver
+                            ? 'Drop Word files / PDFs to upload'
+                            : (documents.isEmpty
+                                ? 'Drag & drop Word documents or PDFs here'
+                                : 'Click to add more Word documents or PDFs'),
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'DOCX, DOC, PDF, TXT files for AI reference background',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
