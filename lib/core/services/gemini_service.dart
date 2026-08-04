@@ -16,14 +16,12 @@ class GeminiService {
 
   static const String firebaseProjectId = 'meet-marketers-ai';
   static const List<String> candidateModels = [
-    'gemini-3.5-flash',
+    'veo-2.0-generate-001',
+    'imagen-3.0-generate-002',
     'gemini-2.5-flash',
     'gemini-2.0-flash',
     'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-1.5-pro-latest',
-    'gemini-2.0-flash-exp',
-    'gemini-pro',
+    'gemini-1.5-pro',
   ];
 
   String _apiKey = AppConfig.geminiApiKey;
@@ -260,7 +258,7 @@ Return a JSON object strictly matching this schema:
   }
 
   Future<String?> _callGemini35Flash(String prompt) async {
-    final keysToTry = [_apiKey, DefaultFirebaseOptions.web.apiKey];
+    final keysToTry = [_apiKey, AppConfig.geminiApiKey, DefaultFirebaseOptions.web.apiKey];
 
     for (final modelName in candidateModels) {
       for (final key in keysToTry) {
@@ -280,7 +278,10 @@ Return a JSON object strictly matching this schema:
           );
           final resp = await http.post(
             url,
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': key,
+            },
             body: jsonEncode({
               'contents': [
                 {

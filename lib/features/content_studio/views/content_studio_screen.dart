@@ -957,7 +957,7 @@ class _PhotoAssetView extends StatelessWidget {
                   children: [
                     const Icon(Icons.auto_awesome, size: 12, color: ClinicSageColors.tertiary),
                     const SizedBox(width: 4),
-                    Text('Vertex AI Image Engine', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600)),
+                    Text('Imagen 3 / Imagen 3.0 Image Engine', style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -989,7 +989,7 @@ class _PhotoAssetView extends StatelessWidget {
                       const Icon(Icons.auto_awesome, size: 48, color: ClinicSageColors.tertiary),
                       const SizedBox(height: 12),
                       Text(
-                        'Vertex AI Visual Asset',
+                        'Imagen 3 Visual Asset',
                         style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ],
