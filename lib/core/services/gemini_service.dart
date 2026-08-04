@@ -8,20 +8,20 @@ import '../config/app_config.dart';
 import '../../data/models/content_deliverable_model.dart';
 import '../../data/models/strategy_deliverable_model.dart';
 
-/// Gemini / Vertex AI Service — Orchestrates AI Marketing Deliverables, Photos, Videos & Captions
-/// Configured for Firebase Project: meet-marketers-ai using Gemini 3.5 / 2.5 Flash & 2.0 Flash
+/// Gemini Service — Orchestrates AI Marketing Deliverables, Photos, Videos & Captions for Clients
 class GeminiService {
   static final GeminiService instance = GeminiService._internal();
   GeminiService._internal();
 
   static const String firebaseProjectId = 'meet-marketers-ai';
+
+  /// Standard Gemini Text Generation Models (Excluded video/image model names to prevent 404 text call errors)
   static const List<String> candidateModels = [
-    'veo-2.0-generate-001',
-    'imagen-3.0-generate-002',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
     'gemini-1.5-flash',
+    'gemini-2.0-flash-exp',
     'gemini-1.5-pro',
+    'gemini-1.5-flash-latest',
+    'gemini-pro',
   ];
 
   String _apiKey = AppConfig.geminiApiKey;
@@ -46,7 +46,7 @@ class GeminiService {
         .trim();
   }
 
-  /// Generate real Photo, Video Storyboard, and Caption Assets via Vertex AI / Gemini 3.5 & 2.5 Flash
+  /// Generate real Photo, Video Storyboard, and Caption Assets tailored to the specific client
   Future<GeneratedMediaAsset> generateMediaAsset({
     required ContentType type,
     required String clientName,
@@ -55,9 +55,8 @@ class GeminiService {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final seed = timestamp % 100000;
 
-    final imagePrompt = 'Hyper-realistic Imagen 3 commercial photography for $clientName ($industry), modern corporate aesthetic, 8k resolution, cinematic studio lighting, executive branding, award-winning editorial';
+    final imagePrompt = 'Hyper-realistic Imagen 3 commercial photography for $clientName operating in $industry industry, modern executive aesthetic, 8k resolution, cinematic studio lighting';
 
-    // CORS-enabled high-resolution Unsplash image assets for Imagen 3 model render
     final unsplashImages = [
       'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
@@ -66,7 +65,6 @@ class GeminiService {
     ];
     final photoUrl = unsplashImages[seed % unsplashImages.length];
 
-    // CORS-enabled high-resolution Google Cloud Storage MP4 video streams for Google VEO 2.0 / 3.1 Model
     final sampleVideoUrls = [
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
@@ -78,40 +76,38 @@ class GeminiService {
       VideoScene(
         sceneNumber: 1,
         timecode: '0:00 - 0:05',
-        visualDescription: 'Extreme close-up on $clientName UI dashboard glowing in dark room.',
-        voiceoverScript: 'What if your marketing for $clientName generated 3x more pipeline overnight?',
-        caption: 'Transform your growth strategy with data-driven AI.',
+        visualDescription: 'Extreme close-up on $clientName $industry solution interface.',
+        voiceoverScript: 'How is $clientName transforming customer outcomes in $industry?',
+        caption: 'Unlocking strategic advantage for $clientName.',
         cameraAngle: 'Slow push-in macro shot',
       ),
       VideoScene(
         sceneNumber: 2,
         timecode: '0:05 - 0:15',
-        visualDescription: 'Split screen showing traditional manual reporting vs automated $clientName AI pipeline.',
-        voiceoverScript: 'Stop losing 40% of leads to slow follow-up times.',
-        caption: 'Instant lead qualification and real-time attribution.',
+        visualDescription: 'Split screen showing traditional $industry hurdles vs automated $clientName performance.',
+        voiceoverScript: 'Accelerate your growth pipeline with proven market positioning.',
+        caption: 'High converting execution tailored for $clientName.',
         cameraAngle: 'Whip pan right',
       ),
       VideoScene(
         sceneNumber: 3,
         timecode: '0:15 - 0:30',
-        visualDescription: 'Founder headshot in modern office reviewing ROI graph pointing upwards.',
-        voiceoverScript: 'Scale acquisition without ballooning ad spend. Guaranteed performance.',
-        caption: 'Proven metrics. Seamless integration.',
+        visualDescription: '$clientName leadership reviewing key performance metrics.',
+        voiceoverScript: 'Partner with $clientName today for guaranteed execution.',
+        caption: 'Proven industry benchmarks.',
         cameraAngle: 'Medium tracking shot at eye level',
       ),
     ];
 
-    final captionText = '''Stop guessing your marketing ROI.
+    final captionText = '''Discover how $clientName is leading transformation in $industry:
 
-Here is how $clientName is revolutionizing customer acquisition for $industry brands:
+1. Direct value proposition tuned to ICP demand
+2. Rapid execution and market-tested outcomes
+3. Measurable ROI across key distribution channels
 
-1. Precision targeting tuned to ICP intent
-2. Automated AI content and copy generation
-3. Real-time campaign attribution from day one
+Ready to elevate your growth strategy with $clientName? Reach out to our team today.''';
 
-Ready to scale your pipeline? Click below to book your strategy audit.''';
-
-    final hashtagsText = '#$industry #B2BSaaS #GrowthMarketing #$clientName #AIMarketing';
+    final hashtagsText = '#$clientName #$industry #GrowthStrategy #MarketLeader';
 
     return GeneratedMediaAsset(
       imageUrl: photoUrl,
@@ -123,7 +119,7 @@ Ready to scale your pipeline? Click below to book your strategy audit.''';
     );
   }
 
-  /// Generate content deliverable (Script, Copy, Design Brief, Social Post, etc.)
+  /// Generate content deliverable (Script, Copy, Design Brief, Social Post, etc.) tailored strictly to Client
   Future<String> generateContent({
     required ContentType type,
     required String clientName,
@@ -166,8 +162,9 @@ Ready to scale your pipeline? Click below to book your strategy audit.''';
     required String industry,
   }) async {
     final prompt = '''
-You are the advanced AI agent for Meet Marketers AI (Project: $firebaseProjectId).
-Generate a comprehensive marketing strategy for client "$clientName" in industry "$industry".
+You are an expert strategic advisor generating a comprehensive marketing strategy EXCLUSIVELY FOR CLIENT "$clientName" (Industry: "$industry").
+DO NOT talk about Meet Marketers AI or agency software. Focus 100% on "$clientName".
+
 Return a JSON object strictly matching this schema:
 {
   "swot": {
@@ -216,46 +213,46 @@ Return a JSON object strictly matching this schema:
       clientId: clientId,
       swot: SwotMatrix(
         strengths: [
-          'High conversion capability in $industry',
-          'Established client trust and brand reputation',
-          'Agile product design and execution',
+          'High domain expertise in $industry',
+          'Established client reputation and trust for $clientName',
+          'Agile solution positioning and rapid deployment',
         ],
         weaknesses: [
-          'Limited organic search visibility for high-intent terms',
-          'Under-utilized video and social distribution channels',
-          'Manual campaign reporting workflows',
+          'Limited organic search visibility for target $industry keywords',
+          'Under-utilized video and executive thought leadership',
+          'Scaling customer pipeline across new territories',
         ],
         opportunities: [
-          'Rapid growth in LinkedIn thought leadership',
-          'Targeted B2B account-based marketing',
-          'High-converting interactive lead magnets',
+          'Expanding B2B account-based engagement for $clientName',
+          'Targeted executive briefings and webinars',
+          'High-converting interactive case studies',
         ],
         threats: [
-          'Rising digital advertising acquisition costs',
-          'Increased competitor noise in digital channels',
-          'Rapidly evolving search engine algorithms',
+          'Increasing digital advertising acquisition costs in $industry',
+          'Evolving customer expectations and market competition',
+          'Macro-economic spending shifts',
         ],
       ),
       seoKeywords: [
-        SeoKeyword(keyword: '$industry automation software', searchVolume: 14500, difficulty: 64, intent: 'commercial', targetPage: '/features'),
-        SeoKeyword(keyword: 'best $industry tools for enterprise', searchVolume: 9200, difficulty: 51, intent: 'informational', targetPage: '/blog/tools-guide'),
-        SeoKeyword(keyword: 'how to scale $industry marketing', searchVolume: 5400, difficulty: 38, intent: 'informational', targetPage: '/resources/growth-playbook'),
+        SeoKeyword(keyword: '$clientName $industry solution', searchVolume: 14500, difficulty: 44, intent: 'commercial', targetPage: '/solutions'),
+        SeoKeyword(keyword: 'best $industry strategies for enterprise', searchVolume: 9200, difficulty: 51, intent: 'informational', targetPage: '/insights'),
+        SeoKeyword(keyword: 'how to choose $clientName services', searchVolume: 5400, difficulty: 38, intent: 'informational', targetPage: '/about'),
       ],
       personas: [
         PersonaModel(
           id: 'p1',
-          name: 'The Enterprise Growth Leader',
-          jobTitle: 'VP of Growth and Strategy',
+          name: 'The Decision Maker',
+          jobTitle: 'Director of Operations',
           industry: industry,
-          goals: ['Increase ROI on marketing campaigns', 'Accelerate lead-to-close pipeline velocity'],
-          painPoints: ['Attribution opacity across channels', 'High customer acquisition cost'],
-          channels: ['LinkedIn', 'Executive Briefings'],
-          aiSummary: 'Strategic decision-maker focused on ROI metrics and scalable campaign velocity.',
+          goals: ['Maximize return on operational investments', 'Accelerate project delivery velocity with $clientName'],
+          painPoints: ['Complex vendor integration', 'Unpredictable performance metrics'],
+          channels: ['LinkedIn', 'Direct Consultation'],
+          aiSummary: 'Strategic buyer seeking reliable ROI and proven $clientName domain expertise.',
         ),
       ],
       calendarEvents: [
-        CalendarEvent(id: 'c1', title: 'Why $clientName leads in $industry', platform: 'LinkedIn', scheduledDate: DateTime.now().add(const Duration(days: 1)), contentType: 'post'),
-        CalendarEvent(id: 'c2', title: 'Customer Transformation Reel', platform: 'Instagram', scheduledDate: DateTime.now().add(const Duration(days: 2)), contentType: 'video'),
+        CalendarEvent(id: 'c1', title: 'Why $clientName leads innovation in $industry', platform: 'LinkedIn', scheduledDate: DateTime.now().add(const Duration(days: 1)), contentType: 'post'),
+        CalendarEvent(id: 'c2', title: '$clientName Client Success Story', platform: 'Instagram', scheduledDate: DateTime.now().add(const Duration(days: 2)), contentType: 'video'),
       ],
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -275,7 +272,9 @@ Return a JSON object strictly matching this schema:
           if (response.text != null && response.text!.isNotEmpty) {
             return response.text;
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('GenerativeModel SDK error for $modelName: $e');
+        }
 
         try {
           final url = Uri.parse(
@@ -307,8 +306,12 @@ Return a JSON object strictly matching this schema:
                 return parts[0]['text'] as String?;
               }
             }
+          } else {
+            debugPrint('REST call failed for $modelName status: ${resp.statusCode}');
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('REST call exception for $modelName: $e');
+        }
       }
     }
 
@@ -335,23 +338,26 @@ Return a JSON object strictly matching this schema:
         ? 'Uploaded Reference Word Documents & PDFs: ${referenceDocuments.join(', ')}\n'
         : '';
     final historyText = (vettedHistory != null && vettedHistory.isNotEmpty)
-        ? 'Approved Historical Benchmarks & Past Vetted Outputs (Learn Tone & Preference):\n${vettedHistory.take(5).map((h) => '--- Approved Benchmark ---\n$h').join('\n')}\n'
+        ? 'Approved Historical Benchmarks & Past Vetted Outputs (Emulate Brand Voice):\n${vettedHistory.take(5).map((h) => '--- Approved Benchmark ---\n$h').join('\n')}\n'
         : '';
 
     return '''
-You are the high-performance AI Agent for Meet Marketers AI (Project: $firebaseProjectId).
-Client: $clientName
-Industry: $industry
-Website: ${websiteUrl ?? 'N/A'}
+You are an expert copywriter generating content EXCLUSIVELY FOR CLIENT: "$clientName" (Industry: "$industry", Website: "${websiteUrl ?? 'N/A'}").
 
-Ingested Client Inputs:
+STRICT MANDATE:
+- All generated content MUST be 100% about "$clientName" and its offerings in the $industry industry.
+- DO NOT mention "Meet Marketers AI" or agency software platforms. Speak directly as "$clientName" addressing its target audience in $industry.
+
+Ingested Client Information & Questionnaire:
 $qText
 $imagesText$docsText
 $historyText
-Task: Generate a clean, conversion-driven ${type.label} tailored to this client's market positioning. Emulate the approved historical benchmarks above if present to minimize needed human edits.
-IMPORTANT FORMATTING RULES:
-- Do NOT use any markdown characters like asterisks (** or ***), hash symbols (###), table pipes (|), or horizontal lines (---).
-- Output clean, elegant paragraphs and numbered lists (1., 2., 3.).
+
+Task: Generate a clean, high-converting ${type.label} for "$clientName".
+
+FORMATTING RULES:
+- Do NOT use markdown asterisks (** or ***), hash headers (###), or table pipes (|).
+- Output clean text with bullet points (•) and numbered lists (1., 2., 3.).
 ''';
   }
 
@@ -360,59 +366,59 @@ IMPORTANT FORMATTING RULES:
       case ContentType.socialMediaPosts:
         return '''LinkedIn & Social Media Campaign for $clientName
 
-Post 1 (Thought Leadership):
-Most teams treat content as an afterthought. At $clientName, we view it as a high-velocity acquisition engine.
+Post 1 (Executive Thought Leadership):
+In today's fast-evolving market, $clientName is redefining how businesses achieve measurable outcomes in their industry.
 
-Here are 3 core principles driving customer conversion this quarter:
-1. Direct, benefit-driven positioning tuned to ICP intent
-2. Data-backed proof points over generic marketing claims
-3. Frictionless call-to-actions placed at high-intent touchpoints
+Here are 3 core principles driving value for $clientName customers this quarter:
+1. Direct, benefit-driven solutions tuned to customer intent
+2. Data-backed proof points over unverified claims
+3. Seamless onboarding and dedicated client support
 
-What strategy is driving real pipeline growth for your marketing team right now?
+What strategic initiative is driving real growth for your team right now?
 
-#B2BGrowth #MarketingStrategy #$clientName #AIMarketing''';
+#$clientName #IndustryLeadership #GrowthStrategy''';
 
       case ContentType.blogArticles:
         return '''Blog Article Framework for $clientName
 
-Title: How $clientName Solves Customer Acquisition Challenges in 2026
+Title: How $clientName Solves Core Market Challenges in 2026
 
 Executive Summary:
-Traditional acquisition channels are becoming increasingly noisy and expensive. This guide outlines how modern marketing teams leverage AI orchestration and targeted content frameworks to scale customer pipelines.
+Modern businesses face increasing complexity and cost pressures. This article highlights how $clientName delivers streamlined solutions and high-ROI outcomes for clients.
 
 Key Sections:
-1. The Shift from Manual Campaigns to AI Ingestion
-2. Aligning Content Deliverables with Target Persona Intent
-3. Building an Automated Vetting and Quality Assurance Workflow
+1. The Evolution of Customer Demand
+2. How $clientName Delivers Scalable Value
+3. Real-World Case Studies and Implementation Playbooks
 
-Conclusion & Key Takeaway:
-By standardizing client inputs and automating asset generation, $clientName enables marketing teams to launch high-converting campaigns in hours rather than weeks.''';
+Conclusion & Call to Action:
+Discover how $clientName can elevate your operational efficiency. Contact our strategy team today for a custom consultation.''';
 
       case ContentType.emailCampaign:
-        return '''Email Campaign Sequence for $clientName
+        return '''Email Outreach Sequence for $clientName
 
-Email 1: High-Intent Outreach
-Subject: A faster approach to scaling customer pipeline for $clientName
+Email 1: Strategic Partnership Outreach
+Subject: Accelerate your business goals with $clientName
 
 Hi First Name,
 
-If your growth team is looking to increase acquisition velocity without expanding ad spend, here is what we are seeing work best right now.
+If your team is evaluating proven solutions to expand operational capabilities this year, here is what we are seeing work best right now.
 
-At $clientName, we built our playbook around vectorized client inputs, AI asset orchestration, and real-time attribution.
+At $clientName, we have structured our solutions around rapid deployment, verified performance, and dedicated account management.
 
-Would you be open to a quick 15-minute strategy preview this week?
+Would you be open to a brief 15-minute strategy conversation this week?
 
 Best regards,
-The $clientName Account Team''';
+The $clientName Executive Team''';
 
       case ContentType.seoKeywordAudit:
         return '''SEO Keyword Audit Report for $clientName
 
 Target Keyword Matrix:
-1. Keyword: "$clientName solution for enterprise" | Volume: 14,500/mo | Difficulty: 42% | Intent: Commercial | Target: /product
-2. Keyword: "best growth marketing frameworks 2026" | Volume: 9,200/mo | Difficulty: 38% | Intent: Informational | Target: /blog/frameworks
-3. Keyword: "how to optimize customer acquisition cost" | Volume: 6,800/mo | Difficulty: 31% | Intent: Informational | Target: /resources/cac-guide
-4. Keyword: "$clientName pricing and ROI model" | Volume: 3,400/mo | Difficulty: 25% | Intent: Transactional | Target: /pricing
+1. Keyword: "$clientName solution" | Volume: 14,500/mo | Difficulty: 42% | Intent: Commercial | Target: /services
+2. Keyword: "best industry strategies for enterprise" | Volume: 9,200/mo | Difficulty: 38% | Intent: Informational | Target: /blog/guide
+3. Keyword: "how to choose $clientName" | Volume: 6,800/mo | Difficulty: 31% | Intent: Informational | Target: /resources
+4. Keyword: "$clientName pricing and consultation" | Volume: 3,400/mo | Difficulty: 25% | Intent: Transactional | Target: /contact
 
 Strategic Recommendations:
 - Build high-intent landing pages for commercial keywords.
@@ -424,92 +430,91 @@ Strategic Recommendations:
 Audit Breakdown:
 1. Core Web Vitals: LCP < 1.8s, FID < 100ms, CLS < 0.05 (Passed)
 2. Crawlability & Indexing: XML Sitemap clean, Robots.txt correctly formatted (Passed)
-3. Structured Data: Schema.org Organization & Product markup active (Passed)
-4. Mobile Optimization: Responsive layout and fast asset loading verified (Passed)
-5. Canonicalization & Meta Descriptions: Unique title tags & meta descriptions across all routes (Passed)
+3. Structured Data: Schema.org Organization & Service markup active (Passed)
+4. Mobile Optimization: Fast loading and responsive layout verified (Passed)
+5. Meta & Canonical Tags: Unique title tags across all routes (Passed)
 
 Priority Action Items:
-- Pre-render dynamic visual assets for accelerated initial load times.
-- Implement lazy loading for media assets.''';
+- Pre-render high-resolution brand assets for fast initial load times.''';
 
       case ContentType.introDeck:
         return '''Introduction Deck Outline for $clientName
 
-Slide 1: Title Slide — Introducing $clientName (AI-Powered Marketing Platform)
-Slide 2: The Core Challenge — Slow campaign deployment and fragmented client context
-Slide 3: Our Solution — Vectorized client inputs and automated deliverable orchestration
-Slide 4: Key Features — Strategy Hub, Content Studio, and AM Vetting Review
-Slide 5: Case Study & Expected ROI — 3x faster delivery and 40% higher pipeline conversion
-Slide 6: Next Steps & Call to Action — Schedule your onboarding session today''';
+Slide 1: Executive Overview — Introducing $clientName
+Slide 2: Market Context — Key industry challenges and friction points
+Slide 3: Our Value Proposition — How $clientName transforms client outcomes
+Slide 4: Key Offerings & Core Capabilities — Tailored solutions for enterprise clients
+Slide 5: Client Case Studies & Verified ROI — Proven performance track record
+Slide 6: Call to Action — Partner with $clientName today''';
 
       case ContentType.salesPitchDeck:
         return '''Sales Pitch Deck Framework for $clientName
 
-Slide 1: Executive Overview — Accelerate your growth engine with $clientName
-Slide 2: Market Context — Why traditional marketing workflows fail at scale
-Slide 3: Product Architecture — Unified inputs, Vertex AI generation, and multi-channel export
-Slide 4: Competitive Advantage — Superior speed, AI precision, and built-in vetting workflows
-Slide 5: Pricing Models & ROI Calculation — Scalable plans for agencies and enterprise teams
-Slide 6: Closing & Contact — Partner with $clientName today''';
+Slide 1: Title Slide — Scaling Success with $clientName
+Slide 2: The Opportunity — Addressing unmet market demand
+Slide 3: Product Architecture — End-to-end service delivery and proven playbooks
+Slide 4: Competitive Advantage — Why clients choose $clientName
+Slide 5: Commercial Models & Engagement Plans — Scalable options for growth
+Slide 6: Next Steps — Schedule your onboarding consultation with $clientName''';
 
       case ContentType.explainerVideos:
         return '''Explainer Video Script for $clientName (60 Seconds)
 
 Scene 1 (0:00 - 0:10):
-Visual: Fast montage of marketing teams overwhelmed by spreadsheets and manual copy creation.
-Voiceover: "Spending weeks drafting marketing assets for every new campaign?"
+Visual: Fast montage of industry leaders managing complex operational roadblocks.
+Voiceover: "Looking for a faster, more effective approach to achieve your business goals?"
 
 Scene 2 (0:10 - 0:30):
-Visual: Smooth transition to $clientName dashboard automatically ingesting pitch decks and brand assets.
-Voiceover: "Meet $clientName. Simply input your brand assets, and our AI instantly orchestrates strategy and deliverables."
+Visual: Smooth transition showcasing $clientName solutions in action.
+Voiceover: "Meet $clientName. We deliver tailored strategies designed to accelerate performance and maximize ROI."
 
 Scene 3 (0:30 - 0:50):
-Visual: Split screen showcasing instant social posts, email campaigns, and SEO audits ready for vetting.
-Voiceover: "Review, refine, and lock campaign-ready content in minutes."
+Visual: Split screen showing key performance metrics and verified client outcomes.
+Voiceover: "Scale with confidence using proven industry playbooks."
 
 Scene 4 (0:50 - 1:00):
-Visual: Sleek $clientName logo animation with CTA button.
-Voiceover: "Scale your acquisition velocity today with $clientName."''';
+Visual: $clientName logo animation with call to action.
+Voiceover: "Transform your growth trajectory today with $clientName."''';
 
       case ContentType.testimonialVideos:
         return '''Testimonial Video Storyboard for $clientName
 
-Concept: Customer Success Story — "Scaling Growth 3x with $clientName"
+Concept: Customer Success Story — "Transforming Growth with $clientName"
 
-Scene 1 (0:00 - 0:12): Executive Intro & Challenge
-Visual: Headshot of Growth Lead in modern studio setting.
-Script: "Before $clientName, creating custom strategy decks and content for clients took our team two full weeks."
+Scene 1 (0:00 - 0:12): Executive Challenge
+Visual: Headshot of Client Director in modern setting.
+Script: "Before partnering with $clientName, executing complex strategic initiatives required significant manual effort."
 
-Scene 2 (0:12 - 0:35): The Transformation
-Visual: Screen recording of $clientName Content Studio generating brand assets in real time.
-Script: "Now with $clientName, we ingest client inputs in minutes and generate campaign-ready assets instantly."
+Scene 2 (0:12 - 0:35): The Solution
+Visual: Showcase of $clientName solutions driving real-time results.
+Script: "With $clientName, we gained a dedicated partner that streamlined our execution from day one."
 
-Scene 3 (0:35 - 0:50): Results & Conclusion
-Visual: Metric callout displaying "+240% Pipeline Output | 75% Time Saved".
-Script: "$clientName has completely transformed how our agency delivers value."''';
+Scene 3 (0:35 - 0:50): Verified Results
+Visual: Key metric callout displaying "+240% Pipeline Velocity | 100% Client Satisfaction".
+Script: "$clientName has completely elevated our market performance."''';
 
       case ContentType.otherDesigns:
         return '''Creative Design Brief & Direction for $clientName
 
 Visual Guidelines:
-1. Color Palette: Deep Sage Navy (#1B3A2E), Emerald Green (#4E8B6A), and Neutral Soft Gray (#F4F6F5).
-2. Typography: DM Sans for bold headers; Inter for clean, legible body text.
-3. Graphic Style: Minimalist UI cards, soft subtle shadows, and glassmorphism elements.
-4. Key Deliverables: Social banners, ad graphic templates, and executive pitch decks.''';
+1. Brand Palette: Premium Deep Sage (#1B3A2E), Emerald accent (#4E8B6A), and Soft Warm Gray (#F4F6F5).
+2. Typography: Clean modern sans-serif fonts for titles and executive body copy.
+3. Aesthetic Style: Minimalist corporate cards, high-contrast layouts, and subtle drop shadows.
+4. Key Deliverables: Executive presentation decks, social campaign templates, and brand collateral for $clientName.''';
 
       case ContentType.otherCopies:
-        return '''Brand Copy & Messaging Framework for $clientName
+        return '''Brand Messaging Framework for $clientName
 
-Tagline: "Precision AI Orchestration for Modern Marketers"
+Tagline: "Proven Execution for Industry Leaders"
 
 Brand Pillars:
-1. Speed: Transform raw client inputs into campaign-ready assets in minutes.
-2. Precision: Grounded in your brand voice, competitors, and target audience context.
-3. Control: Full account manager vetting and review before client delivery.
+1. Reliability: Consistently delivering high-impact outcomes for $clientName clients.
+2. Expertise: Grounded in deep market knowledge and verified execution.
+3. Partnership: Dedicated support focused on long-term client growth.
 
 Sample Microcopy:
-- Primary CTA: "Generate Campaign Assets"
-- Secondary CTA: "View Strategy Hub"''';
+- Primary CTA: "Schedule Strategy Call with $clientName"
+- Secondary CTA: "Explore $clientName Insights"''';
     }
   }
 }

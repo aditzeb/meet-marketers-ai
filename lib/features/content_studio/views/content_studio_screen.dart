@@ -752,7 +752,7 @@ class _AIOutputPanel extends StatelessWidget {
 
     // 3. Graphic & Visual Asset sub-tabs
     if (subTabId == 'graphics' || subTabId == 'cover' || subTabId == 'assets' || subTabId == 'graphic_asset' || subTabId == 'email_banner') {
-      return _PhotoAssetView(mediaAsset: mediaAsset);
+      return _PhotoAssetView(clientName: clientName, mediaAsset: mediaAsset);
     }
 
     // 4. Captions & Hashtags sub-tab
@@ -930,8 +930,9 @@ class _PresentationSlidesView extends StatelessWidget {
 // Real Photo Asset View
 // ─────────────────────────────────────────────────────────────────────────────
 class _PhotoAssetView extends StatelessWidget {
+  final String clientName;
   final GeneratedMediaAsset? mediaAsset;
-  const _PhotoAssetView({required this.mediaAsset});
+  const _PhotoAssetView({required this.clientName, required this.mediaAsset});
 
   @override
   Widget build(BuildContext context) {
@@ -945,7 +946,7 @@ class _PhotoAssetView extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Generated Visual Asset', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+              Text('Generated Visual Asset for $clientName', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1006,12 +1007,12 @@ class _PhotoAssetView extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Imagen 3 AI Commercial Render',
+                      '$clientName — Imagen 3 Commercial AI Graphic',
                       style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '8K Ultra HD · Studio Lighting · Modern Executive Aesthetic',
+                      '8K Ultra HD · Studio Lighting · Modern Executive Branding',
                       style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70),
                     ),
                   ],
