@@ -749,11 +749,11 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     switch (taskType) {
       case OpenRouterTaskType.strategicProposal:
         candidateModels = AppConfig.strategicProposalModels;
-        tokenCap = maxTokens ?? 6000;
+        tokenCap = maxTokens ?? 8000;
         break;
       case OpenRouterTaskType.highComplexityReasoning:
         candidateModels = AppConfig.highComplexityModels;
-        tokenCap = maxTokens ?? 2500;
+        tokenCap = maxTokens ?? 3500;
         break;
       case OpenRouterTaskType.fastMicrocopy:
         candidateModels = AppConfig.fastMicrocopyModels;
@@ -761,12 +761,12 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
         break;
       case OpenRouterTaskType.multimodalVision:
         candidateModels = AppConfig.multimodalVisionModels;
-        tokenCap = maxTokens ?? 1200;
+        tokenCap = maxTokens ?? 1500;
         break;
       case OpenRouterTaskType.codingRefactor:
       case OpenRouterTaskType.generalMarketing:
         candidateModels = AppConfig.generalMarketingModels;
-        tokenCap = maxTokens ?? 1800;
+        tokenCap = maxTokens ?? 2500;
         break;
     }
 
@@ -793,7 +793,7 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
         body: jsonEncode(payload),
       ).timeout(
         switch (taskType) {
-          OpenRouterTaskType.strategicProposal => const Duration(seconds: 90),
+          OpenRouterTaskType.strategicProposal => const Duration(seconds: 120),
           OpenRouterTaskType.highComplexityReasoning => const Duration(seconds: 60),
           OpenRouterTaskType.generalMarketing => const Duration(seconds: 45),
           OpenRouterTaskType.fastMicrocopy => const Duration(seconds: 20),
