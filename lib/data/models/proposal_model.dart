@@ -212,6 +212,20 @@ class SeoAuditSummary {
     mediumPriority: List<String>.from(json['mediumPriority'] as List? ?? []),
     longTermOpportunities: List<String>.from(json['longTermOpportunities'] as List? ?? []),
   );
+
+  SeoAuditSummary copyWith({
+    int? healthScore,
+    String? summaryText,
+    List<String>? highPriority,
+    List<String>? mediumPriority,
+    List<String>? longTermOpportunities,
+  }) => SeoAuditSummary(
+    healthScore: healthScore ?? this.healthScore,
+    summaryText: summaryText ?? this.summaryText,
+    highPriority: highPriority ?? this.highPriority,
+    mediumPriority: mediumPriority ?? this.mediumPriority,
+    longTermOpportunities: longTermOpportunities ?? this.longTermOpportunities,
+  );
 }
 
 /// Primary Master Model for Automated Strategic Proposals (matching ProposalSample.pdf)
@@ -263,6 +277,23 @@ class ProposalModel {
   final String finalThoughtsSummary;
   final String finalThoughtsRecommendation;
 
+  // ── Enhanced Visual Guideline & Media Synthesis (matching ProposalSample.pdf) ──
+  final List<String> visualKeywords;
+  final List<String> focusMoreOn;
+  final List<String> focusLessOn;
+  final String photographyQuote;
+  final String typographySampleHeadline;
+  final List<Map<String, String>> brandToneOfVoice;
+  final Map<String, dynamic> brandColorDetails;
+  final List<Map<String, dynamic>> contentFrameworkWeeks;
+  final String sampleReelHeadline;
+  final String? sampleReelMediaUrl;
+  final String sampleReelLink;
+  final List<Map<String, dynamic>> socialPosts;
+  final String seoAssessmentText;
+  final String seoAuditLink;
+  final String? visualDirectionImageUrl;
+
   const ProposalModel({
     required this.id,
     required this.amId,
@@ -308,6 +339,92 @@ class ProposalModel {
     this.seoAudit = const SeoAuditSummary(),
     this.finalThoughtsSummary = '',
     this.finalThoughtsRecommendation = '',
+    this.visualKeywords = const ['Experiential', 'Lifestyle-driven', 'Aspirational', 'Authentic', 'Human-centric'],
+    this.focusMoreOn = const ['People', 'Interactions', 'Celebrations', 'Team bonding', 'Family moments', 'Proposal moments'],
+    this.focusLessOn = const ['Empty yacht shots', 'Product-style photography', 'Generic harbour photos', 'Overly promotional visuals'],
+    this.photographyQuote = "People don't book yachts. People book experiences.",
+    this.typographySampleHeadline = "SAIL. RELAX. CELEBRATE.",
+    this.brandToneOfVoice = const [
+      {'trait': 'FRIENDLY', 'desc': 'Approachable and welcoming.'},
+      {'trait': 'INFORMATIVE', 'desc': 'Helping customers make informed decisions.'},
+      {'trait': 'ASPIRATIONAL', 'desc': 'Inspiring customers to imagine their experience.'},
+      {'trait': 'TRUSTWORTHY', 'desc': 'Reflecting safety, proven track record and professionalism.'},
+    ],
+    this.brandColorDetails = const {
+      'primary': {'name': 'Navy Blue', 'hex': '#001B2A'},
+      'secondary': {'name': 'Ocean Blue', 'hex': '#1E6BE5'},
+      'accent': {'name': 'Sand / Beige', 'hex': '#E7D7B5'},
+    },
+    this.contentFrameworkWeeks = const [
+      {
+        'week': 'WEEK 1',
+        'experienceStories': 'Birthday Celebration on Board',
+        'educational': 'What to Expect on Your Charter',
+        'corporate': 'Team Bonding That Brings Teams Closer',
+        'testimonials': 'Client Testimonial (Team Bonding)',
+        'promotional': 'Weekend Charter Special',
+        'contentExamples': '• Sunset celebration dinner\n• Yacht charter checklist\n• Corporate team bonding day\n• Client review video\n• Weekend promotion',
+      },
+      {
+        'week': 'WEEK 2',
+        'experienceStories': 'Proposal Moments Done Right',
+        'educational': 'Yacht Etiquette 101',
+        'corporate': 'Corporate Client Appreciation Event',
+        'testimonials': 'Client Testimonial (Corporate)',
+        'promotional': 'Mid-Week Special Offer',
+        'contentExamples': '• Proposal setup on yacht\n• Do\'s & don\'ts onboard\n• Corporate appreciation event\n• Client testimonial\n• Mid-week discount',
+      },
+      {
+        'week': 'WEEK 3',
+        'experienceStories': 'Family Day Out on the Water',
+        'educational': 'Best Time to Go Yacht Chartering',
+        'corporate': 'Leadership Retreat on the Sea',
+        'testimonials': 'Client Testimonial (Family)',
+        'promotional': 'School Holiday Charter Package',
+        'contentExamples': '• Family fun day activities\n• Seasonal guide\n• Leadership retreat\n• Family testimonial\n• Holiday package promo',
+      },
+      {
+        'week': 'WEEK 4',
+        'experienceStories': 'Anniversary Celebration on Board',
+        'educational': 'What Happens If It Rains? (FAQ)',
+        'corporate': 'Client Networking Event',
+        'testimonials': 'Client Testimonial (Celebration)',
+        'promotional': 'End of Month Exclusive Offer',
+        'contentExamples': '• Anniversary dinner\n• FAQ post\n• Networking event\n• Celebration testimonial\n• End of month promo',
+      },
+    ],
+    this.sampleReelHeadline = 'Live in the moment',
+    this.sampleReelMediaUrl,
+    this.sampleReelLink = 'https://meet-marketers.com/reels',
+    this.socialPosts = const [
+      {
+        'title': 'Corporate & Team Bonding',
+        'headline': 'YOUR TEAM DESERVES BETTER THAN A HOTEL BALLROOM.',
+        'body': 'Team bonding works when people stop feeling like they\'re at work.\n\nA 5-hour private charter does that faster than any workshop or lunch outing.\n\nProfessional crew, charcoal BBQ, water activities, Singapore skyline on the way back.\n\nNo GST. No hidden fees. Just book and show up.\n\nDM us or WhatsApp 8661 7600 to lock in your date.',
+        'badge': 'NO GST · PRIVATE YACHT',
+        'hashtags': ['#CorporateEventsSingapore', '#TeamBondingSingapore', '#YachtCharterSG', '#WhiteSailsSG', '#OfficeOuting'],
+        'imageUrl': '',
+      },
+      {
+        'title': 'Milestone Celebrations',
+        'headline': 'Turning 30?',
+        'body': 'No restaurant private room. No shared space. No two-hour limit.\n\nJust your group, a private catamaran, charcoal BBQ, and five hours on the water.\n\nThis is what a birthday actually feels like when it\'s done right.\n\nCheck availability for your date via the link in bio or WhatsApp us at 8661 7600.',
+        'badge': 'FROM \$849 · PRIVATE YACHT',
+        'hashtags': ['#BirthdayCelebrationSG', '#Turning30', '#PrivateYachtSG', '#SunsetCruiseSG', '#SingaporeMoments'],
+        'imageUrl': '',
+      },
+      {
+        'title': 'Client Story & Reviews',
+        'headline': 'It was the best birthday I\'ve ever had.',
+        'body': 'When your guests say that on the way back to the marina, the planning was worth it.\n\nPrivate catamarans from \$649. Full crew included. Charcoal BBQ available. No surprise charges.\n\nWe\'ve been doing this since 2011. Book with confidence.\n\nwhitesails.com.sg or WhatsApp 8661 7600.',
+        'badge': '16,000+ GUESTS · 1,550+ TRIPS · 14 YEARS',
+        'hashtags': ['#YachtCharterSingapore', '#PrivateYacht', '#SingaporeExperiences', '#WhiteSailsSG', '#SentosaCove'],
+        'imageUrl': '',
+      },
+    ],
+    this.seoAssessmentText = 'Based on our review, we recommend prioritising technical SEO improvements and occasion-specific landing pages as the first phase of optimisation. These initiatives are likely to deliver the greatest impact on search visibility, user experience and lead generation while building upon existing content and brand reputation.',
+    this.seoAuditLink = 'https://meet-marketers.com/seo-audit',
+    this.visualDirectionImageUrl,
   });
 
   Map<String, dynamic> toJson() => {
@@ -355,6 +472,21 @@ class ProposalModel {
     'seoAudit': seoAudit.toJson(),
     'finalThoughtsSummary': finalThoughtsSummary,
     'finalThoughtsRecommendation': finalThoughtsRecommendation,
+    'visualKeywords': visualKeywords,
+    'focusMoreOn': focusMoreOn,
+    'focusLessOn': focusLessOn,
+    'photographyQuote': photographyQuote,
+    'typographySampleHeadline': typographySampleHeadline,
+    'brandToneOfVoice': brandToneOfVoice,
+    'brandColorDetails': brandColorDetails,
+    'contentFrameworkWeeks': contentFrameworkWeeks,
+    'sampleReelHeadline': sampleReelHeadline,
+    'sampleReelMediaUrl': sampleReelMediaUrl,
+    'sampleReelLink': sampleReelLink,
+    'socialPosts': socialPosts,
+    'seoAssessmentText': seoAssessmentText,
+    'seoAuditLink': seoAuditLink,
+    'visualDirectionImageUrl': visualDirectionImageUrl,
   };
 
   factory ProposalModel.fromJson(String id, Map<String, dynamic> json) {
@@ -421,6 +553,98 @@ class ProposalModel {
           : const SeoAuditSummary(),
       finalThoughtsSummary: json['finalThoughtsSummary'] as String? ?? '',
       finalThoughtsRecommendation: json['finalThoughtsRecommendation'] as String? ?? '',
+      visualKeywords: List<String>.from(json['visualKeywords'] as List? ?? ['Experiential', 'Lifestyle-driven', 'Aspirational', 'Authentic', 'Human-centric']),
+      focusMoreOn: List<String>.from(json['focusMoreOn'] as List? ?? ['People', 'Interactions', 'Celebrations', 'Team bonding', 'Family moments', 'Proposal moments']),
+      focusLessOn: List<String>.from(json['focusLessOn'] as List? ?? ['Empty yacht shots', 'Product-style photography', 'Generic harbour photos', 'Overly promotional visuals']),
+      photographyQuote: json['photographyQuote'] as String? ?? "People don't book yachts. People book experiences.",
+      typographySampleHeadline: json['typographySampleHeadline'] as String? ?? "SAIL. RELAX. CELEBRATE.",
+      brandToneOfVoice: (json['brandToneOfVoice'] as List?)
+          ?.map((e) => Map<String, String>.from(e as Map))
+          .toList() ?? const [
+        {'trait': 'FRIENDLY', 'desc': 'Approachable and welcoming.'},
+        {'trait': 'INFORMATIVE', 'desc': 'Helping customers make informed decisions.'},
+        {'trait': 'ASPIRATIONAL', 'desc': 'Inspiring customers to imagine their experience.'},
+        {'trait': 'TRUSTWORTHY', 'desc': 'Reflecting safety, proven track record and professionalism.'},
+      ],
+      brandColorDetails: Map<String, dynamic>.from(json['brandColorDetails'] as Map? ?? const {
+        'primary': {'name': 'Navy Blue', 'hex': '#001B2A'},
+        'secondary': {'name': 'Ocean Blue', 'hex': '#1E6BE5'},
+        'accent': {'name': 'Sand / Beige', 'hex': '#E7D7B5'},
+      }),
+      contentFrameworkWeeks: (json['contentFrameworkWeeks'] as List?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList() ?? const [
+        {
+          'week': 'WEEK 1',
+          'experienceStories': 'Birthday Celebration on Board',
+          'educational': 'What to Expect on Your Charter',
+          'corporate': 'Team Bonding That Brings Teams Closer',
+          'testimonials': 'Client Testimonial (Team Bonding)',
+          'promotional': 'Weekend Charter Special',
+          'contentExamples': '• Sunset celebration dinner\n• Yacht charter checklist\n• Corporate team bonding day\n• Client review video\n• Weekend promotion',
+        },
+        {
+          'week': 'WEEK 2',
+          'experienceStories': 'Proposal Moments Done Right',
+          'educational': 'Yacht Etiquette 101',
+          'corporate': 'Corporate Client Appreciation Event',
+          'testimonials': 'Client Testimonial (Corporate)',
+          'promotional': 'Mid-Week Special Offer',
+          'contentExamples': '• Proposal setup on yacht\n• Do\'s & don\'ts onboard\n• Corporate appreciation event\n• Client testimonial\n• Mid-week discount',
+        },
+        {
+          'week': 'WEEK 3',
+          'experienceStories': 'Family Day Out on the Water',
+          'educational': 'Best Time to Go Yacht Chartering',
+          'corporate': 'Leadership Retreat on the Sea',
+          'testimonials': 'Client Testimonial (Family)',
+          'promotional': 'School Holiday Charter Package',
+          'contentExamples': '• Family fun day activities\n• Seasonal guide\n• Leadership retreat\n• Family testimonial\n• Holiday package promo',
+        },
+        {
+          'week': 'WEEK 4',
+          'experienceStories': 'Anniversary Celebration on Board',
+          'educational': 'What Happens If It Rains? (FAQ)',
+          'corporate': 'Client Networking Event',
+          'testimonials': 'Client Testimonial (Celebration)',
+          'promotional': 'End of Month Exclusive Offer',
+          'contentExamples': '• Anniversary dinner\n• FAQ post\n• Networking event\n• Celebration testimonial\n• End of month promo',
+        },
+      ],
+      sampleReelHeadline: json['sampleReelHeadline'] as String? ?? 'Live in the moment',
+      sampleReelMediaUrl: json['sampleReelMediaUrl'] as String?,
+      sampleReelLink: json['sampleReelLink'] as String? ?? 'https://meet-marketers.com/reels',
+      socialPosts: (json['socialPosts'] as List?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList() ?? const [
+        {
+          'title': 'Corporate & Team Bonding',
+          'headline': 'YOUR TEAM DESERVES BETTER THAN A HOTEL BALLROOM.',
+          'body': 'Team bonding works when people stop feeling like they\'re at work.\n\nA 5-hour private charter does that faster than any workshop or lunch outing.\n\nProfessional crew, charcoal BBQ, water activities, Singapore skyline on the way back.\n\nNo GST. No hidden fees. Just book and show up.\n\nDM us or WhatsApp 8661 7600 to lock in your date.',
+          'badge': 'NO GST · PRIVATE YACHT',
+          'hashtags': ['#CorporateEventsSingapore', '#TeamBondingSingapore', '#YachtCharterSG', '#WhiteSailsSG', '#OfficeOuting'],
+          'imageUrl': '',
+        },
+        {
+          'title': 'Milestone Celebrations',
+          'headline': 'Turning 30?',
+          'body': 'No restaurant private room. No shared space. No two-hour limit.\n\nJust your group, a private catamaran, charcoal BBQ, and five hours on the water.\n\nThis is what a birthday actually feels like when it\'s done right.\n\nCheck availability for your date via the link in bio or WhatsApp us at 8661 7600.',
+          'badge': 'FROM \$849 · PRIVATE YACHT',
+          'hashtags': ['#BirthdayCelebrationSG', '#Turning30', '#PrivateYachtSG', '#SunsetCruiseSG', '#SingaporeMoments'],
+          'imageUrl': '',
+        },
+        {
+          'title': 'Client Story & Reviews',
+          'headline': 'It was the best birthday I\'ve ever had.',
+          'body': 'When your guests say that on the way back to the marina, the planning was worth it.\n\nPrivate catamarans from \$649. Full crew included. Charcoal BBQ available. No surprise charges.\n\nWe\'ve been doing this since 2011. Book with confidence.\n\nwhitesails.com.sg or WhatsApp 8661 7600.',
+          'badge': '16,000+ GUESTS · 1,550+ TRIPS · 14 YEARS',
+          'hashtags': ['#YachtCharterSingapore', '#PrivateYacht', '#SingaporeExperiences', '#WhiteSailsSG', '#SentosaCove'],
+          'imageUrl': '',
+        },
+      ],
+      seoAssessmentText: json['seoAssessmentText'] as String? ?? 'Based on our review, we recommend prioritising technical SEO improvements and occasion-specific landing pages as the first phase of optimisation. These initiatives are likely to deliver the greatest impact on search visibility, user experience and lead generation while building upon existing content and brand reputation.',
+      seoAuditLink: json['seoAuditLink'] as String? ?? 'https://meet-marketers.com/seo-audit',
+      visualDirectionImageUrl: json['visualDirectionImageUrl'] as String?,
     );
   }
 
@@ -466,6 +690,21 @@ class ProposalModel {
     SeoAuditSummary? seoAudit,
     String? finalThoughtsSummary,
     String? finalThoughtsRecommendation,
+    List<String>? visualKeywords,
+    List<String>? focusMoreOn,
+    List<String>? focusLessOn,
+    String? photographyQuote,
+    String? typographySampleHeadline,
+    List<Map<String, String>>? brandToneOfVoice,
+    Map<String, dynamic>? brandColorDetails,
+    List<Map<String, dynamic>>? contentFrameworkWeeks,
+    String? sampleReelHeadline,
+    String? sampleReelMediaUrl,
+    String? sampleReelLink,
+    List<Map<String, dynamic>>? socialPosts,
+    String? seoAssessmentText,
+    String? seoAuditLink,
+    String? visualDirectionImageUrl,
   }) {
     return ProposalModel(
       id: id,
@@ -512,6 +751,21 @@ class ProposalModel {
       seoAudit: seoAudit ?? this.seoAudit,
       finalThoughtsSummary: finalThoughtsSummary ?? this.finalThoughtsSummary,
       finalThoughtsRecommendation: finalThoughtsRecommendation ?? this.finalThoughtsRecommendation,
+      visualKeywords: visualKeywords ?? this.visualKeywords,
+      focusMoreOn: focusMoreOn ?? this.focusMoreOn,
+      focusLessOn: focusLessOn ?? this.focusLessOn,
+      photographyQuote: photographyQuote ?? this.photographyQuote,
+      typographySampleHeadline: typographySampleHeadline ?? this.typographySampleHeadline,
+      brandToneOfVoice: brandToneOfVoice ?? this.brandToneOfVoice,
+      brandColorDetails: brandColorDetails ?? this.brandColorDetails,
+      contentFrameworkWeeks: contentFrameworkWeeks ?? this.contentFrameworkWeeks,
+      sampleReelHeadline: sampleReelHeadline ?? this.sampleReelHeadline,
+      sampleReelMediaUrl: sampleReelMediaUrl ?? this.sampleReelMediaUrl,
+      sampleReelLink: sampleReelLink ?? this.sampleReelLink,
+      socialPosts: socialPosts ?? this.socialPosts,
+      seoAssessmentText: seoAssessmentText ?? this.seoAssessmentText,
+      seoAuditLink: seoAuditLink ?? this.seoAuditLink,
+      visualDirectionImageUrl: visualDirectionImageUrl ?? this.visualDirectionImageUrl,
     );
   }
 }

@@ -927,124 +927,290 @@ class ProposalPdfService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PAGE 8: Visual Guideline & Content Framework
+    // ─────────────────────────────────────────────────────────────────────────
+    // PAGE 8: Visual Guideline/ Content Framework (Matching Reference Deck)
     // ─────────────────────────────────────────────────────────────────────────
     {
       final page = document.pages.add();
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Visual Guideline & Framework', 45);
+      drawSectionTitle(g, 'Visual Guideline/ Content Framework', 35);
 
-      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 230);
-      drawCard(g, cardR);
-
-      g.drawString('Aesthetic Direction', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 115, contentWidth - 40, 22));
+      // (1) Visual Direction (Top Left)
+      const box1R = ui.Rect.fromLTWH(contentX, 68, 245, 175);
+      drawCard(g, box1R);
+      g.drawString('1  VISUAL DIRECTION', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 78, 220, 16));
+      g.drawString('CREATIVE DIRECTION', captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 96, 220, 12));
       g.drawString(
         proposal.visualGuidelineNotes.isNotEmpty
             ? proposal.visualGuidelineNotes
-            : 'Visual storytelling balances clean premium minimalism with vibrant authentic emotion. Crisp natural lighting, cinematic pacing, and consistent typography reinforce category leadership across all digital channels.',
-        bodyFont,
+            : 'Our visual direction focuses on the experiences, emotions and memorable moments that customers enjoy. The objective is to position ${proposal.leadCompanyName} as the definitive category choice through authentic connection.',
+        captionFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 20, 145, contentWidth - 40, 60),
+        bounds: const ui.Rect.fromLTWH(contentX + 12, 110, 220, 65),
       );
+      g.drawString('KEYWORDS', captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 180, 220, 12));
+      final kws = proposal.visualKeywords.isNotEmpty ? proposal.visualKeywords : ['Experiential', 'Lifestyle-driven', 'Aspirational', 'Authentic', 'Human-centric'];
+      g.drawString(kws.join(' · '), captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 196, 220, 38));
 
-      g.drawString('Curated Brand Palette', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 20, 215, contentWidth - 40, 18));
-      double swatchX = contentX + 20;
-      for (final hex in proposal.brandPaletteHex.take(5)) {
-        final clean = hex.replaceAll('#', '');
-        final r = int.tryParse(clean.substring(0, 2), radix: 16) ?? 163;
-        final gr = int.tryParse(clean.substring(2, 4), radix: 16) ?? 230;
-        final b = int.tryParse(clean.substring(4, 6), radix: 16) ?? 53;
-
-        g.drawRectangle(
-          brush: PdfSolidBrush(PdfColor(r, gr, b)),
-          pen: PdfPen(textWhite, width: 1),
-          bounds: ui.Rect.fromLTWH(swatchX, 240, 45, 45),
-        );
-        g.drawString(hex, captionFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(swatchX, 290, 45, 14), format: PdfStringFormat(alignment: PdfTextAlignment.center));
-        swatchX += 65;
+      // (2) Photography Style (Top Right)
+      const box2R = ui.Rect.fromLTWH(contentX + 255, 68, 255, 175);
+      drawCard(g, box2R);
+      g.drawString('2  PHOTOGRAPHY STYLE', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 267, 78, 230, 16));
+      g.drawString('FOCUS MORE ON:', captionFont, brush: PdfSolidBrush(PdfColor(134, 239, 172)), bounds: const ui.Rect.fromLTWH(contentX + 267, 96, 120, 12));
+      final moreOn = proposal.focusMoreOn.isNotEmpty ? proposal.focusMoreOn : ['People', 'Interactions', 'Celebrations', 'Team moments'];
+      double fmy = 110;
+      for (final f in moreOn.take(4)) {
+        g.drawString('✓ $f', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 267, fmy, 115, 14));
+        fmy += 14;
       }
 
-      const frameY = 350.0;
-      g.drawString('High-Converting Short-Form Framework', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX, frameY, contentWidth, 24));
+      g.drawString('FOCUS LESS ON:', captionFont, brush: PdfSolidBrush(PdfColor(248, 113, 113)), bounds: const ui.Rect.fromLTWH(contentX + 390, 96, 120, 12));
+      final lessOn = proposal.focusLessOn.isNotEmpty ? proposal.focusLessOn : ['Empty shots', 'Generic photos', 'Promotional visuals'];
+      double fly = 110;
+      for (final l in lessOn.take(4)) {
+        g.drawString('✕ $l', captionFont, brush: PdfSolidBrush(textMuted), bounds: ui.Rect.fromLTWH(contentX + 390, fly, 115, 14));
+        fly += 14;
+      }
+      g.drawString(
+        '“${proposal.photographyQuote}”',
+        captionFont,
+        brush: PdfSolidBrush(accentLime),
+        bounds: const ui.Rect.fromLTWH(contentX + 267, 185, 230, 30),
+      );
 
-      final steps = [
-        {'step': 'HOOK (0-3s)', 'desc': 'Interrupt the scroll with a curiosity gap or emotional hook.'},
-        {'step': 'RETAIN (3-15s)', 'desc': 'Build context and demonstrate immediate relevance.'},
-        {'step': 'DELIVER (15-45s)', 'desc': 'Provide the payoff, reveal the behind-the-scenes or transformation.'},
-        {'step': 'ACTION (45-60s)', 'desc': 'Direct call-to-action to save, share, or check availability.'},
-      ];
+      // (3) Design Style (Mid Left)
+      const box3R = ui.Rect.fromLTWH(contentX, 250, 245, 140);
+      drawCard(g, box3R);
+      g.drawString('3  DESIGN STYLE', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 260, 220, 16));
+      g.drawString('TYPOGRAPHY & VISUALS', captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 278, 220, 12));
+      g.drawString('Clean · Modern · High readability · Minimal clutter', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: const ui.Rect.fromLTWH(contentX + 12, 292, 220, 14));
+      g.drawString(
+        proposal.typographySampleHeadline,
+        bodyBold,
+        brush: PdfSolidBrush(textWhite),
+        bounds: const ui.Rect.fromLTWH(contentX + 12, 310, 220, 16),
+      );
+      g.drawString('Editorial-inspired · Lifestyle focused · Bright & welcoming', captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 330, 220, 14));
+      g.drawString('Strong imagery · Clear hierarchy · Consistent CTA placement', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: const ui.Rect.fromLTWH(contentX + 12, 348, 220, 26));
 
-      double sy = frameY + 36;
-      for (final s in steps) {
-        final stepR = ui.Rect.fromLTWH(contentX, sy, contentWidth, 68);
-        drawCard(g, stepR);
-        g.drawString(s['step']!, h3Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(contentX + 16, sy + 12, contentWidth - 32, 18));
-        g.drawString(s['desc']!, bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 16, sy + 32, contentWidth - 32, 28));
-        sy += 78;
+      // (4) Brand Voice & Colour Direction (Mid Right)
+      const box4R = ui.Rect.fromLTWH(contentX + 255, 250, 255, 140);
+      drawCard(g, box4R);
+      g.drawString('4  BRAND VOICE & COLOUR DIRECTION', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 267, 260, 230, 16));
+      g.drawString('TONE OF VOICE:', captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 267, 278, 110, 12));
+      g.drawString('• Friendly: Approachable & welcoming\n• Informative: Helping customers decide\n• Aspirational: Inspiring customer dreams\n• Trustworthy: Track record & safety', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: const ui.Rect.fromLTWH(contentX + 267, 292, 140, 52));
+
+      // Swatches
+      g.drawString('PALETTE:', captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 415, 278, 90, 12));
+      double px = contentX + 415;
+      final pal = proposal.brandPaletteHex.take(3).toList();
+      for (final c in pal) {
+        final cl = c.replaceAll('#', '');
+        final r = int.tryParse(cl.substring(0, 2), radix: 16) ?? 16;
+        final gr = int.tryParse(cl.substring(2, 4), radix: 16) ?? 185;
+        final b = int.tryParse(cl.substring(4, 6), radix: 16) ?? 129;
+        g.drawRectangle(brush: PdfSolidBrush(PdfColor(r, gr, b)), bounds: ui.Rect.fromLTWH(px, 294, 26, 26));
+        px += 30;
+      }
+
+      // (5) Instagram Feed Preview Strip
+      const box5R = ui.Rect.fromLTWH(contentX, 396, contentWidth, 48);
+      drawCard(g, box5R);
+      g.drawString('5  SAMPLE INSTAGRAM FEED PREVIEW', captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 402, 250, 12));
+      final feedItems = ['Experience Story', 'Educational', 'Celebration', 'Corporate', 'Testimonial', 'Destination', 'Educational', 'Experience', 'Promotional'];
+      double ix = contentX + 12;
+      const iw = (contentWidth - 24) / 9;
+      for (final item in feedItems) {
+        g.drawRectangle(brush: PdfSolidBrush(PdfColor(25, 34, 34)), bounds: ui.Rect.fromLTWH(ix, 418, iw - 4, 20));
+        g.drawString(item, PdfStandardFont(PdfFontFamily.helvetica, 6.5), brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(ix, 423, iw - 4, 12), format: PdfStringFormat(alignment: PdfTextAlignment.center));
+        ix += iw;
+      }
+
+      // (6) Monthly Content Framework (4 Weeks Table)
+      const fwTop = 450.0;
+      g.drawString('EXAMPLE MONTHLY CONTENT FRAMEWORK (4 WEEKS)', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX, fwTop, contentWidth, 16));
+
+      final tableHeaders = ['WEEK', 'EXPERIENCE STORIES', 'EDUCATIONAL', 'CORPORATE', 'TESTIMONIALS', 'PROMOTIONAL', 'EXAMPLES'];
+      final colWidths = [45.0, 85.0, 78.0, 78.0, 72.0, 72.0, 80.0];
+
+      // Table Header Row
+      double thx = contentX;
+      for (int i = 0; i < tableHeaders.length; i++) {
+        final w = colWidths[i];
+        g.drawRectangle(brush: PdfSolidBrush(PdfColor(15, 23, 42)), pen: PdfPen(cardBorder, width: 0.5), bounds: ui.Rect.fromLTWH(thx, fwTop + 18, w, 18));
+        g.drawString(tableHeaders[i], PdfStandardFont(PdfFontFamily.helvetica, 6.5, style: PdfFontStyle.bold), brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(thx + 2, fwTop + 22, w - 4, 12), format: PdfStringFormat(alignment: PdfTextAlignment.center));
+        thx += w;
+      }
+
+      // Table Data Rows (4 Weeks)
+      double rowY = fwTop + 36;
+      final weeks = proposal.contentFrameworkWeeks.isNotEmpty
+          ? proposal.contentFrameworkWeeks
+          : [
+              {'week': 'WEEK 1', 'experienceStories': 'Birthday Celebration', 'educational': 'Charter Checklist', 'corporate': 'Team Bonding', 'testimonials': 'Team Testimonial', 'promotional': 'Weekend Special', 'contentExamples': 'Sunset dinner'},
+              {'week': 'WEEK 2', 'experienceStories': 'Proposal Moments', 'educational': 'Etiquette 101', 'corporate': 'Client Appreciation', 'testimonials': 'Client Review', 'promotional': 'Mid-Week Offer', 'contentExamples': 'Proposal setup'},
+              {'week': 'WEEK 3', 'experienceStories': 'Family Fun Day', 'educational': 'Best Times Guide', 'corporate': 'Leadership Retreat', 'testimonials': 'Family Story', 'promotional': 'Holiday Package', 'contentExamples': 'Family activities'},
+              {'week': 'WEEK 4', 'experienceStories': 'Anniversary Cruise', 'educational': 'Weather FAQ', 'corporate': 'Networking Event', 'testimonials': 'Review Recap', 'promotional': 'Monthly Offer', 'contentExamples': 'Anniversary post'},
+            ];
+
+      for (final w in weeks.take(4)) {
+        double cellX = contentX;
+        final cells = [
+          w['week'] as String? ?? 'WEEK',
+          w['experienceStories'] as String? ?? '',
+          w['educational'] as String? ?? '',
+          w['corporate'] as String? ?? '',
+          w['testimonials'] as String? ?? '',
+          w['promotional'] as String? ?? '',
+          w['contentExamples'] as String? ?? '',
+        ];
+
+        for (int i = 0; i < cells.length; i++) {
+          final cw = colWidths[i];
+          g.drawRectangle(brush: PdfSolidBrush(PdfColor(18, 24, 24)), pen: PdfPen(cardBorder, width: 0.5), bounds: ui.Rect.fromLTWH(cellX, rowY, cw, 60));
+          g.drawString(
+            cells[i],
+            PdfStandardFont(PdfFontFamily.helvetica, 6.5),
+            brush: PdfSolidBrush(i == 0 ? accentLime : textOffWhite),
+            bounds: ui.Rect.fromLTWH(cellX + 3, rowY + 5, cw - 6, 50),
+          );
+          cellX += cw;
+        }
+        rowY += 60;
       }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PAGE 9: Sample Reel Storyboard
+    // PAGE 9: Sample Reel (Matching Reference Deck)
     // ─────────────────────────────────────────────────────────────────────────
     {
       final page = document.pages.add();
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Sample Reel: Vertical Video Blueprint', 45);
+      drawSectionTitle(g, 'Sample Reel', 42);
 
-      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 650);
-      drawCard(g, cardR);
+      // 9:16 Vertical Phone Poster Mockup
+      const phoneW = 240.0;
+      const phoneH = 470.0;
+      final phoneX = (pageWidth - phoneW) / 2;
+      const phoneY = 100.0;
 
-      double ry = 120;
-      g.drawString('Reel Topic', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 24, 120, contentWidth - 48, 16));
-      ry += 20;
-      g.drawString(
-        proposal.sampleReelTopic.isNotEmpty ? proposal.sampleReelTopic : 'Behind This Milestone Celebration with ${proposal.leadCompanyName}',
-        h2Font,
-        brush: PdfSolidBrush(accentLime),
-        bounds: ui.Rect.fromLTWH(contentX + 24, ry, contentWidth - 48, 22),
+      // Phone Outer Body
+      g.drawRectangle(
+        brush: PdfSolidBrush(PdfColor(12, 18, 20)),
+        pen: PdfPen(accentLime, width: 1.5),
+        bounds: ui.Rect.fromLTWH(phoneX, phoneY, phoneW, phoneH),
       );
 
-      ry += 40;
-      g.drawString('The 3-Second Hook', h3Font, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + 24, ry, contentWidth - 48, 16));
-      ry += 20;
-      g.drawString(
-        proposal.sampleReelHook.isNotEmpty ? '“${proposal.sampleReelHook}”' : '“Most people think planning an extraordinary experience takes months of stress. Watch what happened when they chose something different.”',
-        bodyBold,
-        brush: PdfSolidBrush(PdfColor(134, 239, 172)),
-        bounds: ui.Rect.fromLTWH(contentX + 24, ry, contentWidth - 48, 50),
+      // Gradient / Atmospheric Backdrop inside phone
+      g.drawRectangle(
+        brush: PdfSolidBrush(PdfColor(15, 34, 45)),
+        bounds: ui.Rect.fromLTWH(phoneX + 4, phoneY + 4, phoneW - 8, phoneH - 8),
       );
 
-      ry += 65;
-      g.drawString('Visual Storyboard & Scenes', h3Font, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + 24, ry, contentWidth - 48, 16));
-      ry += 22;
-      final scenesText = proposal.sampleReelVisualScenes.isNotEmpty
-          ? proposal.sampleReelVisualScenes
-          : 'Scene 1: Golden hour horizon with sparkling water and laughter.\nScene 2: Close-up of personalized decor and toast with friends.\nScene 3: Unfiltered joyous reaction of the guest of honor.\nScene 4: Crew seamlessly attending to every detail while guests relax.';
+      // Hero Headline Overlay (e.g. "Live in the moment")
+      final headline = proposal.sampleReelHeadline.isNotEmpty ? proposal.sampleReelHeadline : 'Live in the moment';
       g.drawString(
-        scenesText,
-        bodyFont,
+        headline,
+        PdfStandardFont(PdfFontFamily.helvetica, 24, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(textWhite),
+        bounds: ui.Rect.fromLTWH(phoneX + 15, phoneY + 160, phoneW - 30, 80),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      );
+
+      g.drawString(
+        proposal.sampleReelTopic.isNotEmpty ? proposal.sampleReelTopic : 'A Milestone Celebration On The Water',
+        captionFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 24, ry, contentWidth - 48, 180),
+        bounds: ui.Rect.fromLTWH(phoneX + 15, phoneY + 245, phoneW - 30, 30),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
-      ry += 195;
-      g.drawString('Call to Action (Outro)', h3Font, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + 24, ry, contentWidth - 48, 16));
-      ry += 20;
+      // Bottom Clickable Link "View Reel Here"
+      const linkRect = ui.Rect.fromLTWH(contentX, 610, contentWidth, 26);
       g.drawString(
-        proposal.sampleReelCta.isNotEmpty ? proposal.sampleReelCta : 'Save this for your next milestone celebration or tap the link in bio to check date availability.',
-        bodyFont,
+        'View Reel Here',
+        PdfStandardFont(PdfFontFamily.helvetica, 14, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(accentLime),
-        bounds: ui.Rect.fromLTWH(contentX + 24, ry, contentWidth - 48, 45),
+        bounds: linkRect,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
+
+      // Add interactive PDF hyperlink annotation!
+      final reelUri = proposal.sampleReelLink.isNotEmpty ? proposal.sampleReelLink : 'https://meet-marketers.com/reels';
+      page.annotations.add(PdfUriAnnotation(bounds: linkRect, uri: reelUri));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PAGE 10: Sample SEO Blog Article
+    // PAGE 10: Sample Social Media Copywriting/Caption (Matching Reference Deck)
+    // ─────────────────────────────────────────────────────────────────────────
+    {
+      final page = document.pages.add();
+      final g = page.graphics;
+      drawDarkBase(page);
+
+      drawSectionTitle(g, 'Sample Social Media Copywriting/Caption', 40);
+
+      // 3 Multi-Angle Social Media Post Cards matching Image 3
+      final posts = proposal.socialPosts.isNotEmpty
+          ? proposal.socialPosts
+          : [
+              {
+                'headline': 'YOUR TEAM DESERVES BETTER THAN A HOTEL BALLROOM.',
+                'body': 'Team bonding works when people stop feeling like they\'re at work.\n\nA 5-hour private charter does that faster than any workshop or lunch outing.\n\nProfessional crew, charcoal BBQ, water activities, Singapore skyline on the way back.\n\nNo GST. No hidden fees. Just book and show up.\n\nDM us or WhatsApp 8661 7600 to lock in your date.',
+                'badge': 'NO GST · PRIVATE YACHT',
+                'hashtags': ['#CorporateEventsSingapore', '#TeamBondingSingapore', '#YachtCharterSG'],
+              },
+              {
+                'headline': 'Turning 30?',
+                'body': 'No restaurant private room. No shared space. No two-hour limit.\n\nJust your group, a private catamaran, charcoal BBQ, and five hours on the water.\n\nThis is what a birthday actually feels like when it\'s done right.\n\nCheck availability for your date via link in bio or WhatsApp at 8661 7600.',
+                'badge': 'FROM \$849 · PRIVATE YACHT',
+                'hashtags': ['#BirthdayCelebrationSG', '#Turning30', '#PrivateYachtSG'],
+              },
+              {
+                'headline': 'It was the best birthday I\'ve ever had.',
+                'body': 'When your guests say that on the way back to the marina, the planning was worth it.\n\nPrivate catamarans from \$649. Full crew included. Charcoal BBQ available. No surprise charges.\n\nWe\'ve been doing this since 2011. Book with confidence.\n\nwhitesails.com.sg or WhatsApp 8661 7600.',
+                'badge': '16,000+ GUESTS · 1,550+ TRIPS · 14 YEARS',
+                'hashtags': ['#YachtCharterSingapore', '#PrivateYacht', '#WhiteSailsSG'],
+              },
+            ];
+
+      // Post 1 (Top Left)
+      final p1 = posts[0];
+      const p1Rect = ui.Rect.fromLTWH(contentX, 85, 245, 310);
+      drawCard(g, p1Rect);
+      g.drawString(p1['headline'] as String? ?? '', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 95, 220, 36));
+      g.drawString(p1['body'] as String? ?? '', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: const ui.Rect.fromLTWH(contentX + 12, 135, 220, 190));
+      g.drawString(p1['badge'] as String? ?? '', captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 335, 220, 16));
+      final hts1 = (p1['hashtags'] as List?)?.join(' ') ?? '';
+      g.drawString(hts1, captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 355, 220, 30));
+
+      // Post 2 (Top Right)
+      final p2 = posts.length > 1 ? posts[1] : posts[0];
+      const p2Rect = ui.Rect.fromLTWH(contentX + 255, 85, 255, 310);
+      drawCard(g, p2Rect);
+      g.drawString(p2['headline'] as String? ?? '', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 267, 95, 230, 30));
+      g.drawString(p2['body'] as String? ?? '', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: const ui.Rect.fromLTWH(contentX + 267, 135, 230, 190));
+      g.drawString(p2['badge'] as String? ?? '', captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 267, 335, 230, 16));
+      final hts2 = (p2['hashtags'] as List?)?.join(' ') ?? '';
+      g.drawString(hts2, captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 267, 355, 230, 30));
+
+      // Post 3 (Bottom Centered Card)
+      final p3 = posts.length > 2 ? posts[2] : posts[0];
+      const p3Rect = ui.Rect.fromLTWH(contentX, 410, contentWidth, 310);
+      drawCard(g, p3Rect);
+      g.drawString('“${p3['headline']}”', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 422, contentWidth - 40, 26));
+      g.drawString(p3['body'] as String? ?? '', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: const ui.Rect.fromLTWH(contentX + 20, 455, contentWidth - 40, 170));
+      g.drawString(p3['badge'] as String? ?? '', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 635, contentWidth - 40, 18));
+      final hts3 = (p3['hashtags'] as List?)?.join(' ') ?? '';
+      g.drawString(hts3, captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 20, 660, contentWidth - 40, 40));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PAGE 11: Sample SEO Pillar Blog Article
     // ─────────────────────────────────────────────────────────────────────────
     {
       final page = document.pages.add();
@@ -1093,207 +1259,136 @@ class ProposalPdfService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PAGE 11: Sample Social Media Copywriting
+    // PAGE 12: SEO & Digital Presence Opportunities (Matching Image 4)
     // ─────────────────────────────────────────────────────────────────────────
     {
       final page = document.pages.add();
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Sample Social Media Copywriting', 45);
+      drawSectionTitle(g, 'SEO & Digital Presence Opportunities', 40);
 
-      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 650);
-      drawCard(g, cardR);
+      // Current SEO Score in Lime Green
+      g.drawString('Current SEO Score', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX, 85, contentWidth, 18));
+      g.drawString('${proposal.seoAudit.healthScore} / 100', PdfStandardFont(PdfFontFamily.helvetica, 30, style: PdfFontStyle.bold), brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX, 105, contentWidth, 38));
 
-      double sy = 125;
-      g.drawString('Post Hook', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 24, 125, contentWidth - 48, 16));
-      sy += 20;
-      g.drawString(
-        proposal.sampleSocialCaptionHook.isNotEmpty ? proposal.sampleSocialCaptionHook : 'The best celebrations are the ones where you do not have to worry about a single detail. ✨',
-        h2Font,
-        brush: PdfSolidBrush(accentLime),
-        bounds: ui.Rect.fromLTWH(contentX + 24, sy, contentWidth - 48, 35),
-      );
-
-      sy += 50;
-      g.drawString('Caption Body Narrative', h3Font, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + 24, sy, contentWidth - 48, 16));
-      sy += 20;
-      final bodyText = proposal.sampleSocialCaptionBody.isNotEmpty
-          ? proposal.sampleSocialCaptionBody
-          : 'Whether it is a milestone 30th birthday, an intimate anniversary, or an executive retreat, your moments deserve more than routine routines. Step into curated luxury where everything is taken care of from start to finish.\n\nFrom personalized ambiance to tailored itineraries, we make planning effortless.';
-      g.drawString(
-        bodyText,
-        bodyFont,
-        brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 24, sy, contentWidth - 48, 150),
-      );
-
-      sy += 165;
-      g.drawString('Call to Action (CTA)', h3Font, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + 24, sy, contentWidth - 48, 16));
-      sy += 20;
-      g.drawString(
-        proposal.sampleSocialCaptionCta.isNotEmpty ? proposal.sampleSocialCaptionCta : '💬 Drop a comment or send us a DM to check date availability for your upcoming celebration.',
-        bodyBold,
-        brush: PdfSolidBrush(PdfColor(134, 239, 172)),
-        bounds: ui.Rect.fromLTWH(contentX + 24, sy, contentWidth - 48, 40),
-      );
-
-      sy += 55;
-      g.drawString('Targeted Hashtags', h3Font, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + 24, sy, contentWidth - 48, 16));
-      sy += 20;
-      final hashtags = proposal.sampleSocialHashtags.isNotEmpty
-          ? proposal.sampleSocialHashtags.join(' ')
-          : '#CelebrateInStyle #LuxuryExperiences #MeetMarketers #CategoryLeader';
-      g.drawString(
-        hashtags,
-        bodyFont,
-        brush: PdfSolidBrush(accentLime),
-        bounds: ui.Rect.fromLTWH(contentX + 24, sy, contentWidth - 48, 40),
-      );
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // PAGE 12: SEO & Digital Audit
-    // ─────────────────────────────────────────────────────────────────────────
-    {
-      final page = document.pages.add();
-      final g = page.graphics;
-      drawDarkBase(page);
-
-      drawSectionTitle(g, 'SEO & Digital Presence Opportunities', 45);
-
-      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 110);
-      drawCard(g, cardR);
-
-      g.drawRectangle(
-        brush: PdfSolidBrush(PdfColor(13, 20, 16)),
-        pen: PdfPen(accentLime, width: 1.5),
-        bounds: const ui.Rect.fromLTWH(contentX + 16, 110, 110, 80),
-      );
-      g.drawString(
-        'SEO SCORE',
-        captionFont,
-        brush: PdfSolidBrush(textMuted),
-        bounds: const ui.Rect.fromLTWH(contentX + 16, 120, 110, 14),
-        format: PdfStringFormat(alignment: PdfTextAlignment.center),
-      );
-      g.drawString(
-        '${proposal.seoAudit.healthScore}/100',
-        h1Font,
-        brush: PdfSolidBrush(accentLime),
-        bounds: const ui.Rect.fromLTWH(contentX + 16, 140, 110, 30),
-        format: PdfStringFormat(alignment: PdfTextAlignment.center),
-      );
-
+      // Summary narrative
       g.drawString(
         proposal.seoAudit.summaryText.isNotEmpty
             ? proposal.seoAudit.summaryText
-            : '${proposal.leadCompanyName} has established a solid digital foundation. Key opportunities exist in landing page architecture, schema markup, and entity discoverability.',
+            : '${proposal.leadCompanyName} has established a solid SEO foundation, with HTTPS security, mobile responsiveness, optimised WebP images, canonical tags and an active content strategy already in place. However, several high-impact technical and content opportunities remain that could significantly improve search visibility and lead generation.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 140, 120, contentWidth - 160, 60),
+        bounds: const ui.Rect.fromLTWH(contentX, 150, contentWidth, 65),
       );
 
-      // High Priority
-      const highR = ui.Rect.fromLTWH(contentX, 220, contentWidth, 160);
+      // Card 1: High Priority (Rounded Dark Pill Card)
+      const highR = ui.Rect.fromLTWH(contentX, 230, contentWidth, 140);
       drawCard(g, highR);
-      g.drawString('High Priority Initiatives', h3Font, brush: PdfSolidBrush(PdfColor(248, 113, 113)), bounds: const ui.Rect.fromLTWH(contentX + 18, 235, contentWidth - 36, 18));
-      double hy = 260;
+      g.drawString('High Priority', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 245, contentWidth - 40, 18));
       final highs = proposal.seoAudit.highPriority.isNotEmpty
           ? proposal.seoAudit.highPriority
-          : [
-              'Occasion-specific landing pages (Milestones, Corporate, Intimate)',
-              'Schema.org structured review and organization markup',
-              'H1 and Meta Title optimization across core pages',
-              'Core Web Vitals and image WebP compression',
-            ];
+          : ['Occasion-specific landing pages', 'Structured data implementation', 'Review schema markup', 'Improved H1 optimisation'];
+      double hy = 270;
       for (final h in highs.take(4)) {
-        g.drawString('•  $h', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 18, hy, contentWidth - 36, 20));
-        hy += 22;
+        g.drawString('•  $h', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 20, hy, contentWidth - 40, 18));
+        hy += 20;
       }
 
-      // Medium Priority
-      const medR = ui.Rect.fromLTWH(contentX, 400, contentWidth, 160);
+      // Card 2: Medium Priority (Rounded Dark Pill Card)
+      const medR = ui.Rect.fromLTWH(contentX, 390, contentWidth, 120);
       drawCard(g, medR);
-      g.drawString('Medium Priority Enhancements', h3Font, brush: PdfSolidBrush(PdfColor(192, 132, 252)), bounds: const ui.Rect.fromLTWH(contentX + 18, 415, contentWidth - 36, 18));
-      double my = 440;
+      g.drawString('Medium Priority', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 405, contentWidth - 40, 18));
       final meds = proposal.seoAudit.mediumPriority.isNotEmpty
           ? proposal.seoAudit.mediumPriority
-          : [
-              'Service detail page conversion and schema optimization',
-              'Internal linking architecture between blog articles and booking packages',
-              'Google Business Profile entity authority & review responses',
-            ];
-      for (final m in meds.take(4)) {
-        g.drawString('•  $m', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 18, my, contentWidth - 36, 20));
-        my += 22;
+          : ['Yacht detail page optimisation', 'Open Graph implementation', 'Author markup'];
+      double my = 430;
+      for (final m in meds.take(3)) {
+        g.drawString('•  $m', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 20, my, contentWidth - 40, 18));
+        my += 20;
       }
 
-      // Long-Term Opportunities
-      const longR = ui.Rect.fromLTWH(contentX, 580, contentWidth, 160);
+      // Card 3: Long-Term Opportunities (Rounded Dark Pill Card)
+      const longR = ui.Rect.fromLTWH(contentX, 530, contentWidth, 120);
       drawCard(g, longR);
-      g.drawString('Long-Term Strategic Opportunities', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 18, 595, contentWidth - 36, 18));
-      double ly = 620;
+      g.drawString('Long-Term Opportunities', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 545, contentWidth - 40, 18));
       final longs = proposal.seoAudit.longTermOpportunities.isNotEmpty
           ? proposal.seoAudit.longTermOpportunities
-          : [
-              'AI search engine optimization for Perplexity, ChatGPT, and Google Gemini',
-              'Digital PR collaborations with luxury media outlets',
-              'Strategic event and destination video storytelling library',
-            ];
-      for (final l in longs.take(4)) {
-        g.drawString('•  $l', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 18, ly, contentWidth - 36, 20));
-        ly += 22;
+          : ['AI search visibility', 'Educational content ecosystem', 'Corporate-focused landing pages'];
+      double ly = 570;
+      for (final l in longs.take(3)) {
+        g.drawString('•  $l', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 20, ly, contentWidth - 40, 18));
+        ly += 20;
       }
+
+      // Bottom Link: View Full SEO/AIO Audit Here
+      const auditLinkR = ui.Rect.fromLTWH(contentX, 675, contentWidth, 24);
+      g.drawString(
+        'View Full SEO/AIO Audit Here',
+        PdfStandardFont(PdfFontFamily.helvetica, 13, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: auditLinkR,
+      );
+      final auditUri = proposal.seoAuditLink.isNotEmpty ? proposal.seoAuditLink : 'https://meet-marketers.com/seo-audit';
+      page.annotations.add(PdfUriAnnotation(bounds: auditLinkR, uri: auditUri));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PAGE 13: Final Thoughts & Assessment
+    // PAGE 13: Our Assessment On SEO Audit & Final Thoughts (Matching Image 5)
     // ─────────────────────────────────────────────────────────────────────────
     {
       final page = document.pages.add();
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Final Thoughts & Assessment', 45);
+      drawSectionTitle(g, 'Our Assessment On SEO Audit', 45);
 
-      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 650);
-      drawCard(g, cardR);
+      // Assessment narrative paragraph
+      final assessmentText = proposal.seoAssessmentText.isNotEmpty
+          ? proposal.seoAssessmentText
+          : 'Based on our review, we recommend prioritising technical SEO improvements and occasion-specific landing pages as the first phase of optimisation. These initiatives are likely to deliver the greatest impact on search visibility, user experience and lead generation while building upon ${proposal.leadCompanyName}\'s existing content and brand reputation.';
+      g.drawString(
+        assessmentText,
+        bodyFont,
+        brush: PdfSolidBrush(textOffWhite),
+        bounds: const ui.Rect.fromLTWH(contentX, 90, contentWidth, 90),
+      );
 
-      double fy = 125;
-      g.drawString('Executive Conclusion', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 24, 125, contentWidth - 48, 22));
-      fy += 26;
+      // Solid Lime-Green Final Thoughts Container (Matching Image 5)
+      const greenCardR = ui.Rect.fromLTWH(contentX, 205, contentWidth, 360);
+      g.drawRectangle(
+        brush: PdfSolidBrush(accentLime),
+        bounds: greenCardR,
+      );
 
-      final conclusionText = proposal.finalThoughtsSummary.isNotEmpty
+      // Title: Final Thoughts in Bold Black Font
+      g.drawString(
+        'Final Thoughts',
+        PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(textBlack),
+        bounds: const ui.Rect.fromLTWH(contentX + 28, 235, contentWidth - 56, 26),
+      );
+
+      // Final Thoughts Paragraphs in Black Font
+      final p1 = proposal.finalThoughtsSummary.isNotEmpty
           ? proposal.finalThoughtsSummary
-          : '${proposal.leadCompanyName} has all the foundational ingredients to dominate its category: strong reputation, genuine customer satisfaction, and exceptional visual appeal. By shifting the digital strategy from passive promotion to active storytelling, authority education, and technical search discoverability, the brand can significantly expand high-value bookings.';
+          : '${proposal.leadCompanyName} already possesses many of the qualities today’s customers seek — memorable experiences, professional service, trusted crews and a proven track record. Our proposed direction focuses on strengthening visibility, authority and differentiation through strategic content, authentic storytelling and a more cohesive digital presence.';
       g.drawString(
-        conclusionText,
+        p1,
         bodyFont,
-        brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 24, fy, contentWidth - 48, 140),
+        brush: PdfSolidBrush(textBlack),
+        bounds: const ui.Rect.fromLTWH(contentX + 28, 275, contentWidth - 56, 110),
       );
 
-      fy += 160;
-      g.drawString('Strategic Roadmap Recommendation', h2Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(contentX + 24, fy, contentWidth - 48, 22));
-      fy += 26;
-
-      final recText = proposal.finalThoughtsRecommendation.isNotEmpty
+      final p2 = proposal.finalThoughtsRecommendation.isNotEmpty
           ? proposal.finalThoughtsRecommendation
-          : 'Phase 1: Implement technical SEO enhancements and occasion landing pages.\nPhase 2: Launch vertical video storytelling series focusing on celebrations and client transformations.\nPhase 3: Roll out corporate B2B authority campaign to capture executive retreats and offsites.';
+          : 'By aligning social media, SEO and content marketing under one unified strategy, ${proposal.leadCompanyName} can strengthen brand awareness, improve discoverability and position itself as one of the most trusted brands in its category.';
       g.drawString(
-        recText,
+        p2,
         bodyFont,
-        brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 24, fy, contentWidth - 48, 160),
+        brush: PdfSolidBrush(textBlack),
+        bounds: const ui.Rect.fromLTWH(contentX + 28, 400, contentWidth - 56, 120),
       );
-
-      fy += 190;
-      g.drawString('Prepared By:', h3Font, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + 24, fy, contentWidth - 48, 16));
-      fy += 20;
-      g.drawString('Meet Marketers AI Strategy Team', h2Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(contentX + 24, fy, contentWidth - 48, 22));
-      fy += 22;
-      g.drawString('Confidential Strategic Proposal · All Rights Reserved © 2026', captionFont, brush: PdfSolidBrush(textMuted), bounds: ui.Rect.fromLTWH(contentX + 24, fy, contentWidth - 48, 16));
     }
 
     final List<int> bytes = await document.save();

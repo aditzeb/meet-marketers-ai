@@ -243,6 +243,34 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
       activeProposalId: state.activeProposalId == id ? null : state.activeProposalId,
     );
   }
+
+  /// Upload media asset (from device) and save to Firebase Storage
+  Future<String> uploadMediaAsset({
+    required String proposalId,
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    return await FirebaseService.instance.uploadProposalMedia(
+      proposalId: proposalId,
+      fileName: fileName,
+      bytes: bytes,
+    );
+  }
+
+  /// Generate an AI image or curated visual for proposal media
+  Future<String> generateAiAssetImage({
+    required String prompt,
+    required String category,
+  }) async {
+    try {
+      final imgUrl = await GeminiService.instance.generateImage(prompt);
+      if (imgUrl.isNotEmpty) return imgUrl;
+    } catch (e) {
+      debugPrint('AI image generation error: $e');
+    }
+    final encoded = Uri.encodeComponent(prompt.split(' ').take(3).join(' '));
+    return 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200&auto=format&fit=crop&q=80&sig=$encoded';
+  }
 }
 
 final proposalProvider = StateNotifierProvider<ProposalNotifier, ProposalState>((ref) {

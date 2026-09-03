@@ -50,6 +50,14 @@ class GeminiService {
   /// Exposed fallback generator for testing and offline execution
   String getFallbackContent(ContentType type, String clientName) => _getFallbackContent(type, clientName);
 
+  /// Generate an AI image directly via text prompt
+  Future<String> generateImage(String prompt) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final seed = timestamp % 100000;
+    final cleanPrompt = Uri.encodeComponent(prompt);
+    return 'https://image.pollinations.ai/prompt/$cleanPrompt?width=1280&height=720&model=flux&seed=$seed&nologo=true';
+  }
+
   /// Generate real Photo, Video Storyboard, and Caption Assets tailored to the specific client
   Future<GeneratedMediaAsset> generateMediaAsset({
     required ContentType type,

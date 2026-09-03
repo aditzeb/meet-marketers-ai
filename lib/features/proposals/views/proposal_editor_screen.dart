@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -946,7 +947,215 @@ class _Tab2MarketPositioning extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 3: Creative Direction, Visual Guidelines & Sample Reel
+// Reusable Media Picker Card: "Choose AI or Upload by Self"
+// ─────────────────────────────────────────────────────────────────────────────
+class _MediaPickerCard extends ConsumerStatefulWidget {
+  final String title;
+  final String? mediaUrl;
+  final String promptHint;
+  final String proposalId;
+  final ValueChanged<String> onMediaUrlChanged;
+
+  const _MediaPickerCard({
+    required this.title,
+    required this.mediaUrl,
+    required this.promptHint,
+    required this.proposalId,
+    required this.onMediaUrlChanged,
+  });
+
+  @override
+  ConsumerState<_MediaPickerCard> createState() => _MediaPickerCardState();
+}
+
+class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
+  bool _isGenerating = false;
+  bool _isUploading = false;
+  late TextEditingController _urlCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _urlCtrl = TextEditingController(text: widget.mediaUrl ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant _MediaPickerCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.mediaUrl != widget.mediaUrl && widget.mediaUrl != _urlCtrl.text) {
+      _urlCtrl.text = widget.mediaUrl ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _urlCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _generateAi() async {
+    setState(() => _isGenerating = true);
+    try {
+      final notifier = ref.read(proposalProvider.notifier);
+      final url = await notifier.generateAiAssetImage(
+        prompt: widget.promptHint,
+        category: widget.title,
+      );
+      if (mounted) {
+        _urlCtrl.text = url;
+        widget.onMediaUrlChanged(url);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('AI asset synthesized for ${widget.title}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating AI image: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
+  }
+
+  Future<void> _uploadSelf() async {
+    try {
+      final res = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'mp4'],
+        withData: true,
+      );
+      if (res != null && res.files.isNotEmpty) {
+        final f = res.files.first;
+        final bytes = f.bytes;
+        if (bytes != null && bytes.isNotEmpty) {
+          setState(() => _isUploading = true);
+          final notifier = ref.read(proposalProvider.notifier);
+          final url = await notifier.uploadMediaAsset(
+            proposalId: widget.proposalId,
+            fileName: f.name,
+            bytes: bytes,
+          );
+          if (mounted) {
+            _urlCtrl.text = url;
+            widget.onMediaUrlChanged(url);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Uploaded ${f.name} successfully to Firebase Storage!')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUrl = _urlCtrl.text.isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ClinicSageColors.neutral,
+        borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+        border: Border.all(color: ClinicSageColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                widget.title,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: ClinicSageColors.primary),
+              ),
+              const Spacer(),
+              if (_isGenerating || _isUploading)
+                Row(
+                  children: [
+                    const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                    const SizedBox(width: 8),
+                    Text(_isGenerating ? 'AI Generating...' : 'Uploading...', style: const TextStyle(fontSize: 11, color: ClinicSageColors.secondary)),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Action Buttons: AI vs Upload
+          Row(
+            children: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  foregroundColor: const Color(0xFFA3E635),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                onPressed: (_isGenerating || _isUploading) ? null : _generateAi,
+                icon: const Icon(Icons.auto_awesome, size: 14),
+                label: const Text('Generate with AI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ClinicSageColors.primary,
+                  side: const BorderSide(color: ClinicSageColors.border),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                onPressed: (_isGenerating || _isUploading) ? null : _uploadSelf,
+                icon: const Icon(Icons.upload_file, size: 14),
+                label: const Text('Upload by Self', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Direct URL Field
+          TextFormField(
+            controller: _urlCtrl,
+            style: const TextStyle(fontSize: 12),
+            decoration: InputDecoration(
+              isDense: true,
+              labelText: 'Media / Asset URL',
+              labelStyle: const TextStyle(fontSize: 11),
+              hintText: 'https://...',
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            onChanged: widget.onMediaUrlChanged,
+          ),
+          if (hasUrl) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.network(
+                _urlCtrl.text,
+                height: 110,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 40,
+                  alignment: Alignment.center,
+                  color: Colors.white,
+                  child: Text('Asset linked: ${_urlCtrl.text}', style: const TextStyle(fontSize: 10, color: ClinicSageColors.secondary), overflow: TextOverflow.ellipsis),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB 3: Creative Direction, Visual Guidelines & Content Framework
 // ─────────────────────────────────────────────────────────────────────────────
 class _Tab3CreativeDirection extends StatelessWidget {
   final ProposalModel proposal;
@@ -959,14 +1168,145 @@ class _Tab3CreativeDirection extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        // Creative Direction Pillars
+        // 1. Visual Direction & Keywords
         _SectionContainer(
-          title: 'Creative Direction: 5 Strategic Content Pillars',
-          subtitle: 'Experience, Education, Corporate B2B, Lifestyle, and Customer Proof (Pages 6 & 7 of PDF)',
+          title: '1. Visual Direction & Aesthetic Framework',
+          subtitle: 'Core creative direction, visual keywords, and hero media asset (Page 8 of PDF)',
           children: [
-            ...proposal.creativePillars.map((p) {
+            _EditableField(
+              label: 'Creative Direction Narrative',
+              value: proposal.visualGuidelineNotes,
+              maxLines: 3,
+              onChanged: (v) => onChanged(proposal.copyWith(visualGuidelineNotes: v)),
+            ),
+            const SizedBox(height: 14),
+            _EditableField(
+              label: 'Visual Keywords (comma-separated)',
+              value: proposal.visualKeywords.join(', '),
+              onChanged: (v) {
+                final list = v.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                onChanged(proposal.copyWith(visualKeywords: list));
+              },
+            ),
+            const SizedBox(height: 14),
+            _MediaPickerCard(
+              title: 'Visual Direction Hero Media Asset',
+              mediaUrl: proposal.visualDirectionImageUrl,
+              promptHint: 'Cinematic luxury yacht on azure ocean with happy friends at golden hour',
+              proposalId: proposal.id,
+              onMediaUrlChanged: (url) => onChanged(proposal.copyWith(visualDirectionImageUrl: url)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // 2. Photography Style & Quote
+        _SectionContainer(
+          title: '2. Photography Style & Experience Philosophy',
+          subtitle: 'What to capture vs what to avoid in imagery (Page 8 of PDF)',
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _EditableField(
+                    label: 'Focus More On (comma-separated)',
+                    value: proposal.focusMoreOn.join(', '),
+                    maxLines: 3,
+                    onChanged: (v) {
+                      final list = v.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                      onChanged(proposal.copyWith(focusMoreOn: list));
+                    },
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: _EditableField(
+                    label: 'Focus Less On (comma-separated)',
+                    value: proposal.focusLessOn.join(', '),
+                    maxLines: 3,
+                    onChanged: (v) {
+                      final list = v.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                      onChanged(proposal.copyWith(focusLessOn: list));
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _EditableField(
+              label: 'Core Photography Philosophy Quote',
+              value: proposal.photographyQuote,
+              onChanged: (v) => onChanged(proposal.copyWith(photographyQuote: v)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // 3. Design Style, Typography & Brand Voice
+        _SectionContainer(
+          title: '3. Design Style, Typography & Brand Voice',
+          subtitle: 'Headline tone, brand personality traits, and color palette (Page 8 of PDF)',
+          children: [
+            _EditableField(
+              label: 'Typography Headline Sample',
+              value: proposal.typographySampleHeadline,
+              onChanged: (v) => onChanged(proposal.copyWith(typographySampleHeadline: v)),
+            ),
+            const SizedBox(height: 16),
+            const Text('Brand Personality Traits:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            const SizedBox(height: 8),
+            ...proposal.brandToneOfVoice.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final t = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 140,
+                      child: TextFormField(
+                        initialValue: t['trait'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                        decoration: const InputDecoration(labelText: 'Trait', isDense: true),
+                        onChanged: (val) {
+                          final updated = List<Map<String, String>>.from(proposal.brandToneOfVoice);
+                          updated[idx] = {...t, 'trait': val};
+                          onChanged(proposal.copyWith(brandToneOfVoice: updated));
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: t['desc'] ?? '',
+                        style: const TextStyle(fontSize: 12),
+                        decoration: const InputDecoration(labelText: 'Description', isDense: true),
+                        onChanged: (val) {
+                          final updated = List<Map<String, String>>.from(proposal.brandToneOfVoice);
+                          updated[idx] = {...t, 'desc': val};
+                          onChanged(proposal.copyWith(brandToneOfVoice: updated));
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // 4. Example Monthly Content Framework (4 Weeks Table)
+        _SectionContainer(
+          title: '4. Example Monthly Content Framework (4 Weeks)',
+          subtitle: 'Interactive multi-channel publishing calendar (Page 8 of PDF)',
+          children: [
+            ...proposal.contentFrameworkWeeks.asMap().entries.map((entry) {
+              final wIdx = entry.key;
+              final w = entry.value;
               return Container(
-                margin: const EdgeInsets.only(bottom: 14),
+                margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: ClinicSageColors.neutral,
@@ -976,13 +1316,100 @@ class _Tab3CreativeDirection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(p.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                    const SizedBox(height: 4),
-                    Text(p.objective, style: const TextStyle(fontSize: 13, color: ClinicSageColors.secondary)),
+                    Text(
+                      w['week'] as String? ?? 'WEEK ${wIdx + 1}',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF10B981)),
+                    ),
                     const SizedBox(height: 10),
-                    Text('Content Formats: ${p.contentStyle.join(' · ')}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 6),
-                    Text('Sample Topics: “${p.exampleTopics.join('” · “')}”', style: const TextStyle(fontSize: 12, color: Color(0xFF10B981))),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: w['experienceStories'] as String? ?? '',
+                            style: const TextStyle(fontSize: 12),
+                            decoration: const InputDecoration(labelText: 'Experience Stories', isDense: true),
+                            onChanged: (v) {
+                              final list = List<Map<String, dynamic>>.from(proposal.contentFrameworkWeeks);
+                              list[wIdx] = {...w, 'experienceStories': v};
+                              onChanged(proposal.copyWith(contentFrameworkWeeks: list));
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: w['educational'] as String? ?? '',
+                            style: const TextStyle(fontSize: 12),
+                            decoration: const InputDecoration(labelText: 'Educational Content', isDense: true),
+                            onChanged: (v) {
+                              final list = List<Map<String, dynamic>>.from(proposal.contentFrameworkWeeks);
+                              list[wIdx] = {...w, 'educational': v};
+                              onChanged(proposal.copyWith(contentFrameworkWeeks: list));
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: w['corporate'] as String? ?? '',
+                            style: const TextStyle(fontSize: 12),
+                            decoration: const InputDecoration(labelText: 'Corporate Experiences', isDense: true),
+                            onChanged: (v) {
+                              final list = List<Map<String, dynamic>>.from(proposal.contentFrameworkWeeks);
+                              list[wIdx] = {...w, 'corporate': v};
+                              onChanged(proposal.copyWith(contentFrameworkWeeks: list));
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: w['testimonials'] as String? ?? '',
+                            style: const TextStyle(fontSize: 12),
+                            decoration: const InputDecoration(labelText: 'Testimonials', isDense: true),
+                            onChanged: (v) {
+                              final list = List<Map<String, dynamic>>.from(proposal.contentFrameworkWeeks);
+                              list[wIdx] = {...w, 'testimonials': v};
+                              onChanged(proposal.copyWith(contentFrameworkWeeks: list));
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: w['promotional'] as String? ?? '',
+                            style: const TextStyle(fontSize: 12),
+                            decoration: const InputDecoration(labelText: 'Promotional Content', isDense: true),
+                            onChanged: (v) {
+                              final list = List<Map<String, dynamic>>.from(proposal.contentFrameworkWeeks);
+                              list[wIdx] = {...w, 'promotional': v};
+                              onChanged(proposal.copyWith(contentFrameworkWeeks: list));
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: w['contentExamples'] as String? ?? '',
+                            style: const TextStyle(fontSize: 12),
+                            decoration: const InputDecoration(labelText: 'Content Examples (Deliverables)', isDense: true),
+                            onChanged: (v) {
+                              final list = List<Map<String, dynamic>>.from(proposal.contentFrameworkWeeks);
+                              list[wIdx] = {...w, 'contentExamples': v};
+                              onChanged(proposal.copyWith(contentFrameworkWeeks: list));
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               );
@@ -991,52 +1418,17 @@ class _Tab3CreativeDirection extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        // Visual Guidelines & Color Swatches
+        // 5. Sample Reel (Page 9 of PDF)
         _SectionContainer(
-          title: 'Visual Guideline & Palette',
-          subtitle: 'Brand aesthetic direction and color harmony (Page 8 of PDF)',
+          title: '5. Sample Reel: Vertical Video Blueprint',
+          subtitle: '9:16 vertical video poster, hook, scenes, and playable reel link (Page 9 of PDF)',
           children: [
             _EditableField(
-              label: 'Aesthetic Direction Notes',
-              value: proposal.visualGuidelineNotes,
-              onChanged: (v) => onChanged(proposal.copyWith(visualGuidelineNotes: v)),
+              label: 'Reel Hero Headline Overlay',
+              value: proposal.sampleReelHeadline,
+              onChanged: (v) => onChanged(proposal.copyWith(sampleReelHeadline: v)),
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: proposal.brandPaletteHex.map((hex) {
-                final clean = hex.replaceAll('#', '');
-                final r = int.tryParse(clean.substring(0, 2), radix: 16) ?? 16;
-                final g = int.tryParse(clean.substring(2, 4), radix: 16) ?? 185;
-                final b = int.tryParse(clean.substring(4, 6), radix: 16) ?? 129;
-                return Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Color.fromRGBO(r, g, b, 1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: ClinicSageColors.border),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(hex, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-
-        // Sample Reel Storyboard
-        _SectionContainer(
-          title: 'Sample Reel & Short-Form Video Blueprint',
-          subtitle: 'High-converting 9:16 vertical video storyboard (Page 9 of PDF)',
-          children: [
+            const SizedBox(height: 12),
             _EditableField(
               label: 'Reel Topic',
               value: proposal.sampleReelTopic,
@@ -1061,6 +1453,20 @@ class _Tab3CreativeDirection extends StatelessWidget {
               value: proposal.sampleReelCta,
               onChanged: (v) => onChanged(proposal.copyWith(sampleReelCta: v)),
             ),
+            const SizedBox(height: 12),
+            _EditableField(
+              label: 'View Reel Hyperlink URL (Clickable in PDF)',
+              value: proposal.sampleReelLink,
+              onChanged: (v) => onChanged(proposal.copyWith(sampleReelLink: v)),
+            ),
+            const SizedBox(height: 14),
+            _MediaPickerCard(
+              title: 'Sample Reel Vertical Video / Poster Asset',
+              mediaUrl: proposal.sampleReelMediaUrl,
+              promptHint: 'Vertical video poster of luxury yacht celebration with text Live in the moment',
+              proposalId: proposal.id,
+              onMediaUrlChanged: (url) => onChanged(proposal.copyWith(sampleReelMediaUrl: url)),
+            ),
           ],
         ),
       ],
@@ -1069,7 +1475,7 @@ class _Tab3CreativeDirection extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 4: Copywriting & SEO Audit & Final Thoughts
+// TAB 4: Copywriting, Social Media & SEO Audit
 // ─────────────────────────────────────────────────────────────────────────────
 class _Tab4CopywritingAndSeo extends StatelessWidget {
   final ProposalModel proposal;
@@ -1082,10 +1488,107 @@ class _Tab4CopywritingAndSeo extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        // Sample Blog Article
+        // 1. 3 Multi-Angle Social Media Post Concepts (Page 10 of PDF)
         _SectionContainer(
-          title: 'Sample Copywriting: SEO Blog Article',
-          subtitle: 'Long-form thought leadership and storytelling pillar (Page 10 of PDF)',
+          title: '1. Sample Social Media Copywriting & Graphic Mockups',
+          subtitle: '3 high-converting post angles: Corporate Offsite, Milestone Birthday, and Client Story (Page 10 of PDF)',
+          children: [
+            ...proposal.socialPosts.asMap().entries.map((entry) {
+              final pIdx = entry.key;
+              final p = entry.value;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: ClinicSageColors.neutral,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: ClinicSageColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p['title'] as String? ?? 'POST ${pIdx + 1}',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF10B981)),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      initialValue: p['headline'] as String? ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      decoration: const InputDecoration(labelText: 'Graphic Poster Headline', isDense: true),
+                      onChanged: (val) {
+                        final list = List<Map<String, dynamic>>.from(proposal.socialPosts);
+                        list[pIdx] = {...p, 'headline': val};
+                        onChanged(proposal.copyWith(socialPosts: list));
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      initialValue: p['body'] as String? ?? '',
+                      maxLines: 4,
+                      style: const TextStyle(fontSize: 12.5),
+                      decoration: const InputDecoration(labelText: 'Caption Narrative Body & Offer', isDense: true),
+                      onChanged: (val) {
+                        final list = List<Map<String, dynamic>>.from(proposal.socialPosts);
+                        list[pIdx] = {...p, 'body': val};
+                        onChanged(proposal.copyWith(socialPosts: list));
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: p['badge'] as String? ?? '',
+                            style: const TextStyle(fontSize: 12),
+                            decoration: const InputDecoration(labelText: 'Price / Proof Badge (e.g. FROM \$849)', isDense: true),
+                            onChanged: (val) {
+                              final list = List<Map<String, dynamic>>.from(proposal.socialPosts);
+                              list[pIdx] = {...p, 'badge': val};
+                              onChanged(proposal.copyWith(socialPosts: list));
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: ((p['hashtags'] as List?) ?? []).join(' '),
+                            style: const TextStyle(fontSize: 12),
+                            decoration: const InputDecoration(labelText: 'Hashtags', isDense: true),
+                            onChanged: (val) {
+                              final list = List<Map<String, dynamic>>.from(proposal.socialPosts);
+                              final tags = val.split(' ').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                              list[pIdx] = {...p, 'hashtags': tags};
+                              onChanged(proposal.copyWith(socialPosts: list));
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _MediaPickerCard(
+                      title: 'Mockup Visual for ${p['title'] ?? 'Post ${pIdx + 1}'}',
+                      mediaUrl: p['imageUrl'] as String?,
+                      promptHint: 'Instagram ad mockup for ${p['headline'] ?? 'celebration'}',
+                      proposalId: proposal.id,
+                      onMediaUrlChanged: (url) {
+                        final list = List<Map<String, dynamic>>.from(proposal.socialPosts);
+                        list[pIdx] = {...p, 'imageUrl': url};
+                        onChanged(proposal.copyWith(socialPosts: list));
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // 2. Sample Blog Article (Page 11 of PDF)
+        _SectionContainer(
+          title: '2. Sample Copywriting: SEO Pillar Blog Article',
+          subtitle: 'Long-form authority article and organic search capture (Page 11 of PDF)',
           children: [
             _EditableField(
               label: 'Suggested Article Title',
@@ -1109,41 +1612,9 @@ class _Tab4CopywritingAndSeo extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        // Sample Social Media Post
+        // 3. SEO & Digital Presence Opportunities (Page 12 of PDF)
         _SectionContainer(
-          title: 'Sample Social Media Copywriting',
-          subtitle: 'High-converting Instagram & LinkedIn caption blueprint (Page 11 of PDF)',
-          children: [
-            _EditableField(
-              label: 'Post Hook',
-              value: proposal.sampleSocialCaptionHook,
-              onChanged: (v) => onChanged(proposal.copyWith(sampleSocialCaptionHook: v)),
-            ),
-            const SizedBox(height: 12),
-            _EditableField(
-              label: 'Body Narrative',
-              value: proposal.sampleSocialCaptionBody,
-              maxLines: 3,
-              onChanged: (v) => onChanged(proposal.copyWith(sampleSocialCaptionBody: v)),
-            ),
-            const SizedBox(height: 12),
-            _EditableField(
-              label: 'Call to Action',
-              value: proposal.sampleSocialCaptionCta,
-              onChanged: (v) => onChanged(proposal.copyWith(sampleSocialCaptionCta: v)),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Hashtags: ${proposal.sampleSocialHashtags.join(' ')}',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF8B5CF6), fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-
-        // SEO & Digital Audit
-        _SectionContainer(
-          title: 'SEO & Digital Presence Opportunities',
+          title: '3. SEO & Digital Presence Opportunities',
           subtitle: 'Health score and prioritized optimization roadmap (Page 12 of PDF)',
           children: [
             Row(
@@ -1167,43 +1638,116 @@ class _Tab4CopywritingAndSeo extends StatelessWidget {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(
-                    proposal.seoAudit.summaryText,
-                    style: const TextStyle(fontSize: 13, color: ClinicSageColors.secondary),
+                  child: TextFormField(
+                    initialValue: proposal.seoAudit.healthScore.toString(),
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Score (0 - 100)', isDense: true),
+                    onChanged: (v) {
+                      final score = int.tryParse(v) ?? proposal.seoAudit.healthScore;
+                      onChanged(proposal.copyWith(seoAudit: proposal.seoAudit.copyWith(healthScore: score)));
+                    },
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            const Text('High Priority Initiatives:', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
-            ...proposal.seoAudit.highPriority.map((h) => Text('• $h', style: const TextStyle(fontSize: 13))),
-            const SizedBox(height: 10),
-            const Text('Medium Priority Enhancements:', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF8B5CF6))),
-            ...proposal.seoAudit.mediumPriority.map((m) => Text('• $m', style: const TextStyle(fontSize: 13))),
-            const SizedBox(height: 10),
-            const Text('Long-Term Opportunities:', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF10B981))),
-            ...proposal.seoAudit.longTermOpportunities.map((l) => Text('• $l', style: const TextStyle(fontSize: 13))),
+            const SizedBox(height: 14),
+            _EditableField(
+              label: 'SEO Audit Summary Text',
+              value: proposal.seoAudit.summaryText,
+              maxLines: 3,
+              onChanged: (v) => onChanged(proposal.copyWith(seoAudit: proposal.seoAudit.copyWith(summaryText: v))),
+            ),
+            const SizedBox(height: 12),
+            _EditableField(
+              label: 'High Priority Initiatives (comma-separated)',
+              value: proposal.seoAudit.highPriority.join(', '),
+              onChanged: (v) {
+                final list = v.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                onChanged(proposal.copyWith(seoAudit: proposal.seoAudit.copyWith(highPriority: list)));
+              },
+            ),
+            const SizedBox(height: 12),
+            _EditableField(
+              label: 'Medium Priority Enhancements (comma-separated)',
+              value: proposal.seoAudit.mediumPriority.join(', '),
+              onChanged: (v) {
+                final list = v.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                onChanged(proposal.copyWith(seoAudit: proposal.seoAudit.copyWith(mediumPriority: list)));
+              },
+            ),
+            const SizedBox(height: 12),
+            _EditableField(
+              label: 'Long-Term Opportunities (comma-separated)',
+              value: proposal.seoAudit.longTermOpportunities.join(', '),
+              onChanged: (v) {
+                final list = v.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+                onChanged(proposal.copyWith(seoAudit: proposal.seoAudit.copyWith(longTermOpportunities: list)));
+              },
+            ),
+            const SizedBox(height: 12),
+            _EditableField(
+              label: 'View Full SEO/AIO Audit Hyperlink URL (Clickable in PDF)',
+              value: proposal.seoAuditLink,
+              onChanged: (v) => onChanged(proposal.copyWith(seoAuditLink: v)),
+            ),
           ],
         ),
         const SizedBox(height: 20),
 
-        // Final Thoughts & Recommendation
+        // 4. Our Assessment On SEO Audit & Final Thoughts (Page 13 of PDF)
         _SectionContainer(
-          title: 'Final Thoughts & Assessment',
-          subtitle: 'Executive sign-off and immediate strategic next steps (Page 13 of PDF)',
+          title: '4. Our Assessment On SEO Audit & Final Thoughts',
+          subtitle: 'Executive recommendation and solid lime-green summary card (Page 13 of PDF)',
           children: [
             _EditableField(
-              label: 'Executive Conclusion',
-              value: proposal.finalThoughtsSummary,
+              label: 'Our Assessment On SEO Audit Narrative',
+              value: proposal.seoAssessmentText,
               maxLines: 3,
-              onChanged: (v) => onChanged(proposal.copyWith(finalThoughtsSummary: v)),
+              onChanged: (v) => onChanged(proposal.copyWith(seoAssessmentText: v)),
             ),
-            const SizedBox(height: 12),
-            _EditableField(
-              label: 'Strategic Roadmap Recommendation',
-              value: proposal.finalThoughtsRecommendation,
-              maxLines: 3,
-              onChanged: (v) => onChanged(proposal.copyWith(finalThoughtsRecommendation: v)),
+            const SizedBox(height: 16),
+            // Live Preview of Solid Lime-Green Final Thoughts Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFA3E635),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Final Thoughts (Live Preview of Page 13 Card)',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0A0D0D)),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: proposal.finalThoughtsSummary,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF0A0D0D), height: 1.4),
+                    decoration: const InputDecoration(
+                      labelText: 'Final Thoughts Summary Paragraph',
+                      labelStyle: TextStyle(color: Color(0xFF0A0D0D), fontWeight: FontWeight.w700),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    onChanged: (v) => onChanged(proposal.copyWith(finalThoughtsSummary: v)),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: proposal.finalThoughtsRecommendation,
+                    maxLines: 3,
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF0A0D0D), height: 1.4),
+                    decoration: const InputDecoration(
+                      labelText: 'Final Thoughts Strategic Recommendation',
+                      labelStyle: TextStyle(color: Color(0xFF0A0D0D), fontWeight: FontWeight.w700),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    onChanged: (v) => onChanged(proposal.copyWith(finalThoughtsRecommendation: v)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

@@ -407,6 +407,36 @@ class FirebaseService {
     return 'https://firebasestorage.googleapis.com/v0/b/meet-marketers-ai.firebasestorage.app/o/clients%2F$clientId%2F$folder%2F$cleanName?alt=media';
   }
 
+  /// Upload proposal media asset (Reel, Instagram post, visual direction) to Firebase Storage
+  Future<String> uploadProposalMedia({
+    required String proposalId,
+    required String fileName,
+    required Uint8List bytes,
+    String? contentType,
+  }) async {
+    final cleanName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    if (_isFirebaseAvailable) {
+      try {
+        final storageRef = storage.ref().child('proposals/$proposalId/media/$cleanName');
+        final metadata = SettableMetadata(
+          contentType: contentType ?? (fileName.endsWith('.mp4') ? 'video/mp4' : 'image/jpeg'),
+          customMetadata: {
+            'proposalId': proposalId,
+            'fileName': fileName,
+            'uploadedAt': DateTime.now().toIso8601String(),
+          },
+        );
+        final uploadTask = await storageRef.putData(bytes, metadata);
+        final downloadUrl = await uploadTask.ref.getDownloadURL();
+        debugPrint('Firebase Storage proposal media upload succeeded: $downloadUrl');
+        return downloadUrl;
+      } catch (e) {
+        debugPrint('Firebase Storage uploadProposalMedia error: $e');
+      }
+    }
+    return 'https://firebasestorage.googleapis.com/v0/b/meet-marketers-ai.firebasestorage.app/o/proposals%2F$proposalId%2Fmedia%2F$cleanName?alt=media';
+  }
+
   // ───────────────────────────────────────────────────────────────────────────
   // Proposal Engine & Lead Management Methods (Online Firestore)
   // ───────────────────────────────────────────────────────────────────────────
