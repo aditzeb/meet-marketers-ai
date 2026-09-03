@@ -15,14 +15,10 @@ class GeminiService {
 
   static const String firebaseProjectId = 'meet-marketers-ai';
 
-  /// Standard Gemini Text Generation Models
+  /// Active Gemini Text Generation Models
   static const List<String> candidateModels = [
     'gemini-2.5-flash',
     'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
-    'gemini-pro',
-    'gemini-3.5-flash',
   ];
 
   String _apiKey = AppConfig.geminiApiKey;
@@ -625,7 +621,7 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
           final model = GenerativeModel(model: modelName, apiKey: key);
           final response = await model
               .generateContent([Content.text(prompt)])
-              .timeout(const Duration(seconds: 8));
+              .timeout(const Duration(seconds: 4));
           if (response.text != null && response.text!.isNotEmpty) {
             return response.text;
           }
@@ -652,7 +648,7 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
                 }
               ]
             }),
-          ).timeout(const Duration(seconds: 8));
+          ).timeout(const Duration(seconds: 4));
 
           if (resp.statusCode == 200) {
             final data = jsonDecode(resp.body);

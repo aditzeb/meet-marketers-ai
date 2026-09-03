@@ -396,8 +396,8 @@ class FirebaseService {
           },
         );
 
-        final uploadTask = await storageRef.putData(bytes, metadata);
-        final downloadUrl = await uploadTask.ref.getDownloadURL();
+        final uploadTask = await storageRef.putData(bytes, metadata).timeout(const Duration(seconds: 4));
+        final downloadUrl = await uploadTask.ref.getDownloadURL().timeout(const Duration(seconds: 3));
         debugPrint('Firebase Storage upload succeeded: $downloadUrl');
         return downloadUrl;
       } catch (e) {
@@ -426,8 +426,8 @@ class FirebaseService {
             'uploadedAt': DateTime.now().toIso8601String(),
           },
         );
-        final uploadTask = await storageRef.putData(bytes, metadata);
-        final downloadUrl = await uploadTask.ref.getDownloadURL();
+        final uploadTask = await storageRef.putData(bytes, metadata).timeout(const Duration(seconds: 4));
+        final downloadUrl = await uploadTask.ref.getDownloadURL().timeout(const Duration(seconds: 3));
         debugPrint('Firebase Storage proposal media upload succeeded: $downloadUrl');
         return downloadUrl;
       } catch (e) {

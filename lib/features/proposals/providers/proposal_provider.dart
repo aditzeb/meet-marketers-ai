@@ -112,59 +112,80 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
       isGenerating: true,
       generationProgress: 0.15,
       generationStage: hasPitchDeck
-          ? 'Extracting strategic context from $pitchDeckFileName with Flutter engine...'
+          ? 'Strategic context extracted from $pitchDeckFileName (${(extractedPitchDeckText ?? "").length} chars)...'
           : 'Ingesting $leadCompanyName digital footprint ($websiteUrl)...',
     );
 
     String? pitchDeckStorageUrl;
     if (hasPitchDeck && pitchDeckFileName != null) {
       try {
-        final uploaded = await FirebaseService.instance.uploadFile(
+        pitchDeckStorageUrl = await FirebaseService.instance.uploadFile(
           clientId: 'lead_${DateTime.now().millisecondsSinceEpoch}',
           folder: 'pitch_decks',
           fileName: pitchDeckFileName,
           bytes: pitchDeckBytes,
           contentType: 'application/pdf',
-        );
-        pitchDeckStorageUrl = uploaded;
+        ).timeout(const Duration(seconds: 2), onTimeout: () => null);
       } catch (e) {
         debugPrint('Lead pitch deck upload notice: $e');
       }
     }
 
-    await Future.delayed(const Duration(milliseconds: 300));
     state = state.copyWith(
-      generationProgress: 0.40,
+      generationProgress: 0.35,
       generationStage: hasPitchDeck
           ? 'Gemini 2.5 Flash aligning pitch deck insights with SWOT & 4Ps...'
           : 'Gemini 2.5 Flash formulating SWOT, 4Ps & PEST matrices...',
     );
 
-    final proposal = await GeminiService.instance.generateProposal(
-      leadCompanyName: leadCompanyName,
-      industry: industry,
-      websiteUrl: websiteUrl,
-      socialUrls: socialUrls,
-      extractedPitchDeckText: extractedPitchDeckText,
-      pitchDeckFileName: pitchDeckFileName,
-      pitchDeckStorageUrl: pitchDeckStorageUrl,
-      amId: _amId,
-    );
+    // Dynamic progress ticker to show active processing
+    final ticker = Stream.periodic(const Duration(milliseconds: 600), (i) => i).listen((tick) {
+      if (!state.isGenerating) return;
+      if (tick == 1) {
+        state = state.copyWith(
+          generationProgress: 0.55,
+          generationStage: 'Formulating Perceptual Positioning Map & Competitor Matrix...',
+        );
+      } else if (tick == 2) {
+        state = state.copyWith(
+          generationProgress: 0.75,
+          generationStage: 'Synthesizing Creative Direction, Reel Storyboard & Copywriting...',
+        );
+      } else if (tick == 3) {
+        state = state.copyWith(
+          generationProgress: 0.88,
+          generationStage: 'Formulating SEO Health Audit & Strategic Recommendations...',
+        );
+      }
+    });
+
+    ProposalModel proposal;
+    try {
+      proposal = await GeminiService.instance.generateProposal(
+        leadCompanyName: leadCompanyName,
+        industry: industry,
+        websiteUrl: websiteUrl,
+        socialUrls: socialUrls,
+        extractedPitchDeckText: extractedPitchDeckText,
+        pitchDeckFileName: pitchDeckFileName,
+        pitchDeckStorageUrl: pitchDeckStorageUrl,
+        amId: _amId,
+      );
+    } finally {
+      await ticker.cancel();
+    }
 
     state = state.copyWith(
-      generationProgress: 0.70,
-      generationStage: 'Synthesizing Creative Direction, Reel Storyboard & Copywriting...',
+      generationProgress: 0.95,
+      generationStage: 'Securing 13-section strategic proposal in Firestore...',
     );
 
-    await Future.delayed(const Duration(milliseconds: 300));
-    state = state.copyWith(
-      generationProgress: 0.90,
-      generationStage: 'Formulating SEO Health Audit & Strategic Recommendations...',
-    );
-
-    await Future.delayed(const Duration(milliseconds: 300));
-    // Save to Firestore
-    await FirebaseService.instance.saveProposal(_amId, proposal);
+    // Save to Firestore with timeout fallback
+    try {
+      await FirebaseService.instance.saveProposal(_amId, proposal).timeout(const Duration(seconds: 3));
+    } catch (e) {
+      debugPrint('Firestore saveProposal note: $e');
+    }
 
     state = state.copyWith(
       generationProgress: 1.0,
