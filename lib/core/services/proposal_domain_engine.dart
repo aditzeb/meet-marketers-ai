@@ -197,10 +197,14 @@ class ProposalDomainEngine {
     final deck = extractedPitchDeckText ?? '';
     final hasDeck = deck.trim().isNotEmpty;
 
-    // Detect if deck has specific Meet Ventures metrics
-    final hasRegionalData = deck.contains('10') || deck.contains('Asia') || deck.contains('Singapore');
-    final hasInvestorData = deck.contains('130') || deck.contains('105B') || deck.contains('AUM');
-    final partnerMentions = deck.contains('JETRO') || deck.contains('KOCCA') || deck.contains('Enterprise Singapore');
+    final isMeetVentures = leadCompanyName.toLowerCase().contains('meet') ||
+        deck.toLowerCase().contains('meet ventures') ||
+        (pitchDeckFileName ?? '').toLowerCase().contains('mv intro');
+
+    // Detect if deck has specific Meet Ventures metrics or regional venture data
+    final hasRegionalData = isMeetVentures || deck.contains('10') || deck.toLowerCase().contains('asia') || deck.toLowerCase().contains('singapore');
+    final hasInvestorData = isMeetVentures || deck.contains('130') || deck.toLowerCase().contains('105b') || deck.toLowerCase().contains('aum');
+    final partnerMentions = isMeetVentures || deck.toLowerCase().contains('jetro') || deck.toLowerCase().contains('kocca') || deck.toLowerCase().contains('enterprise');
 
     final networkStat = hasInvestorData ? '130+ institutional investors (\$105B combined AUM)' : '100+ global venture partners';
     final chapterStat = hasRegionalData ? 'across 10 Asian markets (Singapore, Indonesia, Malaysia, Japan, Korea)' : 'across key regional markets';

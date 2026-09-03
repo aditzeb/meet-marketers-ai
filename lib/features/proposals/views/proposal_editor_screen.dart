@@ -343,6 +343,16 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
     }
   }
 
+  bool _isLegacyGeneralContent(ProposalModel p) {
+    if (p.industry.toLowerCase().contains('yacht')) return false;
+    final allText = '${p.executiveSummaryPosition} ${p.swot.strengths.join(' ')} ${p.swot.opportunities.join(' ')} ${p.marketingMix4Ps.productCurrent}'.toLowerCase();
+    return allText.contains('retreats and team bonding') ||
+        allText.contains('booming experiential economy') ||
+        allText.contains('diverse service packages and high visual appeal') ||
+        allText.contains('competitor alpha') ||
+        allText.contains('yacht');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -361,53 +371,45 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
         children: [
           // ── Top Bar ──────────────────────────────────────────
           Container(
-            height: 64,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: const BoxDecoration(
               color: ClinicSageColors.surface,
               border: Border(bottom: BorderSide(color: ClinicSageColors.border)),
             ),
             child: Row(
               children: [
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: ClinicSageColors.primary,
-                    side: const BorderSide(color: ClinicSageColors.border),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_back),
                   onPressed: () => context.go(AppRoutes.proposals),
-                  icon: const Icon(Icons.arrow_back, size: 14),
-                  label: const Text('All Proposals', style: TextStyle(fontSize: 12)),
+                  tooltip: 'Back to Proposals',
                 ),
-                const SizedBox(width: 14),
-                Container(width: 1, height: 28, color: ClinicSageColors.border),
-                const SizedBox(width: 14),
-
-                // Lead Info
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          _proposal.leadCompanyName,
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: ClinicSageColors.primary),
-                        ),
-                        const SizedBox(width: 10),
-                        _StatusBadge(status: _proposal.status),
-                      ],
-                    ),
-                    Text(
-                      '${_proposal.industry} · ${_proposal.websiteUrl}',
-                      style: theme.textTheme.labelSmall?.copyWith(fontSize: 10.5, color: ClinicSageColors.secondary),
-                    ),
-                  ],
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _proposal.leadCompanyName,
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _StatusBadge(status: _proposal.status),
+                        ],
+                      ),
+                      Text(
+                        '${_proposal.industry} · ${_proposal.websiteUrl}',
+                        style: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.secondary),
+                      ),
+                    ],
+                  ),
                 ),
-                const Spacer(),
 
-                // Action Buttons
-                // Export PDF (Prominent button)
+                // Export PDF Button
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F172A),
@@ -425,17 +427,16 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
                 ),
                 const SizedBox(width: 8),
 
-                // Save
-                // Regenerate AI Button
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF8B5CF6),
-                    side: const BorderSide(color: Color(0xFF8B5CF6)),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                // Regenerate with AI Button (Prominent)
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B5CF6),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   onPressed: proposalState.isGenerating ? null : _handleRegenerateProposal,
-                  icon: const Icon(Icons.auto_awesome, size: 14, color: Color(0xFF8B5CF6)),
-                  label: const Text('Regenerate with AI', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  icon: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+                  label: const Text('Regenerate with AI', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(width: 8),
 
@@ -524,6 +525,45 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
                   Text(
                     proposalState.generationStage,
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+
+          // ── Legacy Outdated Content Warning Banner ─────────────
+          if (_isLegacyGeneralContent(_proposal))
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              color: const Color(0xFFFEF3C7),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 22),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Legacy General Content Detected',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
+                        ),
+                        Text(
+                          'This proposal was generated before our latest domain precision engine update. Click "Regenerate with AI" to synthesize deep pitch deck intelligence for ${_proposal.leadCompanyName}.',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFFB45309)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD97706),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    icon: const Icon(Icons.auto_awesome, size: 15),
+                    label: const Text('Regenerate Now', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    onPressed: proposalState.isGenerating ? null : _handleRegenerateProposal,
                   ),
                 ],
               ),
