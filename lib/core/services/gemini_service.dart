@@ -685,9 +685,9 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
         }
       }
     } catch (e) {
-      debugPrint('OpenRouter generateProposal error, using domain base: $e');
+      debugPrint('OpenRouter generateProposal error: $e');
+      rethrow;
     }
-
     return domainBase;
   }
 
@@ -771,8 +771,9 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     }
 
     // Cost-optimized payload: model cascade + provider sort by price + token cap
+    // OpenRouter enforces max 3 models in the 'models' array
     final payload = {
-      'models': candidateModels,
+      'models': candidateModels.take(3).toList(),
       'provider': {
         'sort': 'price',
       },
@@ -781,49 +782,54 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
       'temperature': temperature,
     };
 
-    try {
-      final resp = await http.post(
-        endpoint,
-        headers: {
-          'Authorization': 'Bearer $apiKey',
-          'Content-Type': 'application/json',
-          'HTTP-Referer': AppConfig.openRouterSiteUrl,
-          'X-Title': AppConfig.openRouterSiteName,
-        },
-        body: jsonEncode(payload),
-      ).timeout(
-        switch (taskType) {
-          OpenRouterTaskType.strategicProposal => const Duration(seconds: 120),
-          OpenRouterTaskType.highComplexityReasoning => const Duration(seconds: 60),
-          OpenRouterTaskType.generalMarketing => const Duration(seconds: 45),
-          OpenRouterTaskType.fastMicrocopy => const Duration(seconds: 20),
-          _ => const Duration(seconds: 45),
-        },
-      );
+    final resp = await http.post(
+      endpoint,
+      headers: {
+        'Authorization': 'Bearer $apiKey',
+        'Content-Type': 'application/json',
+        'HTTP-Referer': AppConfig.openRouterSiteUrl,
+        'X-Title': AppConfig.openRouterSiteName,
+      },
+      body: jsonEncode(payload),
+    ).timeout(
+      switch (taskType) {
+        OpenRouterTaskType.strategicProposal => const Duration(seconds: 120),
+        OpenRouterTaskType.highComplexityReasoning => const Duration(seconds: 60),
+        OpenRouterTaskType.generalMarketing => const Duration(seconds: 45),
+        OpenRouterTaskType.fastMicrocopy => const Duration(seconds: 20),
+        _ => const Duration(seconds: 45),
+      },
+    );
 
-      if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
-        final choices = data['choices'] as List?;
-        if (choices != null && choices.isNotEmpty) {
-          final message = choices[0]['message'] as Map<String, dynamic>?;
-          if (message != null) {
-            var content = message['content'];
-            if ((content == null || (content is String && content.trim().isEmpty)) && message['reasoning'] != null) {
-              content = message['reasoning'];
-            }
-            if (content is String && content.trim().isNotEmpty) {
-              return content;
-            }
+    if (resp.statusCode == 200) {
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      final choices = data['choices'] as List?;
+      if (choices != null && choices.isNotEmpty) {
+        final message = choices[0]['message'] as Map<String, dynamic>?;
+        if (message != null) {
+          var content = message['content'];
+          if ((content == null || (content is String && content.trim().isEmpty)) && message['reasoning'] != null) {
+            content = message['reasoning'];
+          }
+          if (content is String && content.trim().isNotEmpty) {
+            return content;
           }
         }
-      } else {
-        debugPrint('OpenRouter API error ${resp.statusCode}: ${resp.body}');
       }
-    } catch (e) {
-      debugPrint('OpenRouter API exception: $e');
+      throw Exception('OpenRouter response contained empty message content.');
+    } else {
+      String errorMessage = 'Status ${resp.statusCode}';
+      try {
+        final errJson = jsonDecode(resp.body);
+        if (errJson is Map && errJson['error'] != null) {
+          errorMessage = errJson['error']['message'] ?? errJson['error'].toString();
+        }
+      } catch (_) {
+        errorMessage = resp.body;
+      }
+      debugPrint('OpenRouter API error: $errorMessage');
+      throw Exception('OpenRouter API Error: $errorMessage');
     }
-
-    return null;
   }
 
   String _buildContentPrompt({
