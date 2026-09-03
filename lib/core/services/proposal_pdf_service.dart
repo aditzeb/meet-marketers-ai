@@ -291,13 +291,13 @@ class ProposalPdfService {
 
       if (companyLogoBytes != null) {
         try {
-          // Dedicated executive Brand Badge Container with refined padding
-          const badgeW = 92.0;
-          const badgeH = 46.0;
-          final badgeRect = ui.Rect.fromLTWH(metaR.right - badgeW - 16, metaR.top + (metaR.height - badgeH) / 2.0, badgeW, badgeH);
-          drawPill(g, badgeRect, bgColor: PdfColor(255, 255, 255), borderColor: PdfColor(226, 232, 240), borderWidth: 0.8);
+          // Dedicated executive Brand Badge Container with dark luxury styling
+          const badgeW = 96.0;
+          const badgeH = 48.0;
+          final badgeRect = ui.Rect.fromLTWH(metaR.right - badgeW - 14, metaR.top + (metaR.height - badgeH) / 2.0, badgeW, badgeH);
+          drawPill(g, badgeRect, bgColor: PdfColor(18, 24, 28), borderColor: PdfColor(45, 60, 68), borderWidth: 0.8);
           // Draw logo inside badge with 6px internal padding to preserve logo breathing room
-          final logoInner = ui.Rect.fromLTWH(badgeRect.left + 8, badgeRect.top + 5, badgeRect.width - 16, badgeRect.height - 10);
+          final logoInner = ui.Rect.fromLTWH(badgeRect.left + 8, badgeRect.top + 6, badgeRect.width - 16, badgeRect.height - 12);
           g.drawImage(PdfBitmap(companyLogoBytes), logoInner);
         } catch (_) {}
       }
@@ -327,37 +327,53 @@ class ProposalPdfService {
         bounds: ui.Rect.fromLTWH(contentX + 16, 266, textWidthLimit, 14),
       );
 
-      // CONTENTS SECTION — 2 Elevated Cards Side-by-Side
-      const tocTop = 310.0;
+      // CONTENTS SECTION — 2 Elevated Cards Side-by-Side (Proportionately balanced)
+      const tocTop = 305.0;
       const tocCardW = (contentWidth - 16) / 2.0;
-      const tocCardH = 410.0;
+      const tocCardH = 265.0;
 
       // Card 1: Market Strategy & Positioning
       const toc1R = ui.Rect.fromLTWH(contentX, tocTop, tocCardW, tocCardH);
       drawCard(g, toc1R);
-      drawPill(g, ui.Rect.fromLTWH(contentX + 12, tocTop + 14, tocCardW - 24, 26), bgColor: PdfColor(12, 28, 22));
+      drawPill(g, ui.Rect.fromLTWH(contentX + 12, tocTop + 12, tocCardW - 24, 24), bgColor: PdfColor(12, 28, 22), borderColor: accentLime, borderWidth: 0.5);
       g.drawString(
         'PART 01 · MARKET STRATEGY',
-        PdfStandardFont(PdfFontFamily.helvetica, 9.5, style: PdfFontStyle.bold),
+        PdfStandardFont(PdfFontFamily.helvetica, 9, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(accentLime),
-        bounds: ui.Rect.fromLTWH(contentX + 20, tocTop + 20, tocCardW - 40, 16),
+        bounds: ui.Rect.fromLTWH(contentX + 20, tocTop + 18, tocCardW - 40, 14),
       );
 
       final strategyItems = [
-        '01  Executive Summary & Opportunity',
-        '02  SWOT Strategic Matrix',
-        '03  Marketing Mix (4Ps Framework)',
-        '04  PEST Environmental Scan',
-        '05  Competitor & USP Strategic Matrix',
-        '06  Perceptual Positioning Landscape',
+        {'idx': '01', 'title': 'Executive Summary & Opportunity', 'page': 'P. 02'},
+        {'idx': '02', 'title': 'SWOT Strategic Matrix', 'page': 'P. 02'},
+        {'idx': '03', 'title': 'Marketing Mix (4Ps Framework)', 'page': 'P. 03'},
+        {'idx': '04', 'title': 'PEST Environmental Scan', 'page': 'P. 04'},
+        {'idx': '05', 'title': 'Competitor & USP Strategic Matrix', 'page': 'P. 05'},
+        {'idx': '06', 'title': 'Perceptual Positioning Landscape', 'page': 'P. 06'},
       ];
-      double ty1 = tocTop + 55;
+      double ty1 = tocTop + 48;
       for (final item in strategyItems) {
+        // Subtle index pill
+        drawPill(g, ui.Rect.fromLTWH(contentX + 14, ty1 + 1, 20, 14), bgColor: PdfColor(18, 30, 26), borderColor: accentLime, borderWidth: 0.4);
         g.drawString(
-          item,
-          PdfStandardFont(PdfFontFamily.helvetica, 9.5, style: PdfFontStyle.regular),
+          item['idx']!,
+          PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(accentLime),
+          bounds: ui.Rect.fromLTWH(contentX + 14, ty1 + 3, 20, 10),
+          format: PdfStringFormat(alignment: PdfTextAlignment.center),
+        );
+        g.drawString(
+          item['title']!,
+          PdfStandardFont(PdfFontFamily.helvetica, 9, style: PdfFontStyle.regular),
           brush: PdfSolidBrush(textWhite),
-          bounds: ui.Rect.fromLTWH(contentX + 18, ty1, tocCardW - 36, 18),
+          bounds: ui.Rect.fromLTWH(contentX + 40, ty1 + 1, tocCardW - 85, 16),
+        );
+        g.drawString(
+          item['page']!,
+          captionFont,
+          brush: PdfSolidBrush(textMuted),
+          bounds: ui.Rect.fromLTWH(contentX + tocCardW - 42, ty1 + 2, 30, 14),
+          format: PdfStringFormat(alignment: PdfTextAlignment.right),
         );
         ty1 += 34;
       }
@@ -366,33 +382,98 @@ class ProposalPdfService {
       final toc2X = contentX + tocCardW + 16;
       final toc2R = ui.Rect.fromLTWH(toc2X, tocTop, tocCardW, tocCardH);
       drawCard(g, toc2R);
-      drawPill(g, ui.Rect.fromLTWH(toc2X + 12, tocTop + 14, tocCardW - 24, 26), bgColor: PdfColor(12, 28, 22));
+      drawPill(g, ui.Rect.fromLTWH(toc2X + 12, tocTop + 12, tocCardW - 24, 24), bgColor: PdfColor(12, 28, 22), borderColor: accentLime, borderWidth: 0.5);
       g.drawString(
         'PART 02 · CREATIVE CAMPAIGN',
-        PdfStandardFont(PdfFontFamily.helvetica, 9.5, style: PdfFontStyle.bold),
+        PdfStandardFont(PdfFontFamily.helvetica, 9, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(accentLime),
-        bounds: ui.Rect.fromLTWH(toc2X + 20, tocTop + 20, tocCardW - 40, 16),
+        bounds: ui.Rect.fromLTWH(toc2X + 20, tocTop + 18, tocCardW - 40, 14),
       );
 
       final operationItems = [
-        '07  Creative Direction: 5 Pillars',
-        '08  Visual Guidelines & Monthly Plan',
-        '09  Sample Reel (Vertical Video)',
-        '10  Sample Social Media Copywriting',
-        '11  SEO Pillar Thought Leadership',
-        '12  SEO & Digital Opportunities',
-        '13  Strategic Assessment & Thoughts',
+        {'idx': '07', 'title': 'Creative Direction: 5 Pillars', 'page': 'P. 07'},
+        {'idx': '08', 'title': 'Visual Guidelines & Content Plan', 'page': 'P. 08'},
+        {'idx': '09', 'title': 'Sample Reel (Vertical Video)', 'page': 'P. 09'},
+        {'idx': '10', 'title': 'Sample Social Media Copywriting', 'page': 'P. 10'},
+        {'idx': '11', 'title': 'SEO Pillar Thought Leadership', 'page': 'P. 11'},
+        {'idx': '12', 'title': 'SEO & Digital Opportunities', 'page': 'P. 12'},
+        {'idx': '13', 'title': 'Strategic Assessment & Thoughts', 'page': 'P. 13'},
       ];
-      double ty2 = tocTop + 55;
+      double ty2 = tocTop + 45;
       for (final item in operationItems) {
+        drawPill(g, ui.Rect.fromLTWH(toc2X + 14, ty2 + 1, 20, 14), bgColor: PdfColor(18, 30, 26), borderColor: accentLime, borderWidth: 0.4);
         g.drawString(
-          item,
-          PdfStandardFont(PdfFontFamily.helvetica, 9.5, style: PdfFontStyle.regular),
-          brush: PdfSolidBrush(textWhite),
-          bounds: ui.Rect.fromLTWH(toc2X + 18, ty2, tocCardW - 36, 18),
+          item['idx']!,
+          PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(accentLime),
+          bounds: ui.Rect.fromLTWH(toc2X + 14, ty2 + 3, 20, 10),
+          format: PdfStringFormat(alignment: PdfTextAlignment.center),
         );
-        ty2 += 34;
+        g.drawString(
+          item['title']!,
+          PdfStandardFont(PdfFontFamily.helvetica, 8.5, style: PdfFontStyle.regular),
+          brush: PdfSolidBrush(textWhite),
+          bounds: ui.Rect.fromLTWH(toc2X + 40, ty2 + 1, tocCardW - 85, 16),
+        );
+        g.drawString(
+          item['page']!,
+          captionFont,
+          brush: PdfSolidBrush(textMuted),
+          bounds: ui.Rect.fromLTWH(toc2X + tocCardW - 42, ty2 + 2, 30, 14),
+          format: PdfStringFormat(alignment: PdfTextAlignment.right),
+        );
+        ty2 += 29.5;
       }
+
+      // Executive Strategy Briefing & Agency Governance Card (Spanning bottom width — eliminates empty space)
+      final execRect = ui.Rect.fromLTWH(contentX, 584, contentWidth, 168);
+      drawCard(g, execRect);
+
+      // Section Pill
+      const execPill = ui.Rect.fromLTWH(contentX + 14, 594, 250, 18);
+      drawPill(g, execPill, bgColor: PdfColor(14, 30, 24), borderColor: accentLime, borderWidth: 0.5);
+      g.drawString(
+        'EXECUTIVE STRATEGY BRIEFING & ENGAGEMENT MANDATE',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: execPill,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
+      // 4 Metric Scope Badges in horizontal grid
+      const scopeW = (contentWidth - 28.0 - 18.0) / 4.0;
+      final scopes = [
+        {'label': 'SCOPE', 'val': '13 Strategic Pillars'},
+        {'label': 'TARGET SECTOR', 'val': proposal.industry.isNotEmpty ? (proposal.industry.length > 18 ? proposal.industry.substring(0, 18) : proposal.industry) : 'Enterprise Growth'},
+        {'label': 'METHODOLOGY', 'val': 'AI Market Diagnostics'},
+        {'label': 'TIMELINE', 'val': '30-Day Go-To-Market'},
+      ];
+
+      double sx = contentX + 14;
+      for (final s in scopes) {
+        final sRect = ui.Rect.fromLTWH(sx, 620, scopeW, 36);
+        drawPill(g, sRect, bgColor: PdfColor(14, 20, 24), borderColor: cardBorder, borderWidth: 0.5);
+        g.drawString(s['label']!, PdfStandardFont(PdfFontFamily.helvetica, 6, style: PdfFontStyle.bold), brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(sx + 6, 624, scopeW - 12, 10));
+        g.drawString(s['val']!, PdfStandardFont(PdfFontFamily.helvetica, 8, style: PdfFontStyle.bold), brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(sx + 6, 636, scopeW - 12, 14));
+        sx += scopeW + 6.0;
+      }
+
+      // Advisory Assurance Narrative
+      g.drawString(
+        'This proprietary strategy blueprint is prepared exclusively for ${proposal.leadCompanyName} by Meet Marketers AI. Formulated using competitive heuristics, search intent discovery, viral video storyboarding, and conversion-engineered creative campaigns to establish undeniable category leadership.',
+        bodyFont,
+        brush: PdfSolidBrush(textOffWhite),
+        bounds: ui.Rect.fromLTWH(contentX + 14, 666, contentWidth - 28, 42),
+      );
+
+      // Divider & Signoff
+      g.drawLine(PdfPen(cardBorder, width: 0.5), ui.Offset(contentX + 14, 716), ui.Offset(contentX + contentWidth - 14, 716));
+      g.drawString(
+        'Meet Marketers AI Strategy Directorate  ·  Authorized Client Advisory  ·  Singapore & Global Partnerships',
+        captionFont,
+        brush: PdfSolidBrush(textMuted),
+        bounds: ui.Rect.fromLTWH(contentX + 14, 724, contentWidth - 28, 14),
+      );
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1379,8 +1460,8 @@ class ProposalPdfService {
             const logoH = 22.0;
             const logoX = phoneX + 10.0;
             const logoY = phoneY + 10.0;
-            // Clean white pill container with soft padding
-            drawPill(g, const ui.Rect.fromLTWH(logoX, logoY, logoW, logoH), bgColor: PdfColor(255, 255, 255), borderColor: PdfColor(200, 210, 215), borderWidth: 0.5);
+            // Clean dark translucent glass pill container with soft padding
+            drawPill(g, const ui.Rect.fromLTWH(logoX, logoY, logoW, logoH), bgColor: PdfColor(14, 22, 26, 210), borderColor: PdfColor(255, 255, 255, 70), borderWidth: 0.5);
             g.drawImage(PdfBitmap(companyLogoBytes), const ui.Rect.fromLTWH(logoX + 4, logoY + 3, logoW - 8, logoH - 6));
           }
 
@@ -1403,17 +1484,16 @@ class ProposalPdfService {
         );
       }
 
-      // Play Icon Accent Circle
-      const playSize = 34.0;
-      final playRect = ui.Rect.fromLTWH(phoneX + (phoneW - playSize) / 2, phoneY + (phoneH / 2) - 30, playSize, playSize);
-      drawPill(g, playRect, bgColor: PdfColor(10, 15, 17, 210), borderColor: accentLime, borderWidth: 1);
-      g.drawString(
-        '▶',
-        PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
-        brush: PdfSolidBrush(accentLime),
-        bounds: playRect,
-        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
-      );
+      // True Vector Play Button (Eliminates font glyph dependency box)
+      const playSize = 38.0;
+      final playRect = ui.Rect.fromLTWH(phoneX + (phoneW - playSize) / 2, phoneY + (phoneH / 2) - 25, playSize, playSize);
+      drawPill(g, playRect, bgColor: PdfColor(10, 16, 20, 220), borderColor: accentLime, borderWidth: 1.2);
+      final pcx = playRect.left + playSize / 2;
+      final pcy = playRect.top + playSize / 2;
+      final p1 = ui.Offset(pcx - 4, pcy - 8);
+      final p2 = ui.Offset(pcx - 4, pcy + 8);
+      final p3 = ui.Offset(pcx + 7, pcy);
+      g.drawPolygon([p1, p2, p3], brush: PdfSolidBrush(accentLime));
 
       // Hero Headline Overlay inside phone
       final headline = proposal.sampleReelHeadline.isNotEmpty ? proposal.sampleReelHeadline : 'Scale Across Asia';
@@ -1441,7 +1521,7 @@ class ProposalPdfService {
       final btnRect = ui.Rect.fromLTWH(phoneX, phoneY + phoneH + 12, phoneW, btnH);
       drawPill(g, btnRect, bgColor: PdfColor(14, 30, 24), borderColor: accentLime, borderWidth: 0.8);
       g.drawString(
-        '▶   View Reel Here →',
+        'VIEW PRODUCTION REEL',
         PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(accentLime),
         bounds: btnRect,
@@ -1474,11 +1554,11 @@ class ProposalPdfService {
       );
 
       final hookText = proposal.sampleReelHook.isNotEmpty
-          ? '"${proposal.sampleReelHook}"'
+          ? '"${proposal.sampleReelHook.replaceAll(RegExp(r'([a-z])([A-Z])'), r'$1 $2')}"'
           : '"Stop losing students to generic tuition — here is how modular mastery changes results."';
       g.drawString(
         hookText,
-        PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+        PdfStandardFont(PdfFontFamily.helvetica, 9, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(textWhite),
         bounds: ui.Rect.fromLTWH(rightX + 12, c1Y + 34, rightW - 24, 40),
       );
@@ -1566,10 +1646,10 @@ class ProposalPdfService {
         bounds: ui.Rect.fromLTWH(rightX + 12, c3Y + 64, rightW - 24, 14),
       );
 
-      // Bottom Production Specifications Card (Fills bottom height perfectly)
-      final btmY = btnRect.bottom + 16.0;
-      const btmH = 42.0;
-      final btmR = ui.Rect.fromLTWH(contentX, btmY, contentWidth, btmH);
+      // ── Bottom Full-Width Card: Production Specifications Badge ──
+      const btmY = phoneY + phoneH + 54.0;
+      const btmH = 44.0;
+      final btmR = const ui.Rect.fromLTWH(contentX, btmY, contentWidth, btmH);
       drawCard(g, btmR);
       g.drawString(
         'SPECIFICATIONS: 1080×1920 (9:16) Vertical Video  ·  CHANNELS: Instagram Reels, TikTok, YouTube Shorts  ·  TARGET: Inbound Trial Inquiries',
@@ -1581,106 +1661,368 @@ class ProposalPdfService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PAGE 10: Sample Social Media Copywriting/Caption (Matching Reference Deck)
+    // PAGE 10: Sample Social Media Copywriting & Campaign Showcase (Redesigned with AI Visuals)
     // ─────────────────────────────────────────────────────────────────────────
     {
       final page = document.pages.add();
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Sample Social Media Copywriting/Caption', 40);
+      drawSectionTitle(g, 'Sample Social Media Copywriting & Visuals', 38);
 
-      // 3 Multi-Angle Social Media Post Cards
+      // Subtitle Pill
+      const pillR = ui.Rect.fromLTWH(contentX + contentWidth - 210, 38, 210, 22);
+      drawPill(g, pillR, bgColor: PdfColor(14, 28, 24), borderColor: accentLime, borderWidth: 0.8);
+      g.drawString(
+        'OMNICHANNEL SOCIAL SHOWCASE · 2026',
+        PdfStandardFont(PdfFontFamily.helvetica, 7.5, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: pillR,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
       final posts = proposal.socialPosts.isNotEmpty
           ? proposal.socialPosts
           : [
               {
+                'title': 'Core Positioning',
                 'headline': 'BUILT ON TRUST. DRIVEN BY MEASURABLE RESULTS.',
-                'body': 'We do not believe in one-size-fits-all strategies.\n\nEvery initiative is tailored to your specific commercial objectives, backed by experienced specialists who take ownership of your growth.\n\nLearn more at our website.',
+                'body': 'We do not believe in one-size-fits-all strategies. Every engagement is tailored to your specific commercial objectives, supported by seasoned specialists who care about your long-term growth.\n\nConnect with our specialists today.',
                 'badge': 'VERIFIED EXCELLENCE',
                 'hashtags': ['#BusinessGrowth', '#Strategy', '#Leadership'],
               },
               {
-                'headline': 'WHAT SEPARATES MARKET BENCHMARKS FROM THE REST.',
-                'body': 'From initial strategic alignment to flawless execution, our team provides the clarity and execution velocity required to capture category leadership.\n\nExplore our case studies and proven frameworks.',
-                'badge': 'PROVEN IMPACT',
+                'title': 'Process & Authority',
+                'headline': 'WHAT SEPARATES INDUSTRY BENCHMARKS FROM THE REST.',
+                'body': 'From initial strategic alignment to seamless execution, our team provides the guidance, clarity, and accountability you need to scale predictably.\n\nExplore how we help organizations achieve category leadership.',
+                'badge': 'PROVEN OUTCOMES',
                 'hashtags': ['#Transformation', '#Execution', '#Scale'],
               },
               {
-                'headline': 'THE RIGHT STRATEGIC PARTNER MAKES ALL THE DIFFERENCE.',
+                'title': 'Partnership & ROI',
+                'headline': 'THE RIGHT PARTNER MAKES ALL THE DIFFERENCE.',
                 'body': 'Whether unlocking new market opportunities or accelerating high-stakes business initiatives, having the right team in your corner changes everything.\n\nConnect with our leadership team today.',
                 'badge': 'STRATEGIC PARTNERSHIP',
                 'hashtags': ['#StrategicPartner', '#Innovation', '#Excellence'],
               },
             ];
 
-      // Post 1 (Top Left) & Post 2 (Top Right) - Symmetric Grid
-      const postColW = (contentWidth - 12.0) / 2.0;
-      final p1 = posts[0];
-      const p1Rect = ui.Rect.fromLTWH(contentX, 85, postColW, 310);
-      drawCard(g, p1Rect);
+      // ── Left Column: Live Social Media Mockup (Instagram / LinkedIn Ad Frame) ──
+      const feedColW = 216.0;
+      const feedColH = 485.0;
+      const feedX = contentX;
+      const feedY = 78.0;
 
-      double p1ContentY = 95;
-      if (post1ImageBytes != null) {
+      final feedCard = ui.Rect.fromLTWH(feedX, feedY, feedColW, feedColH);
+      drawCard(g, feedCard);
+
+      // Account Header Bar
+      const avatarSize = 24.0;
+      final avatarRect = ui.Rect.fromLTWH(feedX + 10, feedY + 8, avatarSize, avatarSize);
+      drawPill(g, avatarRect, bgColor: PdfColor(20, 32, 28), borderColor: accentLime, borderWidth: 0.8);
+      if (companyLogoBytes != null) {
         try {
-          final imgRect = ui.Rect.fromLTWH(contentX + 10, 93, postColW - 20, 95);
-          g.drawImage(PdfBitmap(post1ImageBytes), imgRect);
-          p1ContentY = 196;
+          g.drawImage(PdfBitmap(companyLogoBytes), ui.Rect.fromLTWH(avatarRect.left + 2, avatarRect.top + 2, avatarSize - 4, avatarSize - 4));
         } catch (_) {}
+      } else {
+        g.drawString(
+          proposal.leadCompanyName.isNotEmpty ? proposal.leadCompanyName.substring(0, 1) : 'M',
+          PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(accentLime),
+          bounds: avatarRect,
+          format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+        );
       }
 
-      final p1HeadlineH = post1ImageBytes != null ? 24.0 : 36.0;
-      final p1BodyH = post1ImageBytes != null ? 85.0 : 190.0;
-      g.drawString(p1['headline'] as String? ?? '', post1ImageBytes != null ? captionFont : h3Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(contentX + 12, p1ContentY, postColW - 24, p1HeadlineH));
-      g.drawString(p1['body'] as String? ?? '', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 12, p1ContentY + p1HeadlineH + 4, postColW - 24, p1BodyH));
-      g.drawString(p1['badge'] as String? ?? '', captionFont, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(contentX + 12, 345, postColW - 24, 14));
-      final hts1 = (p1['hashtags'] as List?)?.join(' ') ?? '';
-      g.drawString(hts1, captionFont, brush: PdfSolidBrush(textMuted), bounds: ui.Rect.fromLTWH(contentX + 12, 362, postColW - 24, 24));
+      g.drawString(
+        proposal.leadCompanyName.length > 20 ? '${proposal.leadCompanyName.substring(0, 20)}...' : proposal.leadCompanyName,
+        PdfStandardFont(PdfFontFamily.helvetica, 8.5, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(textWhite),
+        bounds: ui.Rect.fromLTWH(feedX + 40, feedY + 8, feedColW - 75, 12),
+      );
+      g.drawString(
+        'Sponsored  ·  Official Campaign',
+        captionFont,
+        brush: PdfSolidBrush(textMuted),
+        bounds: ui.Rect.fromLTWH(feedX + 40, feedY + 20, feedColW - 75, 10),
+      );
+      g.drawString(
+        '•••',
+        PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(textMuted),
+        bounds: ui.Rect.fromLTWH(feedX + feedColW - 25, feedY + 10, 20, 14),
+      );
 
-      // Post 2 (Top Right)
+      // 1:1 Square Ad Visual Asset
+      const imgSize = feedColW - 16.0; // 200 x 200 px
+      final postImgRect = ui.Rect.fromLTWH(feedX + 8, feedY + 38, imgSize, imgSize);
+
+      final List<int>? socialImageToDraw = post1ImageBytes ?? visualDirectionImageBytes;
+
+      if (socialImageToDraw != null) {
+        try {
+          g.drawImage(PdfBitmap(socialImageToDraw), postImgRect);
+          // Subtle brand watermark badge in corner of social image
+          if (companyLogoBytes != null) {
+            const pillW = 38.0;
+            const pillH = 18.0;
+            final pillR = ui.Rect.fromLTWH(postImgRect.right - pillW - 6, postImgRect.top + 6, pillW, pillH);
+            drawPill(g, pillR, bgColor: PdfColor(14, 20, 24, 210), borderColor: PdfColor(255, 255, 255, 80), borderWidth: 0.5);
+            g.drawImage(PdfBitmap(companyLogoBytes), ui.Rect.fromLTWH(pillR.left + 3, pillR.top + 2, pillW - 6, pillH - 4));
+          }
+        } catch (_) {
+          g.drawRectangle(brush: PdfSolidBrush(PdfColor(18, 28, 28)), bounds: postImgRect);
+        }
+      } else {
+        // Luxury graphic placeholder if no image uploaded yet
+        g.drawRectangle(brush: PdfSolidBrush(PdfColor(14, 24, 26)), bounds: postImgRect);
+        g.drawString(
+          'AI SOCIAL AD VISUAL (1:1 SQUARE)',
+          PdfStandardFont(PdfFontFamily.helvetica, 8, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(accentLime),
+          bounds: ui.Rect.fromLTWH(postImgRect.left + 10, postImgRect.top + 85, imgSize - 20, 14),
+          format: PdfStringFormat(alignment: PdfTextAlignment.center),
+        );
+        g.drawString(
+          'High-converting editorial graphic synthesized for ${proposal.leadCompanyName}',
+          captionFont,
+          brush: PdfSolidBrush(textMuted),
+          bounds: ui.Rect.fromLTWH(postImgRect.left + 10, postImgRect.top + 105, imgSize - 20, 24),
+          format: PdfStringFormat(alignment: PdfTextAlignment.center),
+        );
+      }
+
+      // Interactive Action Bar (Icons)
+      const actionY = feedY + 38 + imgSize + 6;
+      // Draw Heart pill
+      drawPill(g, ui.Rect.fromLTWH(feedX + 10, actionY, 18, 14), bgColor: PdfColor(239, 68, 68), borderColor: PdfColor(239, 68, 68), borderWidth: 0.5);
+      // Comment bubble
+      drawPill(g, ui.Rect.fromLTWH(feedX + 34, actionY, 18, 14), bgColor: PdfColor(20, 32, 28), borderColor: cardBorder, borderWidth: 0.5);
+      // Share plane
+      drawPill(g, ui.Rect.fromLTWH(feedX + 58, actionY, 18, 14), bgColor: PdfColor(20, 32, 28), borderColor: cardBorder, borderWidth: 0.5);
+      // Bookmark on right
+      drawPill(g, ui.Rect.fromLTWH(feedX + feedColW - 28, actionY, 18, 14), bgColor: PdfColor(20, 32, 28), borderColor: cardBorder, borderWidth: 0.5);
+
+      // Social Proof Line
+      g.drawString(
+        'Liked by 1,420 industry leaders and professionals',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(textWhite),
+        bounds: ui.Rect.fromLTWH(feedX + 10, actionY + 18, feedColW - 20, 12),
+      );
+
+      // Caption Snippet inside feed card
+      final p1 = posts[0];
+      final captionHook = (p1['headline'] as String? ?? proposal.sampleSocialCaptionHook).replaceAll(RegExp(r'["“”]'), '');
+      g.drawString(
+        '${proposal.leadCompanyName}  $captionHook',
+        PdfStandardFont(PdfFontFamily.helvetica, 7.5, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: ui.Rect.fromLTWH(feedX + 10, actionY + 32, feedColW - 20, 32),
+      );
+
+      final captionBody = p1['body'] as String? ?? proposal.sampleSocialCaptionBody;
+      g.drawString(
+        captionBody,
+        captionFont,
+        brush: PdfSolidBrush(textOffWhite),
+        bounds: ui.Rect.fromLTWH(feedX + 10, actionY + 66, feedColW - 20, 85),
+      );
+
+      // Feed Card Bottom CTA
+      const feedBtnR = ui.Rect.fromLTWH(feedX + 10, feedY + feedColH - 28, feedColW - 20, 20);
+      drawPill(g, feedBtnR, bgColor: PdfColor(14, 32, 24), borderColor: accentLime, borderWidth: 0.6);
+      g.drawString(
+        'LEARN MORE  /  BOOK AUDIT',
+        PdfStandardFont(PdfFontFamily.helvetica, 7.5, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: feedBtnR,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
+      // ── Right Column: Strategic Copywriting Blueprint (2 Structured Cards) ──
+      const rightX = contentX + feedColW + 14.0;
+      const rightW = contentWidth - feedColW - 14.0;
+
+      // Card 1: High-Converting Caption & Narrative Blueprint
+      const c1Y = feedY;
+      const c1H = 238.0;
+      final c1R = const ui.Rect.fromLTWH(rightX, c1Y, rightW, c1H);
+      drawCard(g, c1R);
+
+      const pill1 = ui.Rect.fromLTWH(rightX + 12, c1Y + 10, 185, 18);
+      drawPill(g, pill1, bgColor: PdfColor(18, 38, 30), borderColor: accentLime, borderWidth: 0.6);
+      g.drawString(
+        '01 · HIGH-CONVERTING CAPTION SCRIPT',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: pill1,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
+      // Post 1 Headline
+      g.drawString(
+        '“${p1['headline'] as String? ?? 'BUILT ON TRUST. DRIVEN BY RESULTS.'}”',
+        h3Font,
+        brush: PdfSolidBrush(accentLime),
+        bounds: ui.Rect.fromLTWH(rightX + 12, c1Y + 34, rightW - 24, 30),
+      );
+
+      // Post 1 Body Copy
+      g.drawString(
+        p1['body'] as String? ?? '',
+        bodyFont,
+        brush: PdfSolidBrush(textOffWhite),
+        bounds: ui.Rect.fromLTWH(rightX + 12, c1Y + 68, rightW - 24, 115),
+      );
+
+      // Call-To-Action Box
+      final ctaBox = ui.Rect.fromLTWH(rightX + 12, c1Y + 188, rightW - 24, 22);
+      drawPill(g, ctaBox, bgColor: PdfColor(14, 26, 22), borderColor: accentLime, borderWidth: 0.5);
+      final ctaCopy = proposal.sampleSocialCaptionCta.isNotEmpty
+          ? proposal.sampleSocialCaptionCta
+          : "Direct Message 'AUDIT' to claim 1 of 5 complimentary consultation slots.";
+      g.drawString(
+        'CTA: $ctaCopy',
+        PdfStandardFont(PdfFontFamily.helvetica, 7.5, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: ui.Rect.fromLTWH(ctaBox.left + 8, ctaBox.top + 4, ctaBox.width - 16, ctaBox.height - 8),
+      );
+
+      // Hashtags Line
+      final hts1 = (p1['hashtags'] as List?)?.join(' ') ?? '#SingaporeBusiness #Leadership';
+      g.drawString(
+        hts1,
+        captionFont,
+        brush: PdfSolidBrush(textMuted),
+        bounds: ui.Rect.fromLTWH(rightX + 12, c1Y + 215, rightW - 24, 14),
+      );
+
+      // Card 2: Multi-Angle Campaign Pillars (Post 2 & Post 3 Angles)
+      const c2Y = c1Y + c1H + 12.0;
+      const c2H = 235.0;
+      final c2R = const ui.Rect.fromLTWH(rightX, c2Y, rightW, c2H);
+      drawCard(g, c2R);
+
+      const pill2 = ui.Rect.fromLTWH(rightX + 12, c2Y + 10, 185, 18);
+      drawPill(g, pill2, bgColor: PdfColor(18, 38, 30), borderColor: accentLime, borderWidth: 0.6);
+      g.drawString(
+        '02 · MULTI-ANGLE CAMPAIGN MATRIX',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: pill2,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
+      // Sub-card 2A (Post 2 Angle)
       final p2 = posts.length > 1 ? posts[1] : posts[0];
-      final p2Rect = ui.Rect.fromLTWH(contentX + postColW + 12, 85, postColW, 310);
-      drawCard(g, p2Rect);
-
-      double p2ContentY = 95;
+      const p2Box = ui.Rect.fromLTWH(rightX + 12, c2Y + 34, rightW - 24, 88);
+      drawPill(g, p2Box, bgColor: PdfColor(14, 20, 24), borderColor: cardBorder, borderWidth: 0.5);
       if (post2ImageBytes != null) {
         try {
-          final imgRect = ui.Rect.fromLTWH(p2Rect.left + 10, 93, postColW - 20, 95);
-          g.drawImage(PdfBitmap(post2ImageBytes), imgRect);
-          p2ContentY = 196;
+          final tRect = ui.Rect.fromLTWH(p2Box.right - 58, p2Box.top + 8, 50, 50);
+          g.drawImage(PdfBitmap(post2ImageBytes), tRect);
         } catch (_) {}
       }
+      final p2TextW = post2ImageBytes != null ? p2Box.width - 70 : p2Box.width - 16;
+      g.drawString(
+        'ANGLE A: ${p2['title'] ?? 'Process & Authority'}  ·  ${p2['badge'] ?? 'PROVEN OUTCOMES'}',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: ui.Rect.fromLTWH(p2Box.left + 8, p2Box.top + 6, p2TextW, 12),
+      );
+      g.drawString(
+        p2['headline'] as String? ?? '',
+        bodyBold,
+        brush: PdfSolidBrush(textWhite),
+        bounds: ui.Rect.fromLTWH(p2Box.left + 8, p2Box.top + 20, p2TextW, 16),
+      );
+      g.drawString(
+        p2['body'] as String? ?? '',
+        captionFont,
+        brush: PdfSolidBrush(textOffWhite),
+        bounds: ui.Rect.fromLTWH(p2Box.left + 8, p2Box.top + 38, p2TextW, 46),
+      );
 
-      final p2HeadlineH = post2ImageBytes != null ? 24.0 : 30.0;
-      final p2BodyH = post2ImageBytes != null ? 85.0 : 190.0;
-      g.drawString(p2['headline'] as String? ?? '', post2ImageBytes != null ? captionFont : h3Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(p2Rect.left + 12, p2ContentY, postColW - 24, p2HeadlineH));
-      g.drawString(p2['body'] as String? ?? '', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(p2Rect.left + 12, p2ContentY + p2HeadlineH + 4, postColW - 24, p2BodyH));
-      g.drawString(p2['badge'] as String? ?? '', captionFont, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(p2Rect.left + 12, 345, postColW - 24, 14));
-      final hts2 = (p2['hashtags'] as List?)?.join(' ') ?? '';
-      g.drawString(hts2, captionFont, brush: PdfSolidBrush(textMuted), bounds: ui.Rect.fromLTWH(p2Rect.left + 12, 362, postColW - 24, 24));
-
-      // Post 3 (Bottom Centered Card)
+      // Sub-card 2B (Post 3 Angle)
       final p3 = posts.length > 2 ? posts[2] : posts[0];
-      const p3Rect = ui.Rect.fromLTWH(contentX, 410, contentWidth, 310);
-      drawCard(g, p3Rect);
-
-      double p3TextX = contentX + 20;
-      double p3TextW = contentWidth - 40;
-
+      const p3Box = ui.Rect.fromLTWH(rightX + 12, c2Y + 130, rightW - 24, 94);
+      drawPill(g, p3Box, bgColor: PdfColor(14, 20, 24), borderColor: cardBorder, borderWidth: 0.5);
       if (post3ImageBytes != null) {
         try {
-          const imgRect = ui.Rect.fromLTWH(contentX + 16, 424, 180, 280);
-          g.drawImage(PdfBitmap(post3ImageBytes), imgRect);
-          p3TextX = contentX + 210;
-          p3TextW = contentWidth - 225;
+          final tRect = ui.Rect.fromLTWH(p3Box.right - 58, p3Box.top + 8, 50, 50);
+          g.drawImage(PdfBitmap(post3ImageBytes), tRect);
         } catch (_) {}
       }
+      final p3TextW = post3ImageBytes != null ? p3Box.width - 70 : p3Box.width - 16;
+      g.drawString(
+        'ANGLE B: ${p3['title'] ?? 'Strategic Partnership'}  ·  ${p3['badge'] ?? 'VERIFIED EXCELLENCE'}',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: ui.Rect.fromLTWH(p3Box.left + 8, p3Box.top + 6, p3TextW, 12),
+      );
+      g.drawString(
+        p3['headline'] as String? ?? '',
+        bodyBold,
+        brush: PdfSolidBrush(textWhite),
+        bounds: ui.Rect.fromLTWH(p3Box.left + 8, p3Box.top + 20, p3TextW, 16),
+      );
+      g.drawString(
+        p3['body'] as String? ?? '',
+        captionFont,
+        brush: PdfSolidBrush(textOffWhite),
+        bounds: ui.Rect.fromLTWH(p3Box.left + 8, p3Box.top + 38, p3TextW, 50),
+      );
 
-      g.drawString('“${p3['headline']}”', h2Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(p3TextX, 424, p3TextW, 36));
-      g.drawString(p3['body'] as String? ?? '', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(p3TextX, 468, p3TextW, post3ImageBytes != null ? 150 : 170));
-      g.drawString(p3['badge'] as String? ?? '', h3Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(p3TextX, 635, p3TextW, 18));
-      final hts3 = (p3['hashtags'] as List?)?.join(' ') ?? '';
-      g.drawString(hts3, captionFont, brush: PdfSolidBrush(textMuted), bounds: ui.Rect.fromLTWH(p3TextX, 660, p3TextW, 40));
+      // ── Bottom Full-Width Card: Omnichannel Distribution Specifications ──
+      const btmY = feedY + feedColH + 12.0;
+      const btmH = 145.0;
+      final btmR = const ui.Rect.fromLTWH(contentX, btmY, contentWidth, btmH);
+      drawCard(g, btmR);
+
+      const btmPill = ui.Rect.fromLTWH(contentX + 14, btmY + 10, 240, 18);
+      drawPill(g, btmPill, bgColor: PdfColor(14, 30, 24), borderColor: accentLime, borderWidth: 0.6);
+      g.drawString(
+        '03 · OMNICHANNEL DISTRIBUTION CADENCE',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: btmPill,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
+      // 4 Distribution Matrix Badges in horizontal grid
+      const dColW = (contentWidth - 28.0 - 18.0) / 4.0;
+      final matrixBadges = [
+        {'label': 'FORMATS', 'val': '1:1 Square & 4:5 Meta Ads'},
+        {'label': 'CHANNELS', 'val': 'Instagram, LinkedIn & Meta'},
+        {'label': 'CONVERSION', 'val': 'Inbound DMs & Consultations'},
+        {'label': 'FREQUENCY', 'val': '4-5 Posts / Week across 5 Pillars'},
+      ];
+
+      double dx = contentX + 14;
+      for (final m in matrixBadges) {
+        final mRect = ui.Rect.fromLTWH(dx, btmY + 34, dColW, 34);
+        drawPill(g, mRect, bgColor: PdfColor(14, 20, 24), borderColor: cardBorder, borderWidth: 0.5);
+        g.drawString(m['label']!, PdfStandardFont(PdfFontFamily.helvetica, 6, style: PdfFontStyle.bold), brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(dx + 6, btmY + 38, dColW - 12, 10));
+        g.drawString(m['val']!, PdfStandardFont(PdfFontFamily.helvetica, 7.5, style: PdfFontStyle.bold), brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(dx + 6, btmY + 50, dColW - 12, 12));
+        dx += dColW + 6.0;
+      }
+
+      g.drawString(
+        'Every social media visual and copywriting framework is engineered to stop passive scrolling within 3 seconds, articulate unique customer value, and systematically convert target audience interest into qualified consultations without reliance on generic stock content.',
+        bodyFont,
+        brush: PdfSolidBrush(textOffWhite),
+        bounds: ui.Rect.fromLTWH(contentX + 14, btmY + 76, contentWidth - 28, 38),
+      );
+
+      // Divider & Signoff
+      g.drawLine(PdfPen(cardBorder, width: 0.5), ui.Offset(contentX + 14, btmY + 120), ui.Offset(contentX + contentWidth - 14, btmY + 120));
+      g.drawString(
+        'Meet Marketers AI Creative Content Directorate  ·  Social Campaign Blueprint  ·  2026 Strategy Edition',
+        captionFont,
+        brush: PdfSolidBrush(textMuted),
+        bounds: ui.Rect.fromLTWH(contentX + 14, btmY + 126, contentWidth - 28, 14),
+      );
     }
 
     // ─────────────────────────────────────────────────────────────────────────

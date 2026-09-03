@@ -2271,10 +2271,12 @@ class _Tab4CopywritingAndSeo extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     _MediaPickerCard(
-                      title: 'Mockup Visual for ${p['title'] ?? 'Post ${pIdx + 1}'}',
+                      title: 'Social Media Visual (${p['title'] ?? 'Post ${pIdx + 1}'})',
                       mediaUrl: p['imageUrl'] as String?,
-                      promptHint: 'Instagram ad mockup for ${p['headline'] ?? 'celebration'}',
+                      promptHint: _buildTunedSocialPrompt(proposal, p),
                       proposalId: proposal.id,
+                      logoUrl: proposal.companyLogoUrl,
+                      companyName: proposal.leadCompanyName,
                       onMediaUrlChanged: (url) {
                         final list = List<Map<String, dynamic>>.from(proposal.socialPosts);
                         list[pIdx] = {...p, 'imageUrl': url};
@@ -2457,6 +2459,14 @@ class _Tab4CopywritingAndSeo extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  static String _buildTunedSocialPrompt(ProposalModel proposal, Map<String, dynamic> post) {
+    final company = proposal.leadCompanyName;
+    final industry = proposal.industry.isNotEmpty ? proposal.industry : 'Commercial Enterprise';
+    final headline = (post['headline'] as String? ?? '').replaceAll(RegExp(r'["“”]'), '').trim();
+    final title = post['title'] as String? ?? 'High-Value Campaign';
+    return '1:1 square high-converting social media campaign ad visual for $company ($industry). Campaign Angle: "$title". Core Theme: "$headline". Premium modern commercial photography, studio lighting, authentic human engagement, rich cinematic color grading, photorealistic, 8k resolution, award-winning social visual, no artificial watermark text overlays, no artifacts';
   }
 }
 
