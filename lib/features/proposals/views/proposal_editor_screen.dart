@@ -240,7 +240,7 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
     }
 
     return Scaffold(
-      backgroundColor: ClinicSageColors.neutral,
+      backgroundColor: const Color(0xFF0D1111),
       body: Column(
         children: [
           // ── Top Bar ──────────────────────────────────────────
@@ -248,8 +248,8 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
             height: 64,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: const BoxDecoration(
-              color: ClinicSageColors.surface,
-              border: Border(bottom: BorderSide(color: ClinicSageColors.border)),
+              color: Color(0xFF161B1B),
+              border: Border(bottom: BorderSide(color: Color(0xFF2A3333))),
             ),
             child: Row(
               children: [
@@ -377,11 +377,14 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
           // ── Tab Navigation ────────────────────────────────────
           Container(
             decoration: const BoxDecoration(
-              color: ClinicSageColors.surface,
-              border: Border(bottom: BorderSide(color: ClinicSageColors.border)),
+              color: Color(0xFF161B1B),
+              border: Border(bottom: BorderSide(color: Color(0xFF2A3333))),
             ),
             child: TabBar(
               controller: _tabController,
+              indicatorColor: const Color(0xFFA3E635),
+              labelColor: const Color(0xFFA3E635),
+              unselectedLabelColor: const Color(0xFF94A3B8),
               tabs: const [
                 Tab(text: '1. Strategy & SWOT & 4Ps'),
                 Tab(text: '2. PEST & Positioning Map'),
@@ -771,15 +774,35 @@ class _Tab2MarketPositioning extends StatelessWidget {
           title: 'Competitor & USP Analysis',
           subtitle: 'Unique Selling Propositions across peer landscape (Page 4 of PDF)',
           children: [
+            // Table Header in Lime Green
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFA3E635),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+              ),
+              child: const Row(
+                children: [
+                  SizedBox(
+                    width: 160,
+                    child: Text('Brand', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0A0D0D), fontSize: 12.5)),
+                  ),
+                  Expanded(
+                    child: Text('Primary USP', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0A0D0D), fontSize: 12.5)),
+                  ),
+                ],
+              ),
+            ),
+            // Table Rows
             ...proposal.competitorUsps.map((c) {
               return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: c.isLeadBrand ? const Color(0xFF10B981).withOpacity(0.08) : ClinicSageColors.neutral,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: c.isLeadBrand ? const Color(0xFF10B981).withOpacity(0.3) : ClinicSageColors.border,
+                  color: c.isLeadBrand ? const Color(0xFF1A2621) : const Color(0xFF111616),
+                  border: Border(
+                    left: const BorderSide(color: Color(0xFF334141), width: 0.5),
+                    right: const BorderSide(color: Color(0xFF334141), width: 0.5),
+                    bottom: const BorderSide(color: Color(0xFF334141), width: 0.5),
                   ),
                 ),
                 child: Row(
@@ -790,12 +813,13 @@ class _Tab2MarketPositioning extends StatelessWidget {
                         c.brandName,
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: c.isLeadBrand ? const Color(0xFF10B981) : ClinicSageColors.primary,
+                          color: c.isLeadBrand ? const Color(0xFFA3E635) : Colors.white,
+                          fontSize: 13,
                         ),
                       ),
                     ),
                     Expanded(
-                      child: Text(c.primaryUsp, style: const TextStyle(fontSize: 13)),
+                      child: Text(c.primaryUsp, style: const TextStyle(fontSize: 13, color: Color(0xFFE2E8F0))),
                     ),
                   ],
                 ),
@@ -808,8 +832,79 @@ class _Tab2MarketPositioning extends StatelessWidget {
         // Perceptual Map & Positioning
         _SectionContainer(
           title: 'Perceptual Map & Strategic Positioning',
-          subtitle: 'Positioning narrative, core psychological insight, and market opportunity (Page 5 of PDF)',
+          subtitle: 'Coordinate cross positioning framework and strategic insight (Page 5 of PDF)',
           children: [
+            // Visual Coordinate Map Preview Box
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111616),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF334141)),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    '${proposal.leadCompanyName.toUpperCase()} MARKET POSITIONING',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.white, letterSpacing: 1),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('HIGH: Premium Experience Perception', style: TextStyle(fontSize: 10, color: Color(0xFFA3E635), fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Text('LOW\nBreadth', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: Colors.white70)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          height: 90,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: const Color(0xFF445050), width: 1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Stack(
+                            children: [
+                              // Cross axis lines
+                              Center(child: Container(height: 1, color: const Color(0xFF334141))),
+                              Center(child: Container(width: 1, color: const Color(0xFF334141))),
+                              // Quadrant labels
+                              Positioned(
+                                top: 8,
+                                left: 12,
+                                child: Text(
+                                  '• ${proposal.leadCompanyName}',
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Color(0xFFA3E635)),
+                                ),
+                              ),
+                              const Positioned(
+                                top: 8,
+                                right: 12,
+                                child: Text('• Luxury Peers', style: TextStyle(fontSize: 10, color: Colors.white70)),
+                              ),
+                              const Positioned(
+                                bottom: 8,
+                                left: 12,
+                                child: Text('• Generic Peers', style: TextStyle(fontSize: 10, color: Colors.white54)),
+                              ),
+                              const Positioned(
+                                bottom: 8,
+                                right: 12,
+                                child: Text('• Mass Operators', style: TextStyle(fontSize: 10, color: Colors.white54)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('HIGH\nBreadth', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: Colors.white70)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text('LOW: Premium Experience Perception', style: TextStyle(fontSize: 10, color: Colors.white70)),
+                ],
+              ),
+            ),
             _EditableField(
               label: 'Positioning Narrative',
               value: proposal.perceptualMapNarrative,
@@ -1120,16 +1215,16 @@ class _SectionContainer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: ClinicSageColors.surface,
+        color: const Color(0xFF161B1B),
         borderRadius: BorderRadius.circular(ClinicSageRadius.md),
-        border: Border.all(color: ClinicSageColors.border),
+        border: Border.all(color: const Color(0xFF2A3333)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFFA3E635))),
           const SizedBox(height: 2),
-          Text(subtitle, style: const TextStyle(fontSize: 12, color: ClinicSageColors.secondary)),
+          Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
           const SizedBox(height: 16),
           ...children,
         ],
@@ -1159,9 +1254,10 @@ class _EditableField extends StatelessWidget {
     return TextFormField(
       initialValue: value,
       maxLines: maxLines,
+      style: const TextStyle(color: Colors.white, fontSize: 13),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFFA3E635)),
         alignLabelWithHint: true,
       ),
       onChanged: onChanged,
@@ -1188,35 +1284,48 @@ class _SwotEditorBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.06),
+        color: const Color(0xFF111616),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF334141)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: color, fontSize: 12)),
-          const SizedBox(height: 8),
-          ...items.asMap().entries.map((e) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: TextFormField(
-                initialValue: e.value,
-                style: const TextStyle(fontSize: 12),
-                decoration: const InputDecoration(
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                ),
-                onChanged: (val) {
-                  final list = List<String>.from(items);
-                  list[e.key] = val;
-                  onChanged(list);
-                },
-              ),
-            );
-          }),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: const BoxDecoration(
+              color: Color(0xFFA3E635),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+            ),
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0A0D0D), fontSize: 12.5),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: items.asMap().entries.map((e) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: TextFormField(
+                    initialValue: e.value,
+                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    ),
+                    onChanged: (val) {
+                      final list = List<String>.from(items);
+                      list[e.key] = val;
+                      onChanged(list);
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
         ],
       ),
     );
@@ -1244,33 +1353,52 @@ class _PBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ClinicSageColors.neutral,
+        color: const Color(0xFF111616),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: ClinicSageColors.border),
+        border: Border.all(color: const Color(0xFF334141)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF8B5CF6), fontSize: 13)),
-          const SizedBox(height: 8),
-          TextFormField(
-            initialValue: current,
-            decoration: const InputDecoration(
-              labelText: 'Current Approach',
-              isDense: true,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: const BoxDecoration(
+              color: Color(0xFFA3E635),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
             ),
-            onChanged: onCurrentChanged,
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0A0D0D), fontSize: 13),
+            ),
           ),
-          const SizedBox(height: 8),
-          TextFormField(
-            initialValue: opportunity,
-            decoration: const InputDecoration(
-              labelText: 'Strategic Opportunity',
-              isDense: true,
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                TextFormField(
+                  initialValue: current,
+                  style: const TextStyle(fontSize: 12.5, color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Current Approach',
+                    labelStyle: TextStyle(color: Color(0xFFA3E635)),
+                    isDense: true,
+                  ),
+                  onChanged: onCurrentChanged,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  initialValue: opportunity,
+                  style: const TextStyle(fontSize: 12.5, color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Strategic Opportunity',
+                    labelStyle: TextStyle(color: Color(0xFFA3E635)),
+                    isDense: true,
+                  ),
+                  onChanged: onOppChanged,
+                ),
+              ],
             ),
-            onChanged: onOppChanged,
           ),
         ],
       ),
