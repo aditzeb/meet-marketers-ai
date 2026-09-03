@@ -228,6 +228,58 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
     }
   }
 
+  Future<void> _handleDeleteProposal() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ClinicSageColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.delete_forever_outlined, color: Colors.red, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text('Delete Proposal?'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete the proposal for "${_proposal.leadCompanyName}"?\n\nThis will remove all strategic analysis, copywriting, and media assets for this lead.',
+          style: const TextStyle(fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ref.read(proposalProvider.notifier).deleteProposal(_proposal.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🗑 Proposal for "${_proposal.leadCompanyName}" deleted.'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+        context.go(AppRoutes.proposals);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -365,6 +417,19 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
                     _proposal.status == ProposalStatus.converted ? 'Converted ✓' : 'Convert to Client →',
                     style: const TextStyle(fontSize: 12),
                   ),
+                ),
+                const SizedBox(width: 6),
+
+                // Delete Proposal Button
+                IconButton(
+                  style: IconButton.styleFrom(
+                    foregroundColor: Colors.red.shade400,
+                    hoverColor: Colors.red.withOpacity(0.08),
+                    padding: const EdgeInsets.all(8),
+                  ),
+                  tooltip: 'Delete Proposal',
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  onPressed: _handleDeleteProposal,
                 ),
               ],
             ),

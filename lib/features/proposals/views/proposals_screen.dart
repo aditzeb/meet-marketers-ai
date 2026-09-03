@@ -547,10 +547,77 @@ class _ProposalCard extends ConsumerWidget {
                 icon: const Icon(Icons.edit_note_outlined, size: 16),
                 label: const Text('Open & Review', style: TextStyle(fontSize: 12)),
               ),
+              const SizedBox(width: 4),
+
+              // Delete Proposal
+              IconButton(
+                style: IconButton.styleFrom(
+                  foregroundColor: Colors.red.shade400,
+                  hoverColor: Colors.red.withOpacity(0.08),
+                  padding: const EdgeInsets.all(8),
+                ),
+                tooltip: 'Delete Proposal',
+                icon: const Icon(Icons.delete_outline, size: 18),
+                onPressed: () => _confirmDeleteProposal(context, ref, proposal),
+              ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteProposal(BuildContext context, WidgetRef ref, ProposalModel proposal) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ClinicSageColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.delete_forever_outlined, color: Colors.red, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text('Delete Proposal?'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete the proposal for "${proposal.leadCompanyName}"?\n\nThis will remove all strategic analysis, copywriting, and media assets for this lead.',
+          style: const TextStyle(fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ref.read(proposalProvider.notifier).deleteProposal(proposal.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🗑 Proposal for "${proposal.leadCompanyName}" deleted.'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    }
   }
 }
