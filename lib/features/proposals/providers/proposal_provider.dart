@@ -265,6 +265,51 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
     );
   }
 
+  /// Regenerate an existing proposal with the domain engine & AI
+  Future<ProposalModel?> regenerateProposal(String id) async {
+    final current = getProposal(id);
+    if (current == null) return null;
+
+    state = state.copyWith(
+      isGenerating: true,
+      generationProgress: 0.2,
+      generationStage: 'Analyzing brand footprint & synthesizing domain intelligence...',
+    );
+
+    try {
+      final fresh = await GeminiService.instance.generateProposal(
+        leadCompanyName: current.leadCompanyName,
+        industry: current.industry,
+        websiteUrl: current.websiteUrl,
+        socialUrls: current.socialUrls,
+        extractedPitchDeckText: current.extractedPitchDeckText,
+        pitchDeckFileName: current.pitchDeckFileName,
+        pitchDeckStorageUrl: current.pitchDeckStorageUrl,
+        amId: _amId,
+      );
+
+      final updated = fresh.copyWith(
+        id: current.id,
+        status: current.status,
+        createdAt: current.createdAt,
+        updatedAt: DateTime.now(),
+        contactName: current.contactName,
+        contactEmail: current.contactEmail,
+      );
+
+      await updateProposal(updated);
+      state = state.copyWith(
+        isGenerating: false,
+        generationProgress: 1.0,
+        generationStage: 'Proposal regenerated with domain precision!',
+      );
+      return updated;
+    } catch (e) {
+      state = state.copyWith(isGenerating: false);
+      rethrow;
+    }
+  }
+
   /// Upload media asset (from device) and save to Firebase Storage
   Future<String> uploadMediaAsset({
     required String proposalId,

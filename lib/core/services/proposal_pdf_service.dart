@@ -1261,27 +1261,27 @@ class ProposalPdfService {
 
       drawSectionTitle(g, 'Sample Social Media Copywriting/Caption', 40);
 
-      // 3 Multi-Angle Social Media Post Cards matching Image 3
+      // 3 Multi-Angle Social Media Post Cards
       final posts = proposal.socialPosts.isNotEmpty
           ? proposal.socialPosts
           : [
               {
-                'headline': 'YOUR TEAM DESERVES BETTER THAN A HOTEL BALLROOM.',
-                'body': 'Team bonding works when people stop feeling like they\'re at work.\n\nA 5-hour private charter does that faster than any workshop or lunch outing.\n\nProfessional crew, charcoal BBQ, water activities, Singapore skyline on the way back.\n\nNo GST. No hidden fees. Just book and show up.\n\nDM us or WhatsApp 8661 7600 to lock in your date.',
-                'badge': 'NO GST · PRIVATE YACHT',
-                'hashtags': ['#CorporateEventsSingapore', '#TeamBondingSingapore', '#YachtCharterSG'],
+                'headline': 'BUILT ON TRUST. DRIVEN BY MEASURABLE RESULTS.',
+                'body': 'We do not believe in one-size-fits-all strategies.\n\nEvery initiative is tailored to your specific commercial objectives, backed by experienced specialists who take ownership of your growth.\n\nLearn more at our website.',
+                'badge': 'VERIFIED EXCELLENCE',
+                'hashtags': ['#BusinessGrowth', '#Strategy', '#Leadership'],
               },
               {
-                'headline': 'Turning 30?',
-                'body': 'No restaurant private room. No shared space. No two-hour limit.\n\nJust your group, a private catamaran, charcoal BBQ, and five hours on the water.\n\nThis is what a birthday actually feels like when it\'s done right.\n\nCheck availability for your date via link in bio or WhatsApp at 8661 7600.',
-                'badge': 'FROM \$849 · PRIVATE YACHT',
-                'hashtags': ['#BirthdayCelebrationSG', '#Turning30', '#PrivateYachtSG'],
+                'headline': 'WHAT SEPARATES MARKET BENCHMARKS FROM THE REST.',
+                'body': 'From initial strategic alignment to flawless execution, our team provides the clarity and execution velocity required to capture category leadership.\n\nExplore our case studies and proven frameworks.',
+                'badge': 'PROVEN IMPACT',
+                'hashtags': ['#Transformation', '#Execution', '#Scale'],
               },
               {
-                'headline': 'It was the best birthday I\'ve ever had.',
-                'body': 'When your guests say that on the way back to the marina, the planning was worth it.\n\nPrivate catamarans from \$649. Full crew included. Charcoal BBQ available. No surprise charges.\n\nWe\'ve been doing this since 2011. Book with confidence.\n\nwhitesails.com.sg or WhatsApp 8661 7600.',
-                'badge': '16,000+ GUESTS · 1,550+ TRIPS · 14 YEARS',
-                'hashtags': ['#YachtCharterSingapore', '#PrivateYacht', '#WhiteSailsSG'],
+                'headline': 'THE RIGHT STRATEGIC PARTNER MAKES ALL THE DIFFERENCE.',
+                'body': 'Whether unlocking new market opportunities or accelerating high-stakes business initiatives, having the right team in your corner changes everything.\n\nConnect with our leadership team today.',
+                'badge': 'STRATEGIC PARTNERSHIP',
+                'hashtags': ['#StrategicPartner', '#Innovation', '#Excellence'],
               },
             ];
 

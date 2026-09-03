@@ -3,6 +3,7 @@ import 'package:meet_marketers_ai/data/models/proposal_model.dart';
 import 'package:meet_marketers_ai/data/models/strategy_deliverable_model.dart';
 import 'package:meet_marketers_ai/core/services/gemini_service.dart';
 import 'package:meet_marketers_ai/core/services/proposal_pdf_service.dart';
+import 'package:meet_marketers_ai/core/services/proposal_domain_engine.dart';
 
 void main() {
   group('ProposalModel Serialization & Integrity Tests', () {
@@ -151,6 +152,53 @@ void main() {
       expect(pdfBytes.length, greaterThan(2000));
       final header = String.fromCharCodes(pdfBytes.take(5));
       expect(header, equals('%PDF-'));
+    });
+
+    test('ProposalDomainEngine accurately detects Venture Capital archetype and produces bespoke Meet Ventures strategy without yacht contamination', () {
+      final category = ProposalDomainEngine.instance.detectCategory(
+        leadCompanyName: 'Meet Ventures',
+        industry: 'Venture Capital & Corporate Innovation',
+        websiteUrl: 'https://meetventures.com',
+        pitchDeckText: 'Meet Ventures is an APAC market expansion and corporate innovation accelerator with \$10M AUM across 10 Asian countries...',
+      );
+
+      expect(category, equals(ProposalDomainCategory.ventureAndInnovation));
+
+      final proposal = ProposalDomainEngine.instance.synthesizeProposal(
+        proposalId: 'prop-mv-test',
+        amId: 'am-1',
+        leadCompanyName: 'Meet Ventures',
+        industry: 'Venture Capital & Corporate Innovation',
+        websiteUrl: 'https://meetventures.com',
+        extractedPitchDeckText: '10 Asian countries, \$10M AUM, 130+ VCs with \$105B AUM, Enterprise Singapore partner...',
+      );
+
+      // Verify real APAC competitors
+      final competitorNames = proposal.competitorUsps.map((c) => c.brandName).toList();
+      expect(competitorNames, contains('Plug and Play APAC'));
+      expect(competitorNames, contains('Antler'));
+      expect(competitorNames, contains('Techstars / Rainmaking'));
+
+      // Verify NO generic placeholders
+      expect(competitorNames.contains('Competitor Alpha'), isFalse);
+      expect(competitorNames.contains('Competitor Beta'), isFalse);
+      expect(competitorNames.contains('Competitor Gamma'), isFalse);
+
+      // Verify ZERO yacht contamination
+      final fullText = '${proposal.photographyQuote} ${proposal.typographySampleHeadline} ${proposal.marketingMix4Ps.productCurrent} ${proposal.marketingMix4Ps.promotionCurrent} ${proposal.focusLessOn.join(' ')} ${proposal.pestAnalysis.political.join(' ')}';
+      expect(fullText.toLowerCase().contains('yacht'), isFalse);
+      expect(fullText.toLowerCase().contains('charter'), isFalse);
+      expect(fullText.toLowerCase().contains('catamaran'), isFalse);
+      expect(fullText.toLowerCase().contains('hotel ballroom'), isFalse);
+
+      // Verify domain-accurate photography quote & headline
+      expect(proposal.photographyQuote, contains('validated market expansion'));
+      expect(proposal.typographySampleHeadline, equals('CONNECT. INNOVATE. SCALE ACROSS ASIA.'));
+
+      // Verify content pillars
+      final pillarTitles = proposal.creativePillars.map((p) => p.title).toList();
+      expect(pillarTitles, contains('Corporate Pilot Breakthroughs'));
+      expect(pillarTitles, contains('Cross-Border Asia Market Access'));
     });
   });
 }

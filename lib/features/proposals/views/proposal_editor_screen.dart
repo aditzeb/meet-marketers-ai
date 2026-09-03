@@ -280,6 +280,69 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
     }
   }
 
+  Future<void> _handleRegenerateProposal() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.auto_awesome, color: Color(0xFF8B5CF6), size: 24),
+            SizedBox(width: 10),
+            Text('Regenerate with AI Domain Intelligence?'),
+          ],
+        ),
+        content: Text(
+          'This will re-synthesize the 13-section strategy for "${_proposal.leadCompanyName}" using our domain intelligence engine and AI. Your proposal will be refreshed with sector-specific SWOT, 4Ps, Competitors, Creative Pillars, Visual Direction, and SEO analysis.',
+          style: const TextStyle(fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF8B5CF6),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            icon: const Icon(Icons.auto_awesome, size: 16),
+            label: const Text('Regenerate Now'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        final updated = await ref.read(proposalProvider.notifier).regenerateProposal(_proposal.id);
+        if (updated != null && mounted) {
+          setState(() {
+            _proposal = updated;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✨ Proposal regenerated with domain intelligence and latest AI!'),
+              backgroundColor: ClinicSageColors.primary,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error regenerating proposal: $e'),
+              backgroundColor: Colors.red.shade700,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -363,6 +426,20 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
                 const SizedBox(width: 8),
 
                 // Save
+                // Regenerate AI Button
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF8B5CF6),
+                    side: const BorderSide(color: Color(0xFF8B5CF6)),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  ),
+                  onPressed: proposalState.isGenerating ? null : _handleRegenerateProposal,
+                  icon: const Icon(Icons.auto_awesome, size: 14, color: Color(0xFF8B5CF6)),
+                  label: const Text('Regenerate with AI', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+                const SizedBox(width: 8),
+
+                // Save Button
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: ClinicSageColors.primary,
@@ -1257,7 +1334,7 @@ class _Tab3CreativeDirection extends StatelessWidget {
             _MediaPickerCard(
               title: 'Visual Direction Hero Media Asset',
               mediaUrl: proposal.visualDirectionImageUrl,
-              promptHint: 'Cinematic luxury yacht on azure ocean with happy friends at golden hour',
+              promptHint: 'Cinematic professional visual for ${proposal.leadCompanyName} operating in ${proposal.industry}, high resolution, natural lighting',
               proposalId: proposal.id,
               onMediaUrlChanged: (url) => onChanged(proposal.copyWith(visualDirectionImageUrl: url)),
             ),
@@ -1528,7 +1605,7 @@ class _Tab3CreativeDirection extends StatelessWidget {
             _MediaPickerCard(
               title: 'Sample Reel Vertical Video / Poster Asset',
               mediaUrl: proposal.sampleReelMediaUrl,
-              promptHint: 'Vertical video poster of luxury yacht celebration with text Live in the moment',
+              promptHint: 'Vertical video poster for ${proposal.leadCompanyName} with headline ${proposal.sampleReelHeadline}, high resolution',
               proposalId: proposal.id,
               onMediaUrlChanged: (url) => onChanged(proposal.copyWith(sampleReelMediaUrl: url)),
             ),

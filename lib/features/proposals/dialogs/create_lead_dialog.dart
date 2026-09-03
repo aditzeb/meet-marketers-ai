@@ -230,7 +230,7 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
                     controller: _nameCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Lead / Company Name *',
-                      hintText: 'e.g. White Sails Yacht Singapore',
+                      hintText: 'e.g. Meet Ventures',
                       prefixIcon: Icon(Icons.business_outlined, size: 18),
                     ),
                     validator: (val) => (val == null || val.trim().isEmpty) ? 'Company name is required' : null,
@@ -245,7 +245,7 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
                           controller: _industryCtrl,
                           decoration: const InputDecoration(
                             labelText: 'Industry *',
-                            hintText: 'e.g. Yacht Charter & Tourism',
+                            hintText: 'e.g. Venture Capital & Innovation',
                             prefixIcon: Icon(Icons.category_outlined, size: 18),
                           ),
                           validator: (val) => (val == null || val.trim().isEmpty) ? 'Industry is required' : null,
