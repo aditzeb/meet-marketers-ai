@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../../data/models/proposal_model.dart';
 import 'web_download_helper.dart';
@@ -9,6 +12,29 @@ import 'web_download_helper.dart';
 class ProposalPdfService {
   static final ProposalPdfService instance = ProposalPdfService._internal();
   ProposalPdfService._internal();
+
+  /// Safe helper to fetch image bytes from HTTP URLs or base64 data URIs
+  Future<List<int>?> _fetchImageBytes(String? url) async {
+    if (url == null || url.trim().isEmpty) return null;
+    final trimmed = url.trim();
+    try {
+      if (trimmed.startsWith('data:image')) {
+        final commaIdx = trimmed.indexOf(',');
+        if (commaIdx != -1) {
+          return base64Decode(trimmed.substring(commaIdx + 1));
+        }
+      }
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        final response = await http.get(Uri.parse(trimmed)).timeout(const Duration(seconds: 8));
+        if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+          return response.bodyBytes;
+        }
+      }
+    } catch (e) {
+      debugPrint('ProposalPdfService image load note: $e');
+    }
+    return null;
+  }
 
   /// Compiles a complete 13-page PDF proposal with smooth ambient dark background & lime accents
   Future<List<int>> generateProposalPdf(ProposalModel proposal) async {
@@ -33,6 +59,19 @@ class ProposalPdfService {
       final data = await rootBundle.load('assets/logos/meet_marketers_pdf_logo.png');
       logoBytes = data.buffer.asUint8List();
     } catch (_) {}
+
+    // Asynchronously load user uploaded / AI generated asset images
+    final reelImageBytes = await _fetchImageBytes(proposal.sampleReelMediaUrl);
+    final visualDirectionImageBytes = await _fetchImageBytes(proposal.visualDirectionImageUrl);
+    final post1ImageBytes = proposal.socialPosts.isNotEmpty
+        ? await _fetchImageBytes(proposal.socialPosts[0]['imageUrl'] as String?)
+        : null;
+    final post2ImageBytes = proposal.socialPosts.length > 1
+        ? await _fetchImageBytes(proposal.socialPosts[1]['imageUrl'] as String?)
+        : null;
+    final post3ImageBytes = proposal.socialPosts.length > 2
+        ? await _fetchImageBytes(proposal.socialPosts[2]['imageUrl'] as String?)
+        : null;
 
     // ── Palette Colors Matching Sample Images ────────────────────
     final bgDark = PdfColor(11, 14, 14); // Deep luxury dark base
@@ -1039,19 +1078,36 @@ class ProposalPdfService {
       // (1) Visual Direction (Top Left)
       const box1R = ui.Rect.fromLTWH(contentX, 68, 245, 175);
       drawCard(g, box1R);
-      g.drawString('1  VISUAL DIRECTION', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 78, 220, 16));
-      g.drawString('CREATIVE DIRECTION', captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 96, 220, 12));
+
+      double b1ContentY = 78;
+      if (visualDirectionImageBytes != null) {
+        try {
+          const imgRect = ui.Rect.fromLTWH(contentX + 10, 74, 225, 62);
+          g.drawImage(PdfBitmap(visualDirectionImageBytes), imgRect);
+          b1ContentY = 140;
+        } catch (_) {}
+      }
+
+      g.drawString('1  VISUAL DIRECTION', h3Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(contentX + 12, b1ContentY, 220, 16));
+      if (visualDirectionImageBytes == null) {
+        g.drawString('CREATIVE DIRECTION', captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 96, 220, 12));
+      }
       g.drawString(
         proposal.visualGuidelineNotes.isNotEmpty
             ? proposal.visualGuidelineNotes
             : 'Our visual direction focuses on the experiences, emotions and memorable moments that customers enjoy. The objective is to position ${proposal.leadCompanyName} as the definitive category choice through authentic connection.',
         captionFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 12, 110, 220, 65),
+        bounds: ui.Rect.fromLTWH(contentX + 12, visualDirectionImageBytes != null ? b1ContentY + 18 : 110, 220, visualDirectionImageBytes != null ? 50 : 65),
       );
-      g.drawString('KEYWORDS', captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 180, 220, 12));
-      final kws = proposal.visualKeywords.isNotEmpty ? proposal.visualKeywords : ['Experiential', 'Lifestyle-driven', 'Aspirational', 'Authentic', 'Human-centric'];
-      g.drawString(kws.join(' · '), captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 196, 220, 38));
+      if (visualDirectionImageBytes == null) {
+        g.drawString('KEYWORDS', captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 180, 220, 12));
+        final kws = proposal.visualKeywords.isNotEmpty ? proposal.visualKeywords : ['Experiential', 'Lifestyle-driven', 'Aspirational', 'Authentic', 'Human-centric'];
+        g.drawString(kws.join(' · '), captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 196, 220, 38));
+      } else {
+        final kws = proposal.visualKeywords.isNotEmpty ? proposal.visualKeywords : ['Experiential', 'Lifestyle-driven', 'Aspirational'];
+        g.drawString(kws.join(' · '), captionFont, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(contentX + 12, b1ContentY + 70, 220, 24));
+      }
 
       // (2) Photography Style (Top Right)
       const box2R = ui.Rect.fromLTWH(contentX + 255, 68, 255, 175);
@@ -1204,27 +1260,49 @@ class ProposalPdfService {
         bounds: ui.Rect.fromLTWH(phoneX, phoneY, phoneW, phoneH),
       );
 
-      // Gradient / Atmospheric Backdrop inside phone
-      g.drawRectangle(
-        brush: PdfSolidBrush(PdfColor(15, 34, 45)),
-        bounds: ui.Rect.fromLTWH(phoneX + 4, phoneY + 4, phoneW - 8, phoneH - 8),
-      );
+      final innerPhoneRect = ui.Rect.fromLTWH(phoneX + 4, phoneY + 4, phoneW - 8, phoneH - 8);
 
-      // Hero Headline Overlay (e.g. "Live in the moment")
-      final headline = proposal.sampleReelHeadline.isNotEmpty ? proposal.sampleReelHeadline : 'Live in the moment';
+      if (reelImageBytes != null) {
+        try {
+          // Render uploaded or AI-generated image directly into the 9:16 phone mockup!
+          g.drawImage(PdfBitmap(reelImageBytes), innerPhoneRect);
+
+          // Subtle dark vignette gradient overlay at bottom so overlay text is 100% legible
+          g.drawRectangle(
+            brush: PdfSolidBrush(PdfColor(0, 0, 0, 175)),
+            bounds: ui.Rect.fromLTWH(phoneX + 4, phoneY + phoneH - 145, phoneW - 8, 141),
+          );
+        } catch (_) {
+          g.drawRectangle(
+            brush: PdfSolidBrush(PdfColor(15, 34, 45)),
+            bounds: innerPhoneRect,
+          );
+        }
+      } else {
+        // Gradient / Atmospheric Backdrop inside phone if no image uploaded
+        g.drawRectangle(
+          brush: PdfSolidBrush(PdfColor(15, 34, 45)),
+          bounds: innerPhoneRect,
+        );
+      }
+
+      // Hero Headline Overlay (e.g. "Scale Across Asia")
+      final headline = proposal.sampleReelHeadline.isNotEmpty ? proposal.sampleReelHeadline : 'Scale Across Asia';
+      final headlineY = reelImageBytes != null ? (phoneY + phoneH - 130) : (phoneY + 160);
       g.drawString(
         headline,
-        PdfStandardFont(PdfFontFamily.helvetica, 24, style: PdfFontStyle.bold),
+        PdfStandardFont(PdfFontFamily.helvetica, reelImageBytes != null ? 18 : 22, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(textWhite),
-        bounds: ui.Rect.fromLTWH(phoneX + 15, phoneY + 160, phoneW - 30, 80),
+        bounds: ui.Rect.fromLTWH(phoneX + 15, headlineY, phoneW - 30, 48),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
+      final topicY = reelImageBytes != null ? (headlineY + 40) : (phoneY + 245);
       g.drawString(
-        proposal.sampleReelTopic.isNotEmpty ? proposal.sampleReelTopic : 'A Milestone Celebration On The Water',
+        proposal.sampleReelTopic.isNotEmpty ? proposal.sampleReelTopic : 'Enterprise Co-Innovation & Growth',
         captionFont,
-        brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(phoneX + 15, phoneY + 245, phoneW - 30, 30),
+        brush: PdfSolidBrush(accentLime),
+        bounds: ui.Rect.fromLTWH(phoneX + 15, topicY, phoneW - 30, 30),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
@@ -1289,31 +1367,68 @@ class ProposalPdfService {
       final p1 = posts[0];
       const p1Rect = ui.Rect.fromLTWH(contentX, 85, 245, 310);
       drawCard(g, p1Rect);
-      g.drawString(p1['headline'] as String? ?? '', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 95, 220, 36));
-      g.drawString(p1['body'] as String? ?? '', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: const ui.Rect.fromLTWH(contentX + 12, 135, 220, 190));
-      g.drawString(p1['badge'] as String? ?? '', captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 335, 220, 16));
+
+      double p1ContentY = 95;
+      if (post1ImageBytes != null) {
+        try {
+          const imgRect = ui.Rect.fromLTWH(contentX + 10, 93, 225, 95);
+          g.drawImage(PdfBitmap(post1ImageBytes), imgRect);
+          p1ContentY = 196;
+        } catch (_) {}
+      }
+
+      final p1HeadlineH = post1ImageBytes != null ? 24.0 : 36.0;
+      final p1BodyH = post1ImageBytes != null ? 85.0 : 190.0;
+      g.drawString(p1['headline'] as String? ?? '', post1ImageBytes != null ? captionFont : h3Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(contentX + 12, p1ContentY, 220, p1HeadlineH));
+      g.drawString(p1['body'] as String? ?? '', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 12, p1ContentY + p1HeadlineH + 4, 220, p1BodyH));
+      g.drawString(p1['badge'] as String? ?? '', captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 12, 345, 220, 14));
       final hts1 = (p1['hashtags'] as List?)?.join(' ') ?? '';
-      g.drawString(hts1, captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 355, 220, 30));
+      g.drawString(hts1, captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 12, 362, 220, 24));
 
       // Post 2 (Top Right)
       final p2 = posts.length > 1 ? posts[1] : posts[0];
       const p2Rect = ui.Rect.fromLTWH(contentX + 255, 85, 255, 310);
       drawCard(g, p2Rect);
-      g.drawString(p2['headline'] as String? ?? '', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 267, 95, 230, 30));
-      g.drawString(p2['body'] as String? ?? '', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: const ui.Rect.fromLTWH(contentX + 267, 135, 230, 190));
-      g.drawString(p2['badge'] as String? ?? '', captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 267, 335, 230, 16));
+
+      double p2ContentY = 95;
+      if (post2ImageBytes != null) {
+        try {
+          const imgRect = ui.Rect.fromLTWH(contentX + 265, 93, 235, 95);
+          g.drawImage(PdfBitmap(post2ImageBytes), imgRect);
+          p2ContentY = 196;
+        } catch (_) {}
+      }
+
+      final p2HeadlineH = post2ImageBytes != null ? 24.0 : 30.0;
+      final p2BodyH = post2ImageBytes != null ? 85.0 : 190.0;
+      g.drawString(p2['headline'] as String? ?? '', post2ImageBytes != null ? captionFont : h2Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(contentX + 267, p2ContentY, 230, p2HeadlineH));
+      g.drawString(p2['body'] as String? ?? '', captionFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 267, p2ContentY + p2HeadlineH + 4, 230, p2BodyH));
+      g.drawString(p2['badge'] as String? ?? '', captionFont, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 267, 345, 230, 14));
       final hts2 = (p2['hashtags'] as List?)?.join(' ') ?? '';
-      g.drawString(hts2, captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 267, 355, 230, 30));
+      g.drawString(hts2, captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 267, 362, 230, 24));
 
       // Post 3 (Bottom Centered Card)
       final p3 = posts.length > 2 ? posts[2] : posts[0];
       const p3Rect = ui.Rect.fromLTWH(contentX, 410, contentWidth, 310);
       drawCard(g, p3Rect);
-      g.drawString('“${p3['headline']}”', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 422, contentWidth - 40, 26));
-      g.drawString(p3['body'] as String? ?? '', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: const ui.Rect.fromLTWH(contentX + 20, 455, contentWidth - 40, 170));
-      g.drawString(p3['badge'] as String? ?? '', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 635, contentWidth - 40, 18));
+
+      double p3TextX = contentX + 20;
+      double p3TextW = contentWidth - 40;
+
+      if (post3ImageBytes != null) {
+        try {
+          const imgRect = ui.Rect.fromLTWH(contentX + 16, 424, 180, 280);
+          g.drawImage(PdfBitmap(post3ImageBytes), imgRect);
+          p3TextX = contentX + 210;
+          p3TextW = contentWidth - 225;
+        } catch (_) {}
+      }
+
+      g.drawString('“${p3['headline']}”', h2Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(p3TextX, 424, p3TextW, 36));
+      g.drawString(p3['body'] as String? ?? '', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(p3TextX, 468, p3TextW, post3ImageBytes != null ? 150 : 170));
+      g.drawString(p3['badge'] as String? ?? '', h3Font, brush: PdfSolidBrush(accentLime), bounds: ui.Rect.fromLTWH(p3TextX, 635, p3TextW, 18));
       final hts3 = (p3['hashtags'] as List?)?.join(' ') ?? '';
-      g.drawString(hts3, captionFont, brush: PdfSolidBrush(textMuted), bounds: const ui.Rect.fromLTWH(contentX + 20, 660, contentWidth - 40, 40));
+      g.drawString(hts3, captionFont, brush: PdfSolidBrush(textMuted), bounds: ui.Rect.fromLTWH(p3TextX, 660, p3TextW, 40));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
