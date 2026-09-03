@@ -148,10 +148,10 @@ class ProposalPdfService {
     void drawMeetMarketersLogo(PdfGraphics g, double x, double y) {
       if (logoBytes != null) {
         try {
-          // Draw the real MM transparent logo
+          // Draw the real MM transparent logo with crisp 4:3 proportions
           g.drawImage(
             PdfBitmap(logoBytes),
-            ui.Rect.fromLTWH(x, y - 2, 28, 22),
+            ui.Rect.fromLTWH(x, y - 4, 30, 22.5),
           );
         } catch (_) {
           // Logo asset is invalid — skip image, still draw text fallback below
@@ -160,39 +160,39 @@ class ProposalPdfService {
           'MEET',
           PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
           brush: PdfSolidBrush(textWhite),
-          bounds: ui.Rect.fromLTWH(x + 36, y + 2, 45, 16),
+          bounds: ui.Rect.fromLTWH(x + 36, y, 42, 16),
         );
         g.drawString(
           'MARKETERS',
           PdfStandardFont(PdfFontFamily.helvetica, 12),
           brush: PdfSolidBrush(textOffWhite),
-          bounds: ui.Rect.fromLTWH(x + 78, y + 2, 100, 16),
+          bounds: ui.Rect.fromLTWH(x + 78, y, 100, 16),
         );
       } else {
-        // Stylized vector MM icon
-        final logoPen = PdfPen(PdfColor(170, 180, 185), width: 3);
-        g.drawLine(logoPen, ui.Offset(x, y + 16), ui.Offset(x + 5, y));
-        g.drawLine(logoPen, ui.Offset(x + 5, y), ui.Offset(x + 10, y + 10));
-        g.drawLine(logoPen, ui.Offset(x + 10, y + 10), ui.Offset(x + 15, y));
-        g.drawLine(logoPen, ui.Offset(x + 15, y), ui.Offset(x + 20, y + 16));
+        // Stylized vector MM icon fallback
+        final logoPen = PdfPen(PdfColor(170, 180, 185), width: 2.5);
+        g.drawLine(logoPen, ui.Offset(x, y + 14), ui.Offset(x + 5, y));
+        g.drawLine(logoPen, ui.Offset(x + 5, y), ui.Offset(x + 10, y + 9));
+        g.drawLine(logoPen, ui.Offset(x + 10, y + 9), ui.Offset(x + 15, y));
+        g.drawLine(logoPen, ui.Offset(x + 15, y), ui.Offset(x + 20, y + 14));
 
-        final logoPen2 = PdfPen(PdfColor(130, 140, 145), width: 3);
-        g.drawLine(logoPen2, ui.Offset(x + 12, y + 16), ui.Offset(x + 17, y));
-        g.drawLine(logoPen2, ui.Offset(x + 17, y), ui.Offset(x + 22, y + 10));
-        g.drawLine(logoPen2, ui.Offset(x + 22, y + 10), ui.Offset(x + 27, y));
-        g.drawLine(logoPen2, ui.Offset(x + 27, y), ui.Offset(x + 32, y + 16));
+        final logoPen2 = PdfPen(accentLime, width: 2.5);
+        g.drawLine(logoPen2, ui.Offset(x + 12, y + 14), ui.Offset(x + 17, y));
+        g.drawLine(logoPen2, ui.Offset(x + 17, y), ui.Offset(x + 22, y + 9));
+        g.drawLine(logoPen2, ui.Offset(x + 22, y + 9), ui.Offset(x + 27, y));
+        g.drawLine(logoPen2, ui.Offset(x + 27, y), ui.Offset(x + 32, y + 14));
 
         g.drawString(
           'MEET',
           PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
           brush: PdfSolidBrush(textWhite),
-          bounds: ui.Rect.fromLTWH(x + 40, y + 2, 45, 16),
+          bounds: ui.Rect.fromLTWH(x + 40, y, 42, 16),
         );
         g.drawString(
           'MARKETERS',
           PdfStandardFont(PdfFontFamily.helvetica, 12),
           brush: PdfSolidBrush(textOffWhite),
-          bounds: ui.Rect.fromLTWH(x + 82, y + 2, 100, 16),
+          bounds: ui.Rect.fromLTWH(x + 82, y, 100, 16),
         );
       }
     }
@@ -291,25 +291,30 @@ class ProposalPdfService {
 
       if (companyLogoBytes != null) {
         try {
-          const logoW = 56.0;
-          const logoH = 46.0;
-          final logoRect = ui.Rect.fromLTWH(metaR.right - logoW - 16, metaR.top + 14, logoW, logoH);
-          drawPill(g, ui.Rect.fromLTWH(logoRect.left - 4, logoRect.top - 4, logoW + 8, logoH + 8), bgColor: PdfColor(255, 255, 255));
-          g.drawImage(PdfBitmap(companyLogoBytes), logoRect);
+          // Dedicated executive Brand Badge Container with refined padding
+          const badgeW = 92.0;
+          const badgeH = 46.0;
+          final badgeRect = ui.Rect.fromLTWH(metaR.right - badgeW - 16, metaR.top + (metaR.height - badgeH) / 2.0, badgeW, badgeH);
+          drawPill(g, badgeRect, bgColor: PdfColor(255, 255, 255), borderColor: PdfColor(226, 232, 240), borderWidth: 0.8);
+          // Draw logo inside badge with 6px internal padding to preserve logo breathing room
+          final logoInner = ui.Rect.fromLTWH(badgeRect.left + 8, badgeRect.top + 5, badgeRect.width - 16, badgeRect.height - 10);
+          g.drawImage(PdfBitmap(companyLogoBytes), logoInner);
         } catch (_) {}
       }
+
+      final textWidthLimit = companyLogoBytes != null ? (contentWidth - 130) : (contentWidth - 32);
 
       g.drawString(
         'PREPARED EXCLUSIVELY FOR:',
         PdfStandardFont(PdfFontFamily.helvetica, 8, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(accentLime),
-        bounds: const ui.Rect.fromLTWH(contentX + 16, 225, contentWidth - 32, 12),
+        bounds: ui.Rect.fromLTWH(contentX + 16, 226, textWidthLimit, 12),
       );
       g.drawString(
         proposal.leadCompanyName,
-        PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold),
+        PdfStandardFont(PdfFontFamily.helvetica, 17, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 16, 240, contentWidth - 32, 24),
+        bounds: ui.Rect.fromLTWH(contentX + 16, 240, textWidthLimit, 22),
       );
 
       final pitchInfo = (proposal.pitchDeckFileName != null && proposal.pitchDeckFileName!.isNotEmpty)
@@ -319,7 +324,7 @@ class ProposalPdfService {
         'Industry: ${proposal.industry.isNotEmpty ? proposal.industry : "Enterprise"}  ·  Strategy: Meet Marketers AI$pitchInfo',
         captionFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 16, 268, contentWidth - 32, 14),
+        bounds: ui.Rect.fromLTWH(contentX + 16, 266, textWidthLimit, 14),
       );
 
       // CONTENTS SECTION — 2 Elevated Cards Side-by-Side
@@ -575,12 +580,12 @@ class ProposalPdfService {
       );
 
       // Row 2: Place & Promotion
-      const row2Top = pTop + headerH + cellH + 16;
-      drawTableHeader(g, 'Place', const ui.Rect.fromLTWH(contentX, row2Top, colWidth, headerH));
-      drawTableHeader(g, 'Promotion', const ui.Rect.fromLTWH(contentX + colWidth, row2Top, colWidth, headerH));
+      final row2Top = pTop + headerH + cellH + 16;
+      drawTableHeader(g, 'Place', ui.Rect.fromLTWH(contentX, row2Top, colWidth, headerH));
+      drawTableHeader(g, 'Promotion', ui.Rect.fromLTWH(contentX + colWidth, row2Top, colWidth, headerH));
 
-      drawTableCell(g, const ui.Rect.fromLTWH(contentX, row2Top + headerH, colWidth, cellH));
-      drawTableCell(g, const ui.Rect.fromLTWH(contentX + colWidth, row2Top + headerH, colWidth, cellH));
+      drawTableCell(g, ui.Rect.fromLTWH(contentX, row2Top + headerH, colWidth, cellH));
+      drawTableCell(g, ui.Rect.fromLTWH(contentX + colWidth, row2Top + headerH, colWidth, cellH));
 
       // Place content
       py = row2Top + headerH + 14;
@@ -1327,6 +1332,7 @@ class ProposalPdfService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
     // PAGE 9: Sample Reel (Matching Reference Deck)
     // ─────────────────────────────────────────────────────────────────────────
     {
@@ -1334,98 +1340,244 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Sample Reel', 42);
+      drawSectionTitle(g, 'Sample Reel', 40);
 
-      // 9:16 Vertical Phone Poster Mockup
-      const phoneW = 240.0;
-      const phoneH = 470.0;
-      final phoneX = (pageWidth - phoneW) / 2;
-      const phoneY = 100.0;
-
-      // Phone Outer Body
-      g.drawRectangle(
-        brush: PdfSolidBrush(PdfColor(12, 18, 20)),
-        pen: PdfPen(accentLime, width: 1.5),
-        bounds: ui.Rect.fromLTWH(phoneX, phoneY, phoneW, phoneH),
+      // Category / Format Subtitle Pill
+      const pillR = ui.Rect.fromLTWH(contentX + contentWidth - 210, 40, 210, 22);
+      drawPill(g, pillR, bgColor: PdfColor(14, 28, 24), borderColor: accentLime, borderWidth: 0.8);
+      g.drawString(
+        '9:16 VERTICAL VIDEO BLUEPRINT',
+        PdfStandardFont(PdfFontFamily.helvetica, 8, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: pillR,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
       );
 
-      final innerPhoneRect = ui.Rect.fromLTWH(phoneX + 4, phoneY + 4, phoneW - 8, phoneH - 8);
+      // ── Dual-Column Layout: Left (9:16 Phone Mockup) + Right (Strategic Breakdown) ──
+      const phoneW = 210.0;
+      const phoneH = 425.0;
+      const phoneX = contentX;
+      const phoneY = 82.0;
+
+      // Phone Outer Body (Sleek Bezel)
+      g.drawRectangle(
+        brush: PdfSolidBrush(PdfColor(10, 15, 17)),
+        pen: PdfPen(accentLime, width: 1.2),
+        bounds: const ui.Rect.fromLTWH(phoneX, phoneY, phoneW, phoneH),
+      );
+
+      final innerPhoneRect = ui.Rect.fromLTWH(phoneX + 3, phoneY + 3, phoneW - 6, phoneH - 6);
 
       if (reelImageBytes != null) {
         try {
-          // Render uploaded or AI-generated image directly into the 9:16 phone mockup!
+          // Render visual poster inside the phone frame
           g.drawImage(PdfBitmap(reelImageBytes), innerPhoneRect);
 
-          // Blend company logo watermark at the top of the vertical reel
+          // Sleek official brand badge in top-left corner of the reel
           if (companyLogoBytes != null) {
-            const logoW = 32.0;
-            const logoH = 20.0;
-            final logoX = phoneX + (phoneW - logoW) / 2.0;
-            const logoY = phoneY + 16.0;
-            drawPill(g, ui.Rect.fromLTWH(logoX - 3, logoY - 2, logoW + 6, logoH + 4), bgColor: PdfColor(0, 0, 0, 190), borderColor: PdfColor(255, 255, 255, 120), borderWidth: 0.5);
-            g.drawImage(PdfBitmap(companyLogoBytes), ui.Rect.fromLTWH(logoX, logoY, logoW, logoH));
+            const logoW = 44.0;
+            const logoH = 22.0;
+            const logoX = phoneX + 10.0;
+            const logoY = phoneY + 10.0;
+            // Clean white pill container with soft padding
+            drawPill(g, const ui.Rect.fromLTWH(logoX, logoY, logoW, logoH), bgColor: PdfColor(255, 255, 255), borderColor: PdfColor(200, 210, 215), borderWidth: 0.5);
+            g.drawImage(PdfBitmap(companyLogoBytes), const ui.Rect.fromLTWH(logoX + 4, logoY + 3, logoW - 8, logoH - 6));
           }
 
-          // Subtle dark vignette gradient overlay at bottom so overlay text is 100% legible
+          // Subtle dark gradient vignette at the bottom of the video for typography contrast
           g.drawRectangle(
-            brush: PdfSolidBrush(PdfColor(0, 0, 0, 175)),
-            bounds: ui.Rect.fromLTWH(phoneX + 4, phoneY + phoneH - 145, phoneW - 8, 141),
+            brush: PdfSolidBrush(PdfColor(0, 0, 0, 185)),
+            bounds: ui.Rect.fromLTWH(phoneX + 3, phoneY + phoneH - 120, phoneW - 6, 117),
           );
         } catch (_) {
           g.drawRectangle(
-            brush: PdfSolidBrush(PdfColor(15, 34, 45)),
+            brush: PdfSolidBrush(PdfColor(15, 30, 38)),
             bounds: innerPhoneRect,
           );
         }
       } else {
-        // Gradient / Atmospheric Backdrop inside phone if no image uploaded
+        // Atmospheric dark backdrop inside phone if no media
         g.drawRectangle(
-          brush: PdfSolidBrush(PdfColor(15, 34, 45)),
+          brush: PdfSolidBrush(PdfColor(15, 30, 38)),
           bounds: innerPhoneRect,
         );
       }
 
-      // Hero Headline Overlay (e.g. "Scale Across Asia")
+      // Play Icon Accent Circle
+      const playSize = 34.0;
+      final playRect = ui.Rect.fromLTWH(phoneX + (phoneW - playSize) / 2, phoneY + (phoneH / 2) - 30, playSize, playSize);
+      drawPill(g, playRect, bgColor: PdfColor(10, 15, 17, 210), borderColor: accentLime, borderWidth: 1);
+      g.drawString(
+        '▶',
+        PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: playRect,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
+      // Hero Headline Overlay inside phone
       final headline = proposal.sampleReelHeadline.isNotEmpty ? proposal.sampleReelHeadline : 'Scale Across Asia';
-      final headlineY = reelImageBytes != null ? (phoneY + phoneH - 130) : (phoneY + 160);
+      final headlineY = phoneY + phoneH - 105;
       g.drawString(
         headline,
-        PdfStandardFont(PdfFontFamily.helvetica, reelImageBytes != null ? 18 : 22, style: PdfFontStyle.bold),
+        PdfStandardFont(PdfFontFamily.helvetica, 14, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(textWhite),
-        bounds: ui.Rect.fromLTWH(phoneX + 15, headlineY, phoneW - 30, 48),
+        bounds: ui.Rect.fromLTWH(phoneX + 10, headlineY, phoneW - 20, 38),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
-      final topicY = reelImageBytes != null ? (headlineY + 40) : (phoneY + 245);
+      final topicY = headlineY + 40;
+      final topicText = proposal.sampleReelTopic.isNotEmpty ? proposal.sampleReelTopic : 'Enterprise Innovation';
       g.drawString(
-        proposal.sampleReelTopic.isNotEmpty ? proposal.sampleReelTopic : 'Enterprise Co-Innovation & Growth',
+        topicText,
         captionFont,
         brush: PdfSolidBrush(accentLime),
-        bounds: ui.Rect.fromLTWH(phoneX + 15, topicY, phoneW - 30, 30),
+        bounds: ui.Rect.fromLTWH(phoneX + 10, topicY, phoneW - 20, 24),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
-      // Bottom Clickable Button "View Reel Here"
-      const btnW = 200.0;
+      // Clickable "View Reel Here" Button Below the Phone
       const btnH = 32.0;
-      final btnX = (pageWidth - btnW) / 2.0;
-      const btnY = 615.0;
-      final btnRect = ui.Rect.fromLTWH(btnX, btnY, btnW, btnH);
-
+      final btnRect = ui.Rect.fromLTWH(phoneX, phoneY + phoneH + 12, phoneW, btnH);
       drawPill(g, btnRect, bgColor: PdfColor(14, 30, 24), borderColor: accentLime, borderWidth: 0.8);
       g.drawString(
         '▶   View Reel Here →',
-        PdfStandardFont(PdfFontFamily.helvetica, 11, style: PdfFontStyle.bold),
+        PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(accentLime),
         bounds: btnRect,
         format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
       );
 
-      // Add interactive PDF hyperlink annotation without default black border!
       final reelUri = proposal.sampleReelLink.isNotEmpty ? proposal.sampleReelLink : 'https://meet-marketers.com/reels';
       final reelAnnotation = PdfUriAnnotation(bounds: btnRect, uri: reelUri);
       reelAnnotation.border = PdfAnnotationBorder(0);
       page.annotations.add(reelAnnotation);
+
+      // ── Right Column: Strategic Production Breakdown (3 Structured Cards) ──
+      const rightX = contentX + phoneW + 18.0;
+      const rightW = contentWidth - phoneW - 18.0;
+
+      // Card 1: The 3-Second Psychological Hook
+      const c1Y = phoneY;
+      const c1H = 100.0;
+      final c1R = const ui.Rect.fromLTWH(rightX, c1Y, rightW, c1H);
+      drawCard(g, c1R);
+
+      const pill1 = ui.Rect.fromLTWH(rightX + 12, c1Y + 10, 160, 18);
+      drawPill(g, pill1, bgColor: PdfColor(18, 38, 30), borderColor: accentLime, borderWidth: 0.6);
+      g.drawString(
+        '01 · THE 3-SECOND RETENTION HOOK',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: pill1,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
+      final hookText = proposal.sampleReelHook.isNotEmpty
+          ? '"${proposal.sampleReelHook}"'
+          : '"Stop losing students to generic tuition — here is how modular mastery changes results."';
+      g.drawString(
+        hookText,
+        PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(textWhite),
+        bounds: ui.Rect.fromLTWH(rightX + 12, c1Y + 34, rightW - 24, 40),
+      );
+      g.drawString(
+        'Goal: Interrupt passive scrolling within 3s using customer pain & curiosity gap.',
+        captionFont,
+        brush: PdfSolidBrush(textMuted),
+        bounds: ui.Rect.fromLTWH(rightX + 12, c1Y + 76, rightW - 24, 14),
+      );
+
+      // Card 2: Visual Storyboard & Multi-Scene Script
+      const c2Y = c1Y + c1H + 12.0;
+      const c2H = 215.0;
+      final c2R = const ui.Rect.fromLTWH(rightX, c2Y, rightW, c2H);
+      drawCard(g, c2R);
+
+      const pill2 = ui.Rect.fromLTWH(rightX + 12, c2Y + 10, 175, 18);
+      drawPill(g, pill2, bgColor: PdfColor(18, 38, 30), borderColor: accentLime, borderWidth: 0.6);
+      g.drawString(
+        '02 · MULTI-SCENE STORYBOARD & SCRIPT',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: pill2,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
+      // Render scenes line by line or parsed
+      final rawScenes = proposal.sampleReelVisualScenes.isNotEmpty
+          ? proposal.sampleReelVisualScenes
+          : 'Scene 1: Close-up of challenging math problem and student focus.\nScene 2: Tutor demonstrates modular heuristics technique.\nScene 3: "Aha!" moment as solution clicks.\nScene 4: Clear outcome & invitation for diagnostic assessment.';
+      final sceneLines = rawScenes.split('\n').where((s) => s.trim().isNotEmpty).toList();
+
+      double sY = c2Y + 34.0;
+      for (int i = 0; i < sceneLines.length && i < 4; i++) {
+        final line = sceneLines[i].trim();
+        final sPill = ui.Rect.fromLTWH(rightX + 12, sY, 50, 15);
+        drawPill(g, sPill, bgColor: PdfColor(20, 28, 32), borderColor: cardBorder, borderWidth: 0.5);
+        g.drawString(
+          'SCENE ${i + 1}',
+          PdfStandardFont(PdfFontFamily.helvetica, 6.5, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(accentLime),
+          bounds: sPill,
+          format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+        );
+
+        final desc = line.replaceAll(RegExp(r'^Scene\s*\d+\s*:\s*', caseSensitive: false), '').trim();
+        g.drawString(
+          desc,
+          bodyFont,
+          brush: PdfSolidBrush(textOffWhite),
+          bounds: ui.Rect.fromLTWH(rightX + 68, sY, rightW - 80, 28),
+        );
+        sY += 38.0;
+      }
+
+      // Card 3: Outro Call-To-Action & Audio Direction
+      const c3Y = c2Y + c2H + 12.0;
+      const c3H = 88.0;
+      final c3R = const ui.Rect.fromLTWH(rightX, c3Y, rightW, c3H);
+      drawCard(g, c3R);
+
+      const pill3 = ui.Rect.fromLTWH(rightX + 12, c3Y + 10, 175, 18);
+      drawPill(g, pill3, bgColor: PdfColor(18, 38, 30), borderColor: accentLime, borderWidth: 0.6);
+      g.drawString(
+        '03 · CALL-TO-ACTION & AUDIO DIRECTION',
+        PdfStandardFont(PdfFontFamily.helvetica, 7, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: pill3,
+        format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
+      );
+
+      final ctaText = proposal.sampleReelCta.isNotEmpty
+          ? proposal.sampleReelCta
+          : 'Book your complimentary diagnostic evaluation via link in bio today.';
+      g.drawString(
+        ctaText,
+        PdfStandardFont(PdfFontFamily.helvetica, 9.5, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(textWhite),
+        bounds: ui.Rect.fromLTWH(rightX + 12, c3Y + 34, rightW - 24, 26),
+      );
+      g.drawString(
+        'Audio: Rhythmic upbeat ambient pacing with crisp voiceover narrative.',
+        captionFont,
+        brush: PdfSolidBrush(textMuted),
+        bounds: ui.Rect.fromLTWH(rightX + 12, c3Y + 64, rightW - 24, 14),
+      );
+
+      // Bottom Production Specifications Card (Fills bottom height perfectly)
+      final btmY = btnRect.bottom + 16.0;
+      const btmH = 42.0;
+      final btmR = ui.Rect.fromLTWH(contentX, btmY, contentWidth, btmH);
+      drawCard(g, btmR);
+      g.drawString(
+        'SPECIFICATIONS: 1080×1920 (9:16) Vertical Video  ·  CHANNELS: Instagram Reels, TikTok, YouTube Shorts  ·  TARGET: Inbound Trial Inquiries',
+        PdfStandardFont(PdfFontFamily.helvetica, 7.5, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(accentLime),
+        bounds: ui.Rect.fromLTWH(contentX + 14, btmY + 14, contentWidth - 28, 16),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      );
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -1262,11 +1262,13 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
   bool _isGenerating = false;
   bool _isUploading = false;
   late TextEditingController _urlCtrl;
+  late TextEditingController _promptCtrl;
 
   @override
   void initState() {
     super.initState();
     _urlCtrl = TextEditingController(text: widget.mediaUrl ?? '');
+    _promptCtrl = TextEditingController(text: widget.promptHint);
   }
 
   @override
@@ -1275,11 +1277,15 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
     if (oldWidget.mediaUrl != widget.mediaUrl && widget.mediaUrl != _urlCtrl.text) {
       _urlCtrl.text = widget.mediaUrl ?? '';
     }
+    if (oldWidget.promptHint != widget.promptHint && _promptCtrl.text == oldWidget.promptHint) {
+      _promptCtrl.text = widget.promptHint;
+    }
   }
 
   @override
   void dispose() {
     _urlCtrl.dispose();
+    _promptCtrl.dispose();
     super.dispose();
   }
 
@@ -1287,8 +1293,9 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
     setState(() => _isGenerating = true);
     try {
       final notifier = ref.read(proposalProvider.notifier);
+      final activePrompt = _promptCtrl.text.trim().isNotEmpty ? _promptCtrl.text.trim() : widget.promptHint;
       final url = await notifier.generateAiAssetImage(
-        prompt: widget.promptHint,
+        prompt: activePrompt,
         category: widget.title,
         proposalId: widget.proposalId,
         logoUrl: widget.logoUrl,
@@ -1579,6 +1586,24 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
             ],
           ),
           const SizedBox(height: 10),
+          // AI Image Synthesis Prompt (Editable before generating)
+          TextFormField(
+            controller: _promptCtrl,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 11.5),
+            decoration: InputDecoration(
+              isDense: true,
+              labelText: 'AI Image Synthesis Prompt (Customizable)',
+              labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0F766E)),
+              hintText: 'Describe visual details to synthesize...',
+              prefixIcon: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF10B981)),
+              filled: true,
+              fillColor: const Color(0xFFF0FDF4),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Color(0xFFA7F3D0))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Color(0xFF059669), width: 1.5)),
+            ),
+          ),
+          const SizedBox(height: 10),
           // Direct URL Field
           TextFormField(
             controller: _urlCtrl,
@@ -1794,7 +1819,7 @@ class _Tab3CreativeDirection extends StatelessWidget {
             _MediaPickerCard(
               title: 'Visual Direction Hero Media Asset',
               mediaUrl: proposal.visualDirectionImageUrl,
-              promptHint: 'Cinematic professional visual for ${proposal.leadCompanyName} operating in ${proposal.industry}, high resolution, natural lighting',
+              promptHint: _buildTunedHeroPrompt(proposal),
               proposalId: proposal.id,
               logoUrl: proposal.companyLogoUrl,
               companyName: proposal.leadCompanyName,
@@ -2067,7 +2092,7 @@ class _Tab3CreativeDirection extends StatelessWidget {
             _MediaPickerCard(
               title: 'Sample Reel Vertical Video / Poster Asset',
               mediaUrl: proposal.sampleReelMediaUrl,
-              promptHint: 'Vertical video poster for ${proposal.leadCompanyName} with headline ${proposal.sampleReelHeadline}, high resolution',
+              promptHint: _buildTunedReelPrompt(proposal),
               proposalId: proposal.id,
               logoUrl: proposal.companyLogoUrl,
               companyName: proposal.leadCompanyName,
@@ -2077,6 +2102,30 @@ class _Tab3CreativeDirection extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  static String _buildTunedHeroPrompt(ProposalModel proposal) {
+    final company = proposal.leadCompanyName;
+    final industry = proposal.industry.isNotEmpty ? proposal.industry : 'Commercial Enterprise';
+    final notes = proposal.visualGuidelineNotes.isNotEmpty ? proposal.visualGuidelineNotes : 'Modern premium aesthetic';
+    final keywords = proposal.visualKeywords.isNotEmpty ? proposal.visualKeywords.take(4).join(', ') : 'commercial, authentic';
+    return 'Cinematic flagship advertising visual for $company ($industry). Aesthetic: $notes. Atmosphere: $keywords. Rich dynamic lighting, commercial photography, authentic subject interaction, photorealistic, 8k resolution, no artificial watermark text';
+  }
+
+  static String _buildTunedReelPrompt(ProposalModel proposal) {
+    final company = proposal.leadCompanyName;
+    final industry = proposal.industry.isNotEmpty ? proposal.industry : 'Education & Enrichment';
+    final topic = proposal.sampleReelTopic.isNotEmpty ? proposal.sampleReelTopic : 'Interactive Learning Transformation';
+    // Extract first visual scene
+    String firstScene = '';
+    if (proposal.sampleReelVisualScenes.isNotEmpty) {
+      final lines = proposal.sampleReelVisualScenes.split('\n').where((l) => l.trim().isNotEmpty).toList();
+      if (lines.isNotEmpty) {
+        firstScene = lines.first.replaceAll(RegExp(r'^Scene\s*\d+\s*:\s*', caseSensitive: false), '').trim();
+      }
+    }
+    final sceneDesc = firstScene.isNotEmpty ? firstScene : 'engaging real-world interaction with students and educators';
+    return '9:16 vertical smartphone commercial video still for $company in $industry. Concept: "$topic". Scene: $sceneDesc. Authentic real subject interaction, modern vibrant natural lighting, shallow depth of field, award-winning cinematography, photorealistic, 8k resolution, no text overlays, no artifacts';
   }
 }
 

@@ -565,55 +565,56 @@ CRITICAL INFERENCE & LOCALIZATION MANDATE:
 
     final prompt = '''
 You are an elite Chief Marketing Officer and strategic growth partner at Meet Marketers AI.
-Generate a comprehensive, bespoke 13-section "Digital & Content Direction Proposal" specifically tailored for lead "$leadCompanyName" operating in the "$industry" sector.
+Generate a comprehensive, deeply specific, bespoke 13-section "Digital & Content Direction Proposal" specifically tailored for lead "$leadCompanyName" operating in the "$industry" sector.
 Website: $websiteUrl
 Social Media: $socialText
 $pitchDeckContext
 ${harnessContext ?? ''}
 
-STRICT REQUIREMENTS:
-1. Ground the strategy entirely in this business's actual offerings, target clients, and sector dynamics ($industry).
-2. REAL COMPETITORS: Provide 3 to 4 REAL, named direct competitors in their actual geographic market. Zero placeholders.
-3. DOMAIN-AUTHENTIC PERCEPTUAL MAP: Create two bespoke, domain-accurate axes for the perceptual map.
-4. Provide authoritative, consulting-grade analysis suitable for presentation to enterprise C-suite stakeholders.
+STRICT ANTI-GENERIC QUALITY MANDATES:
+1. GROUND IN REAL OFFERINGS: Ground the strategy entirely in this company's actual customer base, products/services, and industry realities.
+2. ABSOLUTE BAN ON CONSULTING CLICHES: NEVER use vague consulting phrases like "Strategic Authority & Bespoke Outcomes", "Full-Cycle Service Breadth & Scalability", or repeat the phrase "in $industry" on every bullet point!
+3. REAL COMPETITORS: Provide 3 to 4 REAL, named direct competitors in their exact city and market (e.g. for Singapore math/enrichment: Kumon, The Learning Lab, Eye Level, Seriously Addictive Mathematics). Zero placeholders.
+4. PERCEPTUAL MAP AXES: Create two distinct, authentic sector attributes (e.g. for math education: Y-Axis = "Heuristic Conceptual Mastery vs. Rote Repetition", X-Axis = "Personalized Small-Group Mentorship vs. Mass Lecture Format").
+5. REEL STORYBOARD SPECIFICITY: For the sample reel, write vivid, cinematic visual scenes with real human actions, tangible props, emotional transformations, and relatable customer situations.
 
 Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
 {
-  "executiveSummaryPosition": "2-3 sentences on $leadCompanyName's market position, credibility, and actual core business.",
-  "executiveSummaryOpportunity": "2-3 sentences on their high-value digital growth and authority opportunity.",
+  "executiveSummaryPosition": "2-3 sentences on $leadCompanyName's exact market positioning, credibility, and real core business.",
+  "executiveSummaryOpportunity": "2-3 sentences on their high-value digital growth and conversion opportunity.",
   "swot": {
-    "strengths": ["string", "string", "string", "string"],
-    "weaknesses": ["string", "string", "string", "string"],
-    "opportunities": ["string", "string", "string", "string"],
-    "threats": ["string", "string", "string", "string"]
+    "strengths": ["Specific strength 1 with real detail", "Specific strength 2", "Specific strength 3", "Specific strength 4"],
+    "weaknesses": ["Real operational/digital gap 1", "Real gap 2", "Real gap 3", "Real gap 4"],
+    "opportunities": ["Concrete campaign/market opportunity 1", "Concrete opportunity 2", "Concrete opportunity 3", "Concrete opportunity 4"],
+    "threats": ["Real market/competitor challenge 1", "Real challenge 2", "Real challenge 3", "Real challenge 4"]
   },
   "marketingMix4Ps": {
-    "productCurrent": "Actual current offerings and deliverables tailored to their sector.",
-    "productOpportunity": "Outcome-driven packaging and high-value differentiation.",
-    "priceCurrent": "Actual pricing structure in their industry.",
-    "priceOpportunity": "Value-based positioning anchored on outcomes.",
-    "placeCurrent": "Actual distribution and client booking/inquiry channels.",
-    "placeOpportunity": "Omni-channel discoverability and inbound pipelines.",
-    "promotionCurrent": "Current promotional footprint.",
-    "promotionOpportunity": "Educational video masterclasses, customer transformation proof, and thought leadership."
+    "productCurrent": "Actual tangible products/programs offered by $leadCompanyName.",
+    "productOpportunity": "High-value packaging, diagnostic trials, and outcome-guaranteed offerings.",
+    "priceCurrent": "Actual market pricing structure in their field.",
+    "priceOpportunity": "Value-anchored pricing and premium tier differentiation.",
+    "placeCurrent": "Actual physical centers, online booking portals, or client touchpoints.",
+    "placeOpportunity": "Omni-channel conversion funnels and local search discoverability.",
+    "promotionCurrent": "Current organic and paid marketing presence.",
+    "promotionOpportunity": "Educational video masterclasses, student/client transformation reels, and interactive audit hooks."
   },
   "pestAnalysis": {
-    "political": ["Regulatory and governance standards in their field", "Compliance requirements"],
-    "economic": ["Macroeconomic capital and consumer/client expenditure trends in their sector", "Market spending dynamics"],
-    "social": ["Client priorities and changing buyer psychology in their industry", "Demand shifts"],
-    "technological": ["Enterprise AI and technological transformation in their domain", "Search and workflow shifts"]
+    "political": ["Regulatory and syllabus/governance standards in their sector", "Compliance and safety benchmarks"],
+    "economic": ["Parental/consumer willingness to spend and household education/service budgets", "Category spending dynamics"],
+    "social": ["Evolving buyer priorities, parental anxiety, and desire for critical thinking over rote work", "Demand shifts"],
+    "technological": ["Digital assessment tools, gamified learning apps, and AI-assisted personalized tracking", "Search shifts"]
   },
   "competitorUsps": [
-    {"brandName": "$leadCompanyName", "primaryUsp": "Core unique value proposition", "isLeadBrand": true},
+    {"brandName": "$leadCompanyName", "primaryUsp": "Core distinctive value proposition and method", "isLeadBrand": true},
     {"brandName": "Real Competitor 1", "primaryUsp": "Their positioning in the sector", "isLeadBrand": false},
     {"brandName": "Real Competitor 2", "primaryUsp": "Their positioning in the sector", "isLeadBrand": false},
     {"brandName": "Real Competitor 3", "primaryUsp": "Their positioning in the sector", "isLeadBrand": false}
   ],
-  "perceptualMapYAxis": "Bespoke Vertical Y-Axis Attribute (e.g. Skyline Ambience & Panoramic View)",
-  "perceptualMapXAxis": "Bespoke Horizontal X-Axis Attribute (e.g. Culinary & Craft Cocktail Exclusivity)",
+  "perceptualMapYAxis": "Domain-Specific Vertical Y-Axis (e.g. Heuristic Problem-Solving Depth)",
+  "perceptualMapXAxis": "Domain-Specific Horizontal X-Axis (e.g. Personalized Diagnostic Mentorship)",
   "perceptualMapNarrative": "2-3 sentences analyzing $leadCompanyName's position against actual named peers.",
-  "perceptualMapInsight": "Core strategic realization about buyer psychology in their sector.",
-  "perceptualMapOpportunity": "Definitive strategic action to capture category leadership.",
+  "perceptualMapInsight": "Core strategic realization about what buyers in this sector actually care about.",
+  "perceptualMapOpportunity": "Definitive marketing action to dominate this coordinate space.",
   "creativePillars": [
     {"title": "Pillar 1 Title", "objective": "Objective", "contentStyle": ["Style 1", "Style 2"], "exampleTopics": ["Topic 1", "Topic 2"]},
     {"title": "Pillar 2 Title", "objective": "Objective", "contentStyle": ["Style 1", "Style 2"], "exampleTopics": ["Topic 1", "Topic 2"]},
@@ -621,11 +622,12 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     {"title": "Pillar 4 Title", "objective": "Objective", "contentStyle": ["Style 1", "Style 2"], "exampleTopics": ["Topic 1", "Topic 2"]},
     {"title": "Pillar 5 Title", "objective": "Objective", "contentStyle": ["Style 1", "Style 2"], "exampleTopics": ["Topic 1", "Topic 2"]}
   ],
-  "visualGuidelineNotes": "Aesthetic direction tailored to their industry.",
+  "visualGuidelineNotes": "Aesthetic and photography direction tailored to their industry.",
   "brandPaletteHex": ["#HEX1", "#HEX2", "#HEX3", "#HEX4", "#HEX5"],
-  "sampleReelTopic": "Reel Topic tailored to their business",
-  "sampleReelHook": "High-converting hook addressing their ICP pain point",
-  "sampleReelVisualScenes": "Scene 1: ...\\nScene 2: ...\\nScene 3: ...\\nScene 4: ...",
+  "sampleReelHeadline": "Engaging Short Headline (e.g. Unlocking Heuristic Thinking)",
+  "sampleReelTopic": "Vivid Reel Topic tailored to their business",
+  "sampleReelHook": "High-converting 3-second hook addressing customer emotional pain point",
+  "sampleReelVisualScenes": "Scene 1: Dynamic opening shot showing customer problem\\nScene 2: Demonstration of unique method with tangible tools\\nScene 3: Breakthrough 'aha!' moment of success and confidence\\nScene 4: Call to action with center evaluation invitation",
   "sampleReelCta": "Direct call to action relevant to their service",
   "sampleBlogTitle": "SEO Pillar Blog Title",
   "sampleBlogStorytellingIntro": "Storytelling narrative intro",
@@ -747,7 +749,7 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     switch (taskType) {
       case OpenRouterTaskType.strategicProposal:
         candidateModels = AppConfig.strategicProposalModels;
-        tokenCap = maxTokens ?? 4000;
+        tokenCap = maxTokens ?? 6000;
         break;
       case OpenRouterTaskType.highComplexityReasoning:
         candidateModels = AppConfig.highComplexityModels;
