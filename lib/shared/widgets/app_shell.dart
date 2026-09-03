@@ -194,6 +194,7 @@ class _ExpandedSidebar extends StatelessWidget {
         _SidebarNavItem(
           icon: Icons.grid_view_rounded,
           label: 'Dashboard',
+          isSelected: activeClientId == null,
           onTap: () => GoRouter.of(context).go(AppRoutes.dashboard),
         ),
 

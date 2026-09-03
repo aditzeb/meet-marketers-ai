@@ -15,16 +15,14 @@ class GeminiService {
 
   static const String firebaseProjectId = 'meet-marketers-ai';
 
-  /// Standard Gemini Text Generation Models (Gemini 3.5 Flash primary engine)
+  /// Standard Gemini Text Generation Models
   static const List<String> candidateModels = [
-    'gemini-3.5-flash',
-    'gemini-3.5-flash-preview',
-    'gemini-3.5-flash-latest',
     'gemini-2.5-flash',
-    'gemini-2.0-flash-exp',
+    'gemini-2.0-flash',
     'gemini-1.5-flash',
     'gemini-1.5-pro',
     'gemini-pro',
+    'gemini-3.5-flash',
   ];
 
   String _apiKey = AppConfig.geminiApiKey;
@@ -48,6 +46,9 @@ class GeminiService {
         .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
   }
+
+  /// Exposed fallback generator for testing and offline execution
+  String getFallbackContent(ContentType type, String clientName) => _getFallbackContent(type, clientName);
 
   /// Generate real Photo, Video Storyboard, and Caption Assets tailored to the specific client
   Future<GeneratedMediaAsset> generateMediaAsset({
@@ -267,15 +268,17 @@ Return a JSON object strictly matching this schema:
   }
 
   Future<String?> _callGemini35Flash(String prompt) async {
-    final keysToTry = [_apiKey, AppConfig.geminiApiKey, DefaultFirebaseOptions.web.apiKey];
+    final keysToTry = <String>{_apiKey, AppConfig.geminiApiKey, DefaultFirebaseOptions.web.apiKey}
+        .where((k) => k.isNotEmpty)
+        .toList();
 
     for (final modelName in candidateModels) {
       for (final key in keysToTry) {
-        if (key.isEmpty) continue;
-
         try {
           final model = GenerativeModel(model: modelName, apiKey: key);
-          final response = await model.generateContent([Content.text(prompt)]);
+          final response = await model
+              .generateContent([Content.text(prompt)])
+              .timeout(const Duration(seconds: 8));
           if (response.text != null && response.text!.isNotEmpty) {
             return response.text;
           }
@@ -302,7 +305,7 @@ Return a JSON object strictly matching this schema:
                 }
               ]
             }),
-          );
+          ).timeout(const Duration(seconds: 8));
 
           if (resp.statusCode == 200) {
             final data = jsonDecode(resp.body);

@@ -1191,7 +1191,7 @@ class _VertexVideoPlayerWidget extends StatefulWidget {
 }
 
 class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
-  late VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   bool _isError = false;
 
   @override
@@ -1200,11 +1200,25 @@ class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
     _initPlayer();
   }
 
+  @override
+  void didUpdateWidget(_VertexVideoPlayerWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.videoUrl != widget.videoUrl) {
+      _initPlayer();
+    }
+  }
+
   void _initPlayer() async {
+    _controller?.dispose();
+    _controller = null;
+    if (mounted) {
+      setState(() => _isError = false);
+    }
     try {
-      _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-      await _controller.initialize();
-      setState(() {});
+      final ctrl = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+      _controller = ctrl;
+      await ctrl.initialize();
+      if (mounted) setState(() {});
     } catch (e) {
       if (mounted) {
         setState(() => _isError = true);
@@ -1214,23 +1228,57 @@ class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   void _togglePlayPause() {
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
     setState(() {
-      if (_controller.value.isPlaying) {
-        _controller.pause();
+      if (ctrl.value.isPlaying) {
+        ctrl.pause();
       } else {
-        _controller.play();
+        ctrl.play();
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isError || !_controller.value.isInitialized) {
+    if (_isError) {
+      return Container(
+        height: 240,
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.videocam_off_outlined, color: Colors.white60, size: 36),
+              const SizedBox(height: 12),
+              const Text('Video preview currently unavailable', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ClinicSageColors.tertiary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                ),
+                onPressed: _initPlayer,
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Retry Preview'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) {
       return Container(
         height: 240,
         decoration: BoxDecoration(
@@ -1250,7 +1298,7 @@ class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
       );
     }
 
-    final aspectRatio = _controller.value.aspectRatio > 0 ? _controller.value.aspectRatio : (16 / 9);
+    final aspectRatio = ctrl.value.aspectRatio > 0 ? ctrl.value.aspectRatio : (16 / 9);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -1263,14 +1311,14 @@ class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
             Center(
               child: AspectRatio(
                 aspectRatio: aspectRatio,
-                child: VideoPlayer(_controller),
+                child: VideoPlayer(ctrl),
               ),
             ),
             Positioned.fill(
               child: GestureDetector(
                 onTap: _togglePlayPause,
                 child: Container(
-                  color: Colors.black.withValues(alpha: _controller.value.isPlaying ? 0.0 : 0.4),
+                  color: Colors.black.withValues(alpha: ctrl.value.isPlaying ? 0.0 : 0.4),
                   child: Center(
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -1279,7 +1327,7 @@ class _VertexVideoPlayerWidgetState extends State<_VertexVideoPlayerWidget> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        ctrl.value.isPlaying ? Icons.pause : Icons.play_arrow,
                         size: 36,
                         color: Colors.white,
                       ),

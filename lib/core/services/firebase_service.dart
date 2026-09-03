@@ -155,9 +155,18 @@ class FirebaseService {
     }
   }
 
+  String _getCurrentUid(String amId) {
+    if (_isFirebaseAvailable) {
+      try {
+        return auth.currentUser?.uid ?? amId;
+      } catch (_) {}
+    }
+    return amId;
+  }
+
   // ── Direct Firestore Clients Management ────────────────────────────────────
   Future<List<ClientModel>> getClients(String amId) async {
-    final currentUid = auth.currentUser?.uid ?? amId;
+    final currentUid = _getCurrentUid(amId);
 
     if (_isFirebaseAvailable) {
       try {
@@ -197,7 +206,7 @@ class FirebaseService {
   }
 
   Future<ClientModel> createClient(String amId, String name, String industry, {String? websiteUrl}) async {
-    final currentUid = auth.currentUser?.uid ?? amId;
+    final currentUid = _getCurrentUid(amId);
     final clientId = 'client-${DateTime.now().millisecondsSinceEpoch}';
     final client = ClientModel(
       id: clientId,
@@ -232,7 +241,7 @@ class FirebaseService {
   }
 
   Future<void> updateClient(String amId, ClientModel client) async {
-    final currentUid = auth.currentUser?.uid ?? amId;
+    final currentUid = _getCurrentUid(amId);
     final updated = client.copyWith(lastActivity: DateTime.now());
     if (_isFirebaseAvailable) {
       try {
@@ -256,7 +265,7 @@ class FirebaseService {
 
   /// Delete Client Project permanently from Firestore
   Future<void> deleteClient(String amId, String clientId) async {
-    final currentUid = auth.currentUser?.uid ?? amId;
+    final currentUid = _getCurrentUid(amId);
 
     if (_isFirebaseAvailable) {
       try {
@@ -292,7 +301,7 @@ class FirebaseService {
 
   // ── Firestore Deliverables & Draft Persistence ──────────────────────────────
   Future<void> saveDeliverable(String amId, String clientId, String type, Map<String, dynamic> data) async {
-    final currentUid = auth.currentUser?.uid ?? amId;
+    final currentUid = _getCurrentUid(amId);
     final payload = {
       ...data,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -322,7 +331,7 @@ class FirebaseService {
   }
 
   Future<Map<String, dynamic>?> getDeliverable(String amId, String clientId, String type) async {
-    final currentUid = auth.currentUser?.uid ?? amId;
+    final currentUid = _getCurrentUid(amId);
 
     if (_isFirebaseAvailable) {
       try {

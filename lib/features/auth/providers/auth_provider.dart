@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/firebase_service.dart';
 import '../../../core/services/hive_cache_service.dart';
@@ -36,18 +37,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void _initAuthListener() {
-    // Check active Firebase Auth user first
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
-      final am = AccountManagerModel(
-        id: currentUser.uid,
-        displayName: currentUser.displayName ?? currentUser.email?.split('@').first ?? 'Account Manager',
-        email: currentUser.email ?? 'am@agency.com',
-        createdAt: DateTime.now(),
-        lastLoginAt: DateTime.now(),
-      );
-      state = AuthState(user: am);
-      return;
+    // Check active Firebase Auth user first if Firebase is available
+    if (FirebaseService.instance.isFirebaseAvailable) {
+      try {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser != null) {
+          final am = AccountManagerModel(
+            id: currentUser.uid,
+            displayName: currentUser.displayName ?? currentUser.email?.split('@').first ?? 'Account Manager',
+            email: currentUser.email ?? 'am@agency.com',
+            createdAt: DateTime.now(),
+            lastLoginAt: DateTime.now(),
+          );
+          state = AuthState(user: am);
+          return;
+        }
+      } catch (e) {
+        debugPrint('Firebase Auth listener error: $e');
+      }
     }
 
     // Check Hive cache
@@ -59,10 +66,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
           sessionData,
         );
         state = AuthState(user: user);
+        return;
       } catch (_) {}
-    } else {
-      // Sign in anonymously with Firebase Auth if no active session
+    }
+
+    // If Firebase is available, sign in anonymously, otherwise use default AM session
+    if (FirebaseService.instance.isFirebaseAvailable) {
       signInAnonymously();
+    } else {
+      state = AuthState(
+        user: AccountManagerModel(
+          id: 'am-default',
+          displayName: 'Account Manager',
+          email: 'am@agency.com',
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+        ),
+      );
     }
   }
 

@@ -689,7 +689,7 @@ class _CalendarTabState extends State<_CalendarTab> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: platform,
+                initialValue: platform,
                 items: const [
                   DropdownMenuItem(value: 'LinkedIn', child: Text('LinkedIn')),
                   DropdownMenuItem(value: 'Instagram', child: Text('Instagram')),
@@ -704,7 +704,7 @@ class _CalendarTabState extends State<_CalendarTab> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<DateTime>(
-                value: selectedDate,
+                initialValue: selectedDate,
                 items: _weekDays.map((d) => DropdownMenuItem(
                   value: d,
                   child: Text(DateFormat('EEEE (MMM d)').format(d)),

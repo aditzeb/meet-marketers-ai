@@ -30,15 +30,24 @@ class HiveCacheService {
     }
   }
 
+  Box? _getBox(String name) {
+    try {
+      if (Hive.isBoxOpen(name)) {
+        return Hive.box(name);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   // ── User Session ─────────────────────────────────────────────────────────
   Future<void> saveUserSession(Map<String, dynamic> userData) async {
-    final box = Hive.box(userBoxName);
-    await box.put('current_user', userData);
+    final box = _getBox(userBoxName);
+    await box?.put('current_user', userData);
   }
 
   Map<String, dynamic>? getUserSession() {
-    final box = Hive.box(userBoxName);
-    final data = box.get('current_user');
+    final box = _getBox(userBoxName);
+    final data = box?.get('current_user');
     if (data is Map) {
       return Map<String, dynamic>.from(data);
     }
@@ -46,19 +55,19 @@ class HiveCacheService {
   }
 
   Future<void> clearUserSession() async {
-    final box = Hive.box(userBoxName);
-    await box.delete('current_user');
+    final box = _getBox(userBoxName);
+    await box?.delete('current_user');
   }
 
   // ── Client Draft Caching ──────────────────────────────────────────────────
   Future<void> saveClientData(String clientId, Map<String, dynamic> clientJson) async {
-    final box = Hive.box(clientsBoxName);
-    await box.put(clientId, clientJson);
+    final box = _getBox(clientsBoxName);
+    await box?.put(clientId, clientJson);
   }
 
   Map<String, dynamic>? getClientData(String clientId) {
-    final box = Hive.box(clientsBoxName);
-    final data = box.get(clientId);
+    final box = _getBox(clientsBoxName);
+    final data = box?.get(clientId);
     if (data is Map) {
       return Map<String, dynamic>.from(data);
     }
@@ -66,7 +75,8 @@ class HiveCacheService {
   }
 
   List<Map<String, dynamic>> getAllClientsData() {
-    final box = Hive.box(clientsBoxName);
+    final box = _getBox(clientsBoxName);
+    if (box == null) return [];
     final list = <Map<String, dynamic>>[];
     for (var key in box.keys) {
       final item = box.get(key);
@@ -79,24 +89,24 @@ class HiveCacheService {
 
   // ── Draft Text Buffer ─────────────────────────────────────────────────────
   Future<void> saveDraftBuffer(String key, String content) async {
-    final box = Hive.box(draftsBoxName);
-    await box.put(key, content);
+    final box = _getBox(draftsBoxName);
+    await box?.put(key, content);
   }
 
   String? getDraftBuffer(String key) {
-    final box = Hive.box(draftsBoxName);
-    return box.get(key) as String?;
+    final box = _getBox(draftsBoxName);
+    return box?.get(key) as String?;
   }
 
   // ── Deliverables Cache ────────────────────────────────────────────────────
   Future<void> saveDeliverable(String key, Map<String, dynamic> json) async {
-    final box = Hive.box(deliverablesBoxName);
-    await box.put(key, json);
+    final box = _getBox(deliverablesBoxName);
+    await box?.put(key, json);
   }
 
   Map<String, dynamic>? getDeliverable(String key) {
-    final box = Hive.box(deliverablesBoxName);
-    final data = box.get(key);
+    final box = _getBox(deliverablesBoxName);
+    final data = box?.get(key);
     if (data is Map) {
       return Map<String, dynamic>.from(data);
     }
@@ -107,7 +117,8 @@ class HiveCacheService {
   Future<void> saveVettedDeliverable(String clientId, String deliverableType, String content) async {
     if (content.trim().isEmpty) return;
     try {
-      final box = Hive.box(vettedKnowledgeBoxName);
+      final box = _getBox(vettedKnowledgeBoxName);
+      if (box == null) return;
       final key = '${clientId}_$deliverableType';
       await box.put(key, {
         'clientId': clientId,
@@ -122,7 +133,8 @@ class HiveCacheService {
 
   List<String> getVettedHistory(String clientId) {
     try {
-      final box = Hive.box(vettedKnowledgeBoxName);
+      final box = _getBox(vettedKnowledgeBoxName);
+      if (box == null) return [];
       final list = <String>[];
       for (var key in box.keys) {
         if (key.toString().startsWith(clientId)) {
