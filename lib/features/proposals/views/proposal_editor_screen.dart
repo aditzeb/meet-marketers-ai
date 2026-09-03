@@ -240,7 +240,7 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1111),
+      backgroundColor: ClinicSageColors.neutral,
       body: Column(
         children: [
           // ── Top Bar ──────────────────────────────────────────
@@ -248,13 +248,15 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
             height: 64,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: const BoxDecoration(
-              color: Color(0xFF161B1B),
-              border: Border(bottom: BorderSide(color: Color(0xFF2A3333))),
+              color: ClinicSageColors.surface,
+              border: Border(bottom: BorderSide(color: ClinicSageColors.border)),
             ),
             child: Row(
               children: [
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
+                    foregroundColor: ClinicSageColors.primary,
+                    side: const BorderSide(color: ClinicSageColors.border),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   onPressed: () => context.go(AppRoutes.proposals),
@@ -274,7 +276,7 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
                       children: [
                         Text(
                           _proposal.leadCompanyName,
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: ClinicSageColors.primary),
                         ),
                         const SizedBox(width: 10),
                         _StatusBadge(status: _proposal.status),
@@ -289,21 +291,31 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
                 const Spacer(),
 
                 // Action Buttons
-                // Export PDF
-                OutlinedButton.icon(
+                // Export PDF (Prominent button)
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0F172A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
                   onPressed: () async {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Compiling multi-page proposal PDF...')),
+                      const SnackBar(content: Text('Compiling 13-page luxury proposal PDF...')),
                     );
                     await ProposalPdfService.instance.exportAndDownloadPdf(_proposal);
                   },
-                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 15),
-                  label: const Text('Export PDF', style: TextStyle(fontSize: 12)),
+                  icon: const Icon(Icons.picture_as_pdf, size: 15, color: Color(0xFFA3E635)),
+                  label: const Text('Export PDF', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(width: 8),
 
                 // Save
                 OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ClinicSageColors.primary,
+                    side: const BorderSide(color: ClinicSageColors.border),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
                   onPressed: _isSaving ? null : _saveChanges,
                   icon: const Icon(Icons.save_outlined, size: 15),
                   label: Text(_isSaving ? 'Saving...' : 'Save', style: const TextStyle(fontSize: 12)),
@@ -377,14 +389,14 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
           // ── Tab Navigation ────────────────────────────────────
           Container(
             decoration: const BoxDecoration(
-              color: Color(0xFF161B1B),
-              border: Border(bottom: BorderSide(color: Color(0xFF2A3333))),
+              color: ClinicSageColors.surface,
+              border: Border(bottom: BorderSide(color: ClinicSageColors.border)),
             ),
             child: TabBar(
               controller: _tabController,
-              indicatorColor: const Color(0xFFA3E635),
-              labelColor: const Color(0xFFA3E635),
-              unselectedLabelColor: const Color(0xFF94A3B8),
+              indicatorColor: ClinicSageColors.primary,
+              labelColor: ClinicSageColors.primary,
+              unselectedLabelColor: ClinicSageColors.secondary,
               tabs: const [
                 Tab(text: '1. Strategy & SWOT & 4Ps'),
                 Tab(text: '2. PEST & Positioning Map'),
@@ -774,21 +786,26 @@ class _Tab2MarketPositioning extends StatelessWidget {
           title: 'Competitor & USP Analysis',
           subtitle: 'Unique Selling Propositions across peer landscape (Page 4 of PDF)',
           children: [
-            // Table Header in Lime Green
+            // Table Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: const BoxDecoration(
-                color: Color(0xFFA3E635),
+                color: Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE2E8F0)),
+                  left: BorderSide(color: Color(0xFFE2E8F0)),
+                  right: BorderSide(color: Color(0xFFE2E8F0)),
+                ),
               ),
               child: const Row(
                 children: [
                   SizedBox(
-                    width: 160,
-                    child: Text('Brand', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0A0D0D), fontSize: 12.5)),
+                    width: 170,
+                    child: Text('Brand', style: TextStyle(fontWeight: FontWeight.w700, color: ClinicSageColors.primary, fontSize: 13)),
                   ),
                   Expanded(
-                    child: Text('Primary USP', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0A0D0D), fontSize: 12.5)),
+                    child: Text('Primary USP', style: TextStyle(fontWeight: FontWeight.w700, color: ClinicSageColors.primary, fontSize: 13)),
                   ),
                 ],
               ),
@@ -798,28 +815,28 @@ class _Tab2MarketPositioning extends StatelessWidget {
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: c.isLeadBrand ? const Color(0xFF1A2621) : const Color(0xFF111616),
+                  color: c.isLeadBrand ? const Color(0xFFF0FDF4) : Colors.white,
                   border: Border(
-                    left: const BorderSide(color: Color(0xFF334141), width: 0.5),
-                    right: const BorderSide(color: Color(0xFF334141), width: 0.5),
-                    bottom: const BorderSide(color: Color(0xFF334141), width: 0.5),
+                    left: const BorderSide(color: Color(0xFFE2E8F0)),
+                    right: const BorderSide(color: Color(0xFFE2E8F0)),
+                    bottom: const BorderSide(color: Color(0xFFE2E8F0)),
                   ),
                 ),
                 child: Row(
                   children: [
                     SizedBox(
-                      width: 160,
+                      width: 170,
                       child: Text(
                         c.brandName,
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: c.isLeadBrand ? const Color(0xFFA3E635) : Colors.white,
+                          color: c.isLeadBrand ? const Color(0xFF15803D) : ClinicSageColors.primary,
                           fontSize: 13,
                         ),
                       ),
                     ),
                     Expanded(
-                      child: Text(c.primaryUsp, style: const TextStyle(fontSize: 13, color: Color(0xFFE2E8F0))),
+                      child: Text(c.primaryUsp, style: const TextStyle(fontSize: 13, color: ClinicSageColors.secondary)),
                     ),
                   ],
                 ),
@@ -839,69 +856,68 @@ class _Tab2MarketPositioning extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF111616),
+                color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF334141)),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 children: [
                   Text(
                     '${proposal.leadCompanyName.toUpperCase()} MARKET POSITIONING',
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.white, letterSpacing: 1),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: ClinicSageColors.primary, letterSpacing: 1),
                   ),
                   const SizedBox(height: 12),
-                  const Text('HIGH: Premium Experience Perception', style: TextStyle(fontSize: 10, color: Color(0xFFA3E635), fontWeight: FontWeight.w700)),
+                  const Text('HIGH: Premium Experience Perception', style: TextStyle(fontSize: 11, color: Color(0xFF15803D), fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Text('LOW\nBreadth', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: Colors.white70)),
+                      const Text('LOW\nBreadth', textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, color: ClinicSageColors.secondary)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Container(
-                          height: 90,
+                          height: 95,
                           decoration: BoxDecoration(
-                            border: Border.all(color: const Color(0xFF445050), width: 1),
-                            borderRadius: BorderRadius.circular(4),
+                            color: Colors.white,
+                            border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Stack(
                             children: [
-                              // Cross axis lines
-                              Center(child: Container(height: 1, color: const Color(0xFF334141))),
-                              Center(child: Container(width: 1, color: const Color(0xFF334141))),
-                              // Quadrant labels
+                              Center(child: Container(height: 1, color: const Color(0xFFE2E8F0))),
+                              Center(child: Container(width: 1, color: const Color(0xFFE2E8F0))),
                               Positioned(
                                 top: 8,
                                 left: 12,
                                 child: Text(
                                   '• ${proposal.leadCompanyName}',
-                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Color(0xFFA3E635)),
+                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5, color: Color(0xFF15803D)),
                                 ),
                               ),
                               const Positioned(
                                 top: 8,
                                 right: 12,
-                                child: Text('• Luxury Peers', style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                child: Text('• Luxury Peers', style: TextStyle(fontSize: 11, color: ClinicSageColors.secondary)),
                               ),
                               const Positioned(
                                 bottom: 8,
                                 left: 12,
-                                child: Text('• Generic Peers', style: TextStyle(fontSize: 10, color: Colors.white54)),
+                                child: Text('• Generic Peers', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
                               ),
                               const Positioned(
                                 bottom: 8,
                                 right: 12,
-                                child: Text('• Mass Operators', style: TextStyle(fontSize: 10, color: Colors.white54)),
+                                child: Text('• Mass Operators', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
                               ),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text('HIGH\nBreadth', textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: Colors.white70)),
+                      const Text('HIGH\nBreadth', textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, color: ClinicSageColors.secondary)),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text('LOW: Premium Experience Perception', style: TextStyle(fontSize: 10, color: Colors.white70)),
+                  const Text('LOW: Premium Experience Perception', style: TextStyle(fontSize: 11, color: ClinicSageColors.secondary)),
                 ],
               ),
             ),
@@ -1213,19 +1229,29 @@ class _SectionContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: const Color(0xFF161B1B),
+        color: ClinicSageColors.surface,
         borderRadius: BorderRadius.circular(ClinicSageRadius.md),
-        border: Border.all(color: const Color(0xFF2A3333)),
+        border: Border.all(color: ClinicSageColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFFA3E635))),
-          const SizedBox(height: 2),
-          Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
-          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: ClinicSageColors.primary),
+          ),
+          const SizedBox(height: 3),
+          Text(subtitle, style: const TextStyle(fontSize: 12, color: ClinicSageColors.secondary)),
+          const SizedBox(height: 18),
           ...children,
         ],
       ),
@@ -1254,11 +1280,21 @@ class _EditableField extends StatelessWidget {
     return TextFormField(
       initialValue: value,
       maxLines: maxLines,
-      style: const TextStyle(color: Colors.white, fontSize: 13),
+      style: const TextStyle(color: ClinicSageColors.primary, fontSize: 13, height: 1.4),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFFA3E635)),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: ClinicSageColors.secondary),
         alignLabelWithHint: true,
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF0F172A), width: 1.5),
+        ),
       ),
       onChanged: onChanged,
     );
@@ -1285,22 +1321,22 @@ class _SwotEditorBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF111616),
+        color: color.withOpacity(0.04),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF334141)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: const BoxDecoration(
-              color: Color(0xFFA3E635),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0A0D0D), fontSize: 12.5),
+              style: TextStyle(fontWeight: FontWeight.w800, color: color, fontSize: 12),
             ),
           ),
           Padding(
@@ -1308,13 +1344,23 @@ class _SwotEditorBox extends StatelessWidget {
             child: Column(
               children: items.asMap().entries.map((e) {
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: TextFormField(
                     initialValue: e.value,
-                    style: const TextStyle(fontSize: 12, color: Colors.white),
-                    decoration: const InputDecoration(
+                    style: const TextStyle(fontSize: 12.5, color: ClinicSageColors.primary),
+                    decoration: InputDecoration(
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: color, width: 1.5),
+                      ),
                     ),
                     onChanged: (val) {
                       final list = List<String>.from(items);
@@ -1354,9 +1400,9 @@ class _PBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF111616),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF334141)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1364,12 +1410,12 @@ class _PBox extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: const BoxDecoration(
-              color: Color(0xFFA3E635),
+              color: Color(0xFFF1F5F9),
               borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0A0D0D), fontSize: 13),
+              style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF4F46E5), fontSize: 13),
             ),
           ),
           Padding(
@@ -1378,22 +1424,42 @@ class _PBox extends StatelessWidget {
               children: [
                 TextFormField(
                   initialValue: current,
-                  style: const TextStyle(fontSize: 12.5, color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: const TextStyle(fontSize: 12.5, color: ClinicSageColors.primary),
+                  decoration: InputDecoration(
                     labelText: 'Current Approach',
-                    labelStyle: TextStyle(color: Color(0xFFA3E635)),
+                    labelStyle: const TextStyle(color: ClinicSageColors.secondary, fontSize: 12),
                     isDense: true,
+                    filled: true,
+                    fillColor: Colors.white,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
+                    ),
                   ),
                   onChanged: onCurrentChanged,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   initialValue: opportunity,
-                  style: const TextStyle(fontSize: 12.5, color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: const TextStyle(fontSize: 12.5, color: ClinicSageColors.primary),
+                  decoration: InputDecoration(
                     labelText: 'Strategic Opportunity',
-                    labelStyle: TextStyle(color: Color(0xFFA3E635)),
+                    labelStyle: const TextStyle(color: ClinicSageColors.secondary, fontSize: 12),
                     isDense: true,
+                    filled: true,
+                    fillColor: Colors.white,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
+                    ),
                   ),
                   onChanged: onOppChanged,
                 ),

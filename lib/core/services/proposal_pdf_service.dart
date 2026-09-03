@@ -1,15 +1,16 @@
 import 'dart:ui' as ui;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../../data/models/proposal_model.dart';
 import 'web_download_helper.dart';
 
 /// Service to generate and export professional 13-section proposals
-/// styled with the exact dark luxury & lime-accent design shown in the sample images.
+/// matching the exact dark luxury & lime-accent design from the reference sample.
 class ProposalPdfService {
   static final ProposalPdfService instance = ProposalPdfService._internal();
   ProposalPdfService._internal();
 
-  /// Compiles a complete 13-page PDF proposal with dark background & lime accents
+  /// Compiles a complete 13-page PDF proposal with smooth ambient dark background & lime accents
   Future<List<int>> generateProposalPdf(ProposalModel proposal) async {
     final document = PdfDocument();
     document.pageSettings.size = PdfPageSize.a4;
@@ -20,13 +21,24 @@ class ProposalPdfService {
     const contentX = 42.0;
     const contentWidth = 511.28;
 
-    // ── Exact Design Color Palette from Sample Images ────────────
-    final bgDark = PdfColor(13, 17, 17); // #0D1111 (deep dark)
-    final bgGlowTop = PdfColor(18, 48, 30); // Soft dark emerald wash top
-    final bgGlowBottom = PdfColor(14, 38, 24); // Soft dark emerald wash bottom
-    final bgCard = PdfColor(22, 27, 27); // #161B1B (card surface)
-    final cardBorder = PdfColor(44, 54, 54); // #2C3636
-    final tableBorder = PdfColor(55, 65, 65); // #374141
+    // Load background image & logo if available
+    List<int>? bgImageBytes;
+    try {
+      final data = await rootBundle.load('assets/images/proposal_bg.png');
+      bgImageBytes = data.buffer.asUint8List();
+    } catch (_) {}
+
+    List<int>? logoBytes;
+    try {
+      final data = await rootBundle.load('assets/logos/meet_marketers_pdf_logo.png');
+      logoBytes = data.buffer.asUint8List();
+    } catch (_) {}
+
+    // ── Palette Colors Matching Sample Images ────────────────────
+    final bgDark = PdfColor(11, 14, 14); // Deep luxury dark base
+    final bgCard = PdfColor(20, 25, 25); // Card surface
+    final cardBorder = PdfColor(40, 50, 50); // Subtle card border
+    final tableBorder = PdfColor(50, 60, 60); // Table border
     final accentLime = PdfColor(163, 230, 53); // #A3E635 (vibrant lime green)
     final textWhite = PdfColor(255, 255, 255);
     final textOffWhite = PdfColor(226, 232, 240); // #E2E8F0
@@ -34,77 +46,91 @@ class ProposalPdfService {
     final textBlack = PdfColor(10, 13, 13); // #0A0D0D
 
     // ── Typography ───────────────────────────────────────────────
-    final titleFont = PdfStandardFont(PdfFontFamily.helvetica, 30, style: PdfFontStyle.bold);
+    final titleFont = PdfStandardFont(PdfFontFamily.helvetica, 28, style: PdfFontStyle.bold);
     final h1Font = PdfStandardFont(PdfFontFamily.helvetica, 22, style: PdfFontStyle.bold);
-    final h2Font = PdfStandardFont(PdfFontFamily.helvetica, 14, style: PdfFontStyle.bold);
-    final h3Font = PdfStandardFont(PdfFontFamily.helvetica, 11, style: PdfFontStyle.bold);
+    final h2Font = PdfStandardFont(PdfFontFamily.helvetica, 13.5, style: PdfFontStyle.bold);
+    final h3Font = PdfStandardFont(PdfFontFamily.helvetica, 10.5, style: PdfFontStyle.bold);
     final bodyFont = PdfStandardFont(PdfFontFamily.helvetica, 9.5);
     final bodyBold = PdfStandardFont(PdfFontFamily.helvetica, 9.5, style: PdfFontStyle.bold);
     final captionFont = PdfStandardFont(PdfFontFamily.helvetica, 8);
 
-    // ── Helper: Draw Dark Background with Soft Glows & Footer ────
-    void drawDarkBase(PdfPage page, {bool isCover = false}) {
+    // ── Helper: Draw Base Background (Smooth Gaussian Glow) ──────
+    void drawDarkBase(PdfPage page) {
       final g = page.graphics;
 
-      // 1. Fill deep dark base
-      g.drawRectangle(
-        brush: PdfSolidBrush(bgDark),
-        bounds: const ui.Rect.fromLTWH(0, 0, pageWidth, pageHeight),
-      );
+      if (bgImageBytes != null) {
+        g.drawImage(
+          PdfBitmap(bgImageBytes),
+          const ui.Rect.fromLTWH(0, 0, pageWidth, pageHeight),
+        );
+      } else {
+        // Flat dark base fallback with NO harsh discs
+        g.drawRectangle(
+          brush: PdfSolidBrush(bgDark),
+          bounds: const ui.Rect.fromLTWH(0, 0, pageWidth, pageHeight),
+        );
+      }
 
-      // 2. Corner Ambient Glows
-      g.drawEllipse(
-        const ui.Rect.fromLTWH(-90, -90, 360, 360),
-        brush: PdfSolidBrush(bgGlowTop),
-      );
-      g.drawEllipse(
-        const ui.Rect.fromLTWH(pageWidth - 270, pageHeight - 270, 360, 360),
-        brush: PdfSolidBrush(bgGlowBottom),
-      );
-
-      // 3. Centered Footer
+      // Centered Footer on every page
       g.drawString(
         'Meet Marketers © 2026',
         captionFont,
         brush: PdfSolidBrush(textMuted),
-        bounds: const ui.Rect.fromLTWH(0, pageHeight - 28, pageWidth, 14),
+        bounds: const ui.Rect.fromLTWH(0, pageHeight - 26, pageWidth, 14),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
     }
 
-    // ── Helper: Draw Meet Marketers Brand Logo ───────────────────
+    // ── Helper: Draw Meet Marketers Brand Logo on Cover ──────────
     void drawMeetMarketersLogo(PdfGraphics g, double x, double y) {
-      // Draw stylized 'MM' icon
-      final logoPen = PdfPen(PdfColor(170, 180, 185), width: 3.5);
-      // M 1
-      g.drawLine(logoPen, ui.Offset(x, y + 16), ui.Offset(x + 5, y));
-      g.drawLine(logoPen, ui.Offset(x + 5, y), ui.Offset(x + 10, y + 10));
-      g.drawLine(logoPen, ui.Offset(x + 10, y + 10), ui.Offset(x + 15, y));
-      g.drawLine(logoPen, ui.Offset(x + 15, y), ui.Offset(x + 20, y + 16));
+      if (logoBytes != null) {
+        // Draw the real MM transparent logo
+        g.drawImage(
+          PdfBitmap(logoBytes),
+          ui.Rect.fromLTWH(x, y - 2, 28, 22),
+        );
+        g.drawString(
+          'MEET',
+          PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(textWhite),
+          bounds: ui.Rect.fromLTWH(x + 36, y + 2, 45, 16),
+        );
+        g.drawString(
+          'MARKETERS',
+          PdfStandardFont(PdfFontFamily.helvetica, 12),
+          brush: PdfSolidBrush(textOffWhite),
+          bounds: ui.Rect.fromLTWH(x + 78, y + 2, 100, 16),
+        );
+      } else {
+        // Stylized vector MM icon
+        final logoPen = PdfPen(PdfColor(170, 180, 185), width: 3);
+        g.drawLine(logoPen, ui.Offset(x, y + 16), ui.Offset(x + 5, y));
+        g.drawLine(logoPen, ui.Offset(x + 5, y), ui.Offset(x + 10, y + 10));
+        g.drawLine(logoPen, ui.Offset(x + 10, y + 10), ui.Offset(x + 15, y));
+        g.drawLine(logoPen, ui.Offset(x + 15, y), ui.Offset(x + 20, y + 16));
 
-      // M 2 (slightly offset layered behind)
-      final logoPen2 = PdfPen(PdfColor(130, 140, 145), width: 3.5);
-      g.drawLine(logoPen2, ui.Offset(x + 12, y + 16), ui.Offset(x + 17, y));
-      g.drawLine(logoPen2, ui.Offset(x + 17, y), ui.Offset(x + 22, y + 10));
-      g.drawLine(logoPen2, ui.Offset(x + 22, y + 10), ui.Offset(x + 27, y));
-      g.drawLine(logoPen2, ui.Offset(x + 27, y), ui.Offset(x + 32, y + 16));
+        final logoPen2 = PdfPen(PdfColor(130, 140, 145), width: 3);
+        g.drawLine(logoPen2, ui.Offset(x + 12, y + 16), ui.Offset(x + 17, y));
+        g.drawLine(logoPen2, ui.Offset(x + 17, y), ui.Offset(x + 22, y + 10));
+        g.drawLine(logoPen2, ui.Offset(x + 22, y + 10), ui.Offset(x + 27, y));
+        g.drawLine(logoPen2, ui.Offset(x + 27, y), ui.Offset(x + 32, y + 16));
 
-      // Brand Wordmark: "MEET MARKETERS"
-      g.drawString(
-        'MEET',
-        PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
-        brush: PdfSolidBrush(textWhite),
-        bounds: ui.Rect.fromLTWH(x + 40, y + 2, 45, 16),
-      );
-      g.drawString(
-        'MARKETERS',
-        PdfStandardFont(PdfFontFamily.helvetica, 12),
-        brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(x + 82, y + 2, 100, 16),
-      );
+        g.drawString(
+          'MEET',
+          PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
+          brush: PdfSolidBrush(textWhite),
+          bounds: ui.Rect.fromLTWH(x + 40, y + 2, 45, 16),
+        );
+        g.drawString(
+          'MARKETERS',
+          PdfStandardFont(PdfFontFamily.helvetica, 12),
+          brush: PdfSolidBrush(textOffWhite),
+          bounds: ui.Rect.fromLTWH(x + 82, y + 2, 100, 16),
+        );
+      }
     }
 
-    // ── Helper: Draw Section Header (Page Title) in Lime Green ───
+    // ── Helper: Draw Section Title in Lime Green ─────────────────
     void drawSectionTitle(PdfGraphics g, String title, double top) {
       g.drawString(
         title,
@@ -141,7 +167,7 @@ class ProposalPdfService {
     // ── Helper: Draw Dark Table Cell ─────────────────────────────
     void drawTableCell(PdfGraphics g, ui.Rect rect) {
       g.drawRectangle(
-        brush: PdfSolidBrush(PdfColor(17, 22, 22)),
+        brush: PdfSolidBrush(PdfColor(15, 19, 19)),
         pen: PdfPen(tableBorder, width: 0.5),
         bounds: rect,
       );
@@ -153,36 +179,36 @@ class ProposalPdfService {
     {
       final page = document.pages.add();
       final g = page.graphics;
-      drawDarkBase(page, isCover: true);
+      drawDarkBase(page);
 
-      // 1. Logo at Top
-      drawMeetMarketersLogo(g, contentX, 90);
+      // Logo at Top
+      drawMeetMarketersLogo(g, contentX, 85);
 
-      // 2. Main Title (Huge bold Lime Green)
+      // Main Title (Lime Green)
       g.drawString(
         'Digital & Content\nDirection Proposal',
         titleFont,
         brush: PdfSolidBrush(accentLime),
-        bounds: const ui.Rect.fromLTWH(contentX, 260, contentWidth, 80),
+        bounds: const ui.Rect.fromLTWH(contentX, 230, contentWidth, 75),
       );
 
-      // 3. Subtitle in Clean White
+      // Subtitle in Clean White
       g.drawString(
         'Prepared for ${proposal.leadCompanyName}',
-        PdfStandardFont(PdfFontFamily.helvetica, 15, style: PdfFontStyle.regular),
+        PdfStandardFont(PdfFontFamily.helvetica, 14, style: PdfFontStyle.regular),
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(contentX, 350, contentWidth, 24),
+        bounds: const ui.Rect.fromLTWH(contentX, 320, contentWidth, 24),
       );
 
-      // 4. CONTENTS Section
-      double curY = 410;
+      // CONTENTS Section
+      double curY = 385;
       g.drawString(
         'CONTENTS',
         PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(accentLime),
         bounds: ui.Rect.fromLTWH(contentX, curY, contentWidth, 16),
       );
-      curY += 20;
+      curY += 22;
 
       // Marketing Strategy
       g.drawString(
@@ -191,7 +217,7 @@ class ProposalPdfService {
         brush: PdfSolidBrush(accentLime),
         bounds: ui.Rect.fromLTWH(contentX, curY, contentWidth, 16),
       );
-      curY += 16;
+      curY += 18;
 
       final strategyItems = [
         'Executive Summary',
@@ -206,12 +232,12 @@ class ProposalPdfService {
           '  • $item',
           bodyFont,
           brush: PdfSolidBrush(textOffWhite),
-          bounds: ui.Rect.fromLTWH(contentX, curY, contentWidth, 15),
+          bounds: ui.Rect.fromLTWH(contentX, curY, contentWidth, 16),
         );
-        curY += 15;
+        curY += 16;
       }
 
-      curY += 6;
+      curY += 10;
       // Marketing Operation
       g.drawString(
         'Marketing Operation',
@@ -219,7 +245,7 @@ class ProposalPdfService {
         brush: PdfSolidBrush(accentLime),
         bounds: ui.Rect.fromLTWH(contentX, curY, contentWidth, 16),
       );
-      curY += 16;
+      curY += 18;
 
       final operationItems = [
         'Creative Direction',
@@ -235,9 +261,9 @@ class ProposalPdfService {
           '  • $item',
           bodyFont,
           brush: PdfSolidBrush(textOffWhite),
-          bounds: ui.Rect.fromLTWH(contentX, curY, contentWidth, 15),
+          bounds: ui.Rect.fromLTWH(contentX, curY, contentWidth, 16),
         );
-        curY += 15;
+        curY += 16;
       }
     }
 
@@ -252,40 +278,40 @@ class ProposalPdfService {
       // Top Lead Brand Badge
       g.drawString(
         proposal.leadCompanyName.toUpperCase(),
-        PdfStandardFont(PdfFontFamily.helvetica, 14, style: PdfFontStyle.bold),
-        brush: PdfSolidBrush(PdfColor(56, 189, 248)), // Soft blue accent
-        bounds: const ui.Rect.fromLTWH(0, 50, pageWidth, 20),
+        PdfStandardFont(PdfFontFamily.helvetica, 13.5, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(PdfColor(56, 189, 248)),
+        bounds: const ui.Rect.fromLTWH(0, 48, pageWidth, 18),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
       g.drawString(
         'STRATEGIC AUDIT & DIRECTION',
         captionFont,
         brush: PdfSolidBrush(textMuted),
-        bounds: const ui.Rect.fromLTWH(0, 70, pageWidth, 14),
+        bounds: const ui.Rect.fromLTWH(0, 68, pageWidth, 14),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
       // Current Position & Opportunity Card
-      const cardRect = ui.Rect.fromLTWH(contentX, 100, contentWidth, 230);
+      const cardRect = ui.Rect.fromLTWH(contentX, 95, contentWidth, 230);
       drawCard(g, cardRect);
 
-      double cy = 120;
+      double cy = 115;
       g.drawString(
         'Current Position',
         h2Font,
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 24, 120, contentWidth - 48, 20),
+        bounds: const ui.Rect.fromLTWH(contentX + 22, 115, contentWidth - 44, 20),
       );
       cy += 24;
 
       final posText = proposal.executiveSummaryPosition.isNotEmpty
           ? proposal.executiveSummaryPosition
-          : '${proposal.leadCompanyName} is an established provider in ${proposal.industry}, serving clients with verified credibility and reliable service quality.';
+          : '${proposal.leadCompanyName} has established itself as one of the trusted providers in ${proposal.industry}, building strong credibility, customer satisfaction, and reliable service quality across diverse customer segments.';
       g.drawString(
         posText,
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 24, cy, contentWidth - 48, 65),
+        bounds: ui.Rect.fromLTWH(contentX + 22, cy, contentWidth - 44, 65),
       );
 
       cy += 70;
@@ -293,28 +319,28 @@ class ProposalPdfService {
         'Opportunity',
         h2Font,
         brush: PdfSolidBrush(textWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 24, cy, contentWidth - 48, 20),
+        bounds: ui.Rect.fromLTWH(contentX + 22, cy, contentWidth - 44, 20),
       );
       cy += 24;
 
       final oppText = proposal.executiveSummaryOpportunity.isNotEmpty
           ? proposal.executiveSummaryOpportunity
-          : 'Significant opportunity exists to strengthen organic search visibility, corporate authority, and high-converting video storytelling across digital channels.';
+          : 'While ${proposal.leadCompanyName} has built strong credibility, significant opportunity exists to expand organic search visibility, corporate authority, and video storytelling within an increasingly competitive digital landscape.';
       g.drawString(
         oppText,
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 24, cy, contentWidth - 48, 65),
+        bounds: ui.Rect.fromLTWH(contentX + 22, cy, contentWidth - 44, 65),
       );
 
-      // ── SWOT Analysis Section Heading (Lime Green) ────────────
-      drawSectionTitle(g, 'SWOT Analysis', 355);
+      // SWOT Analysis Section Heading (Lime Green)
+      drawSectionTitle(g, 'SWOT Analysis', 350);
 
-      // ── 2x2 SWOT Matrix ───────────────────────────────────────
-      const swotTop = 395.0;
-      const colWidth = (contentWidth) / 2.0; // ~255.6 pt each
-      const headerH = 26.0;
-      const cellH = 155.0;
+      // 2x2 SWOT Matrix
+      const swotTop = 390.0;
+      const colWidth = contentWidth / 2.0;
+      const headerH = 25.0;
+      const cellH = 160.0;
 
       // Row 1: Strength & Weaknesses
       drawTableHeader(g, 'Strength', const ui.Rect.fromLTWH(contentX, swotTop, colWidth, headerH));
@@ -323,18 +349,16 @@ class ProposalPdfService {
       drawTableCell(g, const ui.Rect.fromLTWH(contentX, swotTop + headerH, colWidth, cellH));
       drawTableCell(g, const ui.Rect.fromLTWH(contentX + colWidth, swotTop + headerH, colWidth, cellH));
 
-      // Strengths text
       double ty = swotTop + headerH + 12;
       for (final s in proposal.swot.strengths.take(4)) {
         g.drawString('•  $s', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 10, ty, colWidth - 20, 32));
-        ty += 32;
+        ty += 34;
       }
 
-      // Weaknesses text
       ty = swotTop + headerH + 12;
       for (final w in proposal.swot.weaknesses.take(4)) {
         g.drawString('•  $w', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + colWidth + 10, ty, colWidth - 20, 32));
-        ty += 32;
+        ty += 34;
       }
 
       // Row 2: Opportunities & Threats
@@ -345,18 +369,16 @@ class ProposalPdfService {
       drawTableCell(g, const ui.Rect.fromLTWH(contentX, row2Top + headerH, colWidth, cellH));
       drawTableCell(g, const ui.Rect.fromLTWH(contentX + colWidth, row2Top + headerH, colWidth, cellH));
 
-      // Opportunities text
       ty = row2Top + headerH + 12;
       for (final o in proposal.swot.opportunities.take(4)) {
         g.drawString('•  $o', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 10, ty, colWidth - 20, 32));
-        ty += 32;
+        ty += 34;
       }
 
-      // Threats text
       ty = row2Top + headerH + 12;
       for (final t in proposal.swot.threats.take(4)) {
         g.drawString('•  $t', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + colWidth + 10, ty, colWidth - 20, 32));
-        ty += 32;
+        ty += 34;
       }
     }
 
@@ -368,12 +390,12 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, '4Ps Analysis', 60);
+      drawSectionTitle(g, '4Ps Analysis', 55);
 
-      const pTop = 110.0;
-      const colWidth = (contentWidth) / 2.0;
-      const headerH = 26.0;
-      const cellH = 310.0;
+      const pTop = 100.0;
+      const colWidth = contentWidth / 2.0;
+      const headerH = 25.0;
+      const cellH = 320.0;
 
       // Row 1: Product & Price
       drawTableHeader(g, 'Product', const ui.Rect.fromLTWH(contentX, pTop, colWidth, headerH));
@@ -390,7 +412,7 @@ class ProposalPdfService {
         proposal.marketingMix4Ps.productCurrent.isNotEmpty ? proposal.marketingMix4Ps.productCurrent : 'Core offerings, custom packages, and bespoke services.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 90),
+        bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 95),
       );
       py += 105;
       g.drawString('Opportunity', bodyBold, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 16));
@@ -399,7 +421,7 @@ class ProposalPdfService {
         proposal.marketingMix4Ps.productOpportunity.isNotEmpty ? proposal.marketingMix4Ps.productOpportunity : 'Strengthen differentiation by communicating outcomes rather than just technical inclusions.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 140),
+        bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 145),
       );
 
       // Price content
@@ -410,7 +432,7 @@ class ProposalPdfService {
         proposal.marketingMix4Ps.priceCurrent.isNotEmpty ? proposal.marketingMix4Ps.priceCurrent : 'Mid-to-premium pricing supported by experienced team, safety, and brand reputation.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 90),
+        bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 95),
       );
       py += 105;
       g.drawString('Opportunity', bodyBold, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 16));
@@ -419,7 +441,7 @@ class ProposalPdfService {
         proposal.marketingMix4Ps.priceOpportunity.isNotEmpty ? proposal.marketingMix4Ps.priceOpportunity : 'Continue competing on experience value, safety, and reliability rather than commoditized discounting.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 140),
+        bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 145),
       );
 
       // Row 2: Place & Promotion
@@ -438,7 +460,7 @@ class ProposalPdfService {
         proposal.marketingMix4Ps.placeCurrent.isNotEmpty ? proposal.marketingMix4Ps.placeCurrent : 'Maintains presence across key digital channels including website, Instagram, and LinkedIn.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 90),
+        bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 95),
       );
       py += 105;
       g.drawString('Opportunity', bodyBold, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 16));
@@ -447,7 +469,7 @@ class ProposalPdfService {
         proposal.marketingMix4Ps.placeOpportunity.isNotEmpty ? proposal.marketingMix4Ps.placeOpportunity : 'Improve organic discoverability, corporate B2B channels, and strategic co-marketing partnerships.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 140),
+        bounds: ui.Rect.fromLTWH(contentX + 14, py, colWidth - 28, 145),
       );
 
       // Promotion content
@@ -458,7 +480,7 @@ class ProposalPdfService {
         proposal.marketingMix4Ps.promotionCurrent.isNotEmpty ? proposal.marketingMix4Ps.promotionCurrent : 'Highlights customer celebrations, promotional offers, and customer reviews.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 90),
+        bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 95),
       );
       py += 105;
       g.drawString('Opportunity', bodyBold, brush: PdfSolidBrush(textWhite), bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 16));
@@ -467,7 +489,7 @@ class ProposalPdfService {
         proposal.marketingMix4Ps.promotionOpportunity.isNotEmpty ? proposal.marketingMix4Ps.promotionOpportunity : 'Expand into educational authority reels, customer journey transformation stories, and deep-dive guides.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 140),
+        bounds: ui.Rect.fromLTWH(contentX + colWidth + 14, py, colWidth - 28, 145),
       );
     }
 
@@ -479,11 +501,11 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      // 1. PEST Analysis Heading
-      drawSectionTitle(g, 'PEST Analysis', 50);
+      // PEST Analysis Heading
+      drawSectionTitle(g, 'PEST Analysis', 45);
 
-      const pestTop = 85.0;
-      const colWidth = (contentWidth) / 2.0;
+      const pestTop = 80.0;
+      const colWidth = contentWidth / 2.0;
       const headerH = 24.0;
       const cellH = 100.0;
 
@@ -526,10 +548,10 @@ class ProposalPdfService {
         py += 24;
       }
 
-      // 2. Competitor Analysis Heading
+      // Competitor Analysis Heading
       double curY = row2Top + headerH + cellH + 20;
       drawSectionTitle(g, 'Competitor Analysis', curY);
-      curY += 32;
+      curY += 30;
 
       g.drawString(
         'Competitors:',
@@ -550,22 +572,20 @@ class ProposalPdfService {
         curY += 16;
       }
 
-      // 3. USP Analysis Heading
+      // USP Analysis Heading
       curY += 12;
       drawSectionTitle(g, 'USP Analysis', curY);
-      curY += 32;
+      curY += 30;
 
       // USP Table
       const brandColW = 160.0;
       final uspColW = contentWidth - brandColW;
-      const uspHeaderH = 26.0;
+      const uspHeaderH = 25.0;
 
-      // Table Header Row in Lime Green
       drawTableHeader(g, 'Brand', ui.Rect.fromLTWH(contentX, curY, brandColW, uspHeaderH));
       drawTableHeader(g, 'Primary USP', ui.Rect.fromLTWH(contentX + brandColW, curY, uspColW, uspHeaderH));
       curY += uspHeaderH;
 
-      // Table Rows
       final allComps = proposal.competitorUsps.isNotEmpty
           ? proposal.competitorUsps
           : [
@@ -580,7 +600,6 @@ class ProposalPdfService {
         drawTableCell(g, ui.Rect.fromLTWH(contentX, curY, brandColW, rowH));
         drawTableCell(g, ui.Rect.fromLTWH(contentX + brandColW, curY, uspColW, rowH));
 
-        // Brand name
         g.drawString(
           c.brandName,
           c.isLeadBrand ? bodyBold : bodyFont,
@@ -588,7 +607,6 @@ class ProposalPdfService {
           bounds: ui.Rect.fromLTWH(contentX + 10, curY + 9, brandColW - 20, 18),
         );
 
-        // USP
         g.drawString(
           c.primaryUsp,
           bodyFont,
@@ -601,67 +619,84 @@ class ProposalPdfService {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PAGE 5: Perceptual Map & Strategic Positioning
+    // PAGE 5: Perceptual Map & Strategic Positioning (FIXED SPACING NO COLLISION)
     // ─────────────────────────────────────────────────────────────────────────
     {
       final page = document.pages.add();
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Perceptual Map', 50);
+      // 1. Heading
+      drawSectionTitle(g, 'Perceptual Map', 44);
 
-      // Graph Subtitle
+      // 2. Subtitle with generous spacing
+      final indName = proposal.industry.isNotEmpty ? proposal.industry : proposal.leadCompanyName;
       g.drawString(
-        '${proposal.industry.isNotEmpty ? proposal.industry : proposal.leadCompanyName} Market Positioning',
+        '$indName Market Positioning',
         h3Font,
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(0, 85, pageWidth, 20),
+        bounds: const ui.Rect.fromLTWH(0, 78, pageWidth, 20),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
-      // ── Coordinate Cross Graph ─────────────────────────────────
+      // 3. Coordinate Cross Graph - Centered with plenty of vertical clearance
       const graphCenterX = pageWidth / 2.0; // 297.64
-      const graphCenterY = 240.0;
-      const axisLen = 145.0;
+      const graphCenterY = 270.0;
+      const axisLen = 130.0;
 
       final axisPen = PdfPen(textWhite, width: 1.2);
 
-      // Vertical Axis (Y)
+      // Top Y-Axis Label (Placed clearly above the top arrow)
+      g.drawString(
+        'HIGH',
+        h3Font,
+        brush: PdfSolidBrush(textWhite),
+        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, 110, 160, 14),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      );
+      g.drawString(
+        'Premium Experience Perception',
+        captionFont,
+        brush: PdfSolidBrush(textOffWhite),
+        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, 124, 160, 14),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      );
+
+      // Vertical Axis Line & Arrows (from y = 140 to y = 400)
       g.drawLine(axisPen, ui.Offset(graphCenterX, graphCenterY - axisLen), ui.Offset(graphCenterX, graphCenterY + axisLen));
-      // Top Arrow
+      // Top arrow
       g.drawLine(axisPen, ui.Offset(graphCenterX - 5, graphCenterY - axisLen + 8), ui.Offset(graphCenterX, graphCenterY - axisLen));
       g.drawLine(axisPen, ui.Offset(graphCenterX + 5, graphCenterY - axisLen + 8), ui.Offset(graphCenterX, graphCenterY - axisLen));
-      // Bottom Arrow
+      // Bottom arrow
       g.drawLine(axisPen, ui.Offset(graphCenterX - 5, graphCenterY + axisLen - 8), ui.Offset(graphCenterX, graphCenterY + axisLen));
       g.drawLine(axisPen, ui.Offset(graphCenterX + 5, graphCenterY + axisLen - 8), ui.Offset(graphCenterX, graphCenterY + axisLen));
 
-      // Horizontal Axis (X)
+      // Bottom Y-Axis Label (Placed clearly below the bottom arrow)
+      g.drawString(
+        'LOW',
+        h3Font,
+        brush: PdfSolidBrush(textWhite),
+        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, 406, 160, 14),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      );
+      g.drawString(
+        'Premium Experience Perception',
+        captionFont,
+        brush: PdfSolidBrush(textOffWhite),
+        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, 420, 160, 14),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      );
+
+      // Horizontal Axis Line & Arrows (from x = graphCenterX - 130 to x = graphCenterX + 130)
       g.drawLine(axisPen, ui.Offset(graphCenterX - axisLen, graphCenterY), ui.Offset(graphCenterX + axisLen, graphCenterY));
-      // Left Arrow
+      // Left arrow
       g.drawLine(axisPen, ui.Offset(graphCenterX - axisLen + 8, graphCenterY - 5), ui.Offset(graphCenterX - axisLen, graphCenterY));
       g.drawLine(axisPen, ui.Offset(graphCenterX - axisLen + 8, graphCenterY + 5), ui.Offset(graphCenterX - axisLen, graphCenterY));
-      // Right Arrow
+      // Right arrow
       g.drawLine(axisPen, ui.Offset(graphCenterX + axisLen - 8, graphCenterY - 5), ui.Offset(graphCenterX + axisLen, graphCenterY));
       g.drawLine(axisPen, ui.Offset(graphCenterX + axisLen - 8, graphCenterY + 5), ui.Offset(graphCenterX + axisLen, graphCenterY));
 
-      // Axis Labels
-      // Top
-      g.drawString(
-        'HIGH\nPremium Experience Perception',
-        captionFont,
-        brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, graphCenterY - axisLen - 28, 160, 24),
-        format: PdfStringFormat(alignment: PdfTextAlignment.center),
-      );
-      // Bottom
-      g.drawString(
-        'LOW\nPremium Experience Perception',
-        captionFont,
-        brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, graphCenterY + axisLen + 8, 160, 24),
-        format: PdfStringFormat(alignment: PdfTextAlignment.center),
-      );
-      // Left
+      // Horizontal Axis Labels
       g.drawString(
         'LOW\nService Breadth',
         captionFont,
@@ -669,28 +704,27 @@ class ProposalPdfService {
         bounds: const ui.Rect.fromLTWH(graphCenterX - axisLen - 75, graphCenterY - 12, 70, 24),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
-      // Right
       g.drawString(
         'HIGH\nService Breadth',
         captionFont,
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX + axisLen + 5, graphCenterY - 12, 70, 24),
+        bounds: const ui.Rect.fromLTWH(graphCenterX + axisLen + 6, graphCenterY - 12, 70, 24),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
-      // ── Plotted Brands in 4 Quadrants ─────────────────────────
+      // Plotted Brands in 4 Quadrants with ample space
       // Quadrant 1 (Top Left): Lead Brand
       g.drawString(
         proposal.leadCompanyName.toUpperCase(),
         bodyBold,
         brush: PdfSolidBrush(accentLime),
-        bounds: const ui.Rect.fromLTWH(contentX + 15, graphCenterY - 95, 150, 16),
+        bounds: const ui.Rect.fromLTWH(contentX + 15, graphCenterY - 85, 150, 16),
       );
       g.drawString(
         'Strong balance of premium experiences with wide range of offerings for diverse clients.',
         captionFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 15, graphCenterY - 78, 140, 36),
+        bounds: const ui.Rect.fromLTWH(contentX + 15, graphCenterY - 68, 140, 36),
       );
 
       // Quadrant 2 (Top Right): Competitor 1
@@ -698,13 +732,13 @@ class ProposalPdfService {
         'CATEGORY PEER A',
         bodyBold,
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX + 45, graphCenterY - 95, 150, 16),
+        bounds: const ui.Rect.fromLTWH(graphCenterX + 45, graphCenterY - 85, 150, 16),
       );
       g.drawString(
         'Niche luxury focus with limited accessibility.',
         captionFont,
         brush: PdfSolidBrush(textMuted),
-        bounds: const ui.Rect.fromLTWH(graphCenterX + 45, graphCenterY - 78, 130, 24),
+        bounds: const ui.Rect.fromLTWH(graphCenterX + 45, graphCenterY - 68, 130, 24),
       );
 
       // Quadrant 3 (Bottom Left): Competitor 2
@@ -735,22 +769,22 @@ class ProposalPdfService {
         bounds: const ui.Rect.fromLTWH(graphCenterX + 45, graphCenterY + 62, 130, 24),
       );
 
-      // ── Bottom Insight Card ───────────────────────────────────
-      const insightCardRect = ui.Rect.fromLTWH(contentX, 480, contentWidth, 270);
+      // 4. Bottom Insight Card (Starts safely at y = 475)
+      const insightCardRect = ui.Rect.fromLTWH(contentX, 475, contentWidth, 275);
       drawCard(g, insightCardRect);
 
-      double iy = 505;
+      double iy = 500;
       g.drawString(
         'KEY INSIGHT',
         h3Font,
         brush: PdfSolidBrush(accentLime),
-        bounds: const ui.Rect.fromLTWH(contentX + 24, 505, contentWidth - 48, 18),
+        bounds: const ui.Rect.fromLTWH(contentX + 24, 500, contentWidth - 48, 18),
       );
       iy += 22;
 
       final insightText = proposal.perceptualMapInsight.isNotEmpty
           ? proposal.perceptualMapInsight
-          : '${proposal.leadCompanyName} occupies a strong strategic position between premium experiences and broad service offerings. Unlike niche operators that focus narrowly, ${proposal.leadCompanyName} caters to high-stakes milestone celebrations, corporate events, and family moments.';
+          : 'Customers do not book services based on technical specifications alone; they purchase the emotional certainty and seamless execution of high-stakes moments.';
       g.drawString(
         insightText,
         bodyFont,
@@ -769,7 +803,7 @@ class ProposalPdfService {
 
       final oppMapText = proposal.perceptualMapOpportunity.isNotEmpty
           ? proposal.perceptualMapOpportunity
-          : 'Strengthen brand visibility and digital authority to reinforce ${proposal.leadCompanyName} as the definitive category leader in its market.';
+          : 'Strengthen brand visibility and digital authority to reinforce ${proposal.leadCompanyName} as the definitive first choice in its category.';
       g.drawString(
         oppMapText,
         bodyFont,
@@ -786,7 +820,7 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Creative Direction (Part 1)', 50);
+      drawSectionTitle(g, 'Creative Direction (Part 1)', 45);
 
       final pillars = proposal.creativePillars.isNotEmpty
           ? proposal.creativePillars
@@ -805,7 +839,7 @@ class ProposalPdfService {
               ),
             ];
 
-      double curY = 100;
+      double curY = 95;
       for (final p in pillars.take(2)) {
         final cardR = ui.Rect.fromLTWH(contentX, curY, contentWidth, 290);
         drawCard(g, cardR);
@@ -841,7 +875,7 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Creative Direction (Part 2)', 50);
+      drawSectionTitle(g, 'Creative Direction (Part 2)', 45);
 
       final extraPillars = proposal.creativePillars.length > 2
           ? proposal.creativePillars.skip(2).take(3).toList()
@@ -866,7 +900,7 @@ class ProposalPdfService {
               ),
             ];
 
-      double curY = 100;
+      double curY = 95;
       for (final p in extraPillars) {
         final cardR = ui.Rect.fromLTWH(contentX, curY, contentWidth, 195);
         drawCard(g, cardR);
@@ -900,24 +934,22 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Visual Guideline & Framework', 50);
+      drawSectionTitle(g, 'Visual Guideline & Framework', 45);
 
-      // Aesthetic Notes Card
-      const cardR = ui.Rect.fromLTWH(contentX, 100, contentWidth, 230);
+      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 230);
       drawCard(g, cardR);
 
-      g.drawString('Aesthetic Direction', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 120, contentWidth - 40, 22));
+      g.drawString('Aesthetic Direction', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 20, 115, contentWidth - 40, 22));
       g.drawString(
         proposal.visualGuidelineNotes.isNotEmpty
             ? proposal.visualGuidelineNotes
             : 'Visual storytelling balances clean premium minimalism with vibrant authentic emotion. Crisp natural lighting, cinematic pacing, and consistent typography reinforce category leadership across all digital channels.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 20, 150, contentWidth - 40, 60),
+        bounds: const ui.Rect.fromLTWH(contentX + 20, 145, contentWidth - 40, 60),
       );
 
-      // Swatches
-      g.drawString('Curated Brand Palette', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 20, 220, contentWidth - 40, 18));
+      g.drawString('Curated Brand Palette', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 20, 215, contentWidth - 40, 18));
       double swatchX = contentX + 20;
       for (final hex in proposal.brandPaletteHex.take(5)) {
         final clean = hex.replaceAll('#', '');
@@ -928,14 +960,13 @@ class ProposalPdfService {
         g.drawRectangle(
           brush: PdfSolidBrush(PdfColor(r, gr, b)),
           pen: PdfPen(textWhite, width: 1),
-          bounds: ui.Rect.fromLTWH(swatchX, 245, 45, 45),
+          bounds: ui.Rect.fromLTWH(swatchX, 240, 45, 45),
         );
-        g.drawString(hex, captionFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(swatchX, 295, 45, 14), format: PdfStringFormat(alignment: PdfTextAlignment.center));
+        g.drawString(hex, captionFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(swatchX, 290, 45, 14), format: PdfStringFormat(alignment: PdfTextAlignment.center));
         swatchX += 65;
       }
 
-      // 4-Step Framework
-      const frameY = 360.0;
+      const frameY = 350.0;
       g.drawString('High-Converting Short-Form Framework', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX, frameY, contentWidth, 24));
 
       final steps = [
@@ -963,13 +994,13 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Sample Reel: Vertical Video Blueprint', 50);
+      drawSectionTitle(g, 'Sample Reel: Vertical Video Blueprint', 45);
 
-      const cardR = ui.Rect.fromLTWH(contentX, 100, contentWidth, 650);
+      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 650);
       drawCard(g, cardR);
 
-      double ry = 125;
-      g.drawString('Reel Topic', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 24, 125, contentWidth - 48, 16));
+      double ry = 120;
+      g.drawString('Reel Topic', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 24, 120, contentWidth - 48, 16));
       ry += 20;
       g.drawString(
         proposal.sampleReelTopic.isNotEmpty ? proposal.sampleReelTopic : 'Behind This Milestone Celebration with ${proposal.leadCompanyName}',
@@ -1020,13 +1051,13 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Sample Copywriting: SEO Pillar Blog', 50);
+      drawSectionTitle(g, 'Sample Copywriting: SEO Pillar Blog', 45);
 
-      const cardR = ui.Rect.fromLTWH(contentX, 100, contentWidth, 650);
+      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 650);
       drawCard(g, cardR);
 
-      double by = 130;
-      g.drawString('Suggested Article Title', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 24, 130, contentWidth - 48, 16));
+      double by = 125;
+      g.drawString('Suggested Article Title', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 24, 125, contentWidth - 48, 16));
       by += 20;
       g.drawString(
         proposal.sampleBlogTitle.isNotEmpty ? proposal.sampleBlogTitle : 'How to Plan an Unforgettable Milestone Celebration (Without the Usual Stress)',
@@ -1069,13 +1100,13 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Sample Social Media Copywriting', 50);
+      drawSectionTitle(g, 'Sample Social Media Copywriting', 45);
 
-      const cardR = ui.Rect.fromLTWH(contentX, 100, contentWidth, 650);
+      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 650);
       drawCard(g, cardR);
 
-      double sy = 130;
-      g.drawString('Post Hook', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 24, 130, contentWidth - 48, 16));
+      double sy = 125;
+      g.drawString('Post Hook', h3Font, brush: PdfSolidBrush(textWhite), bounds: const ui.Rect.fromLTWH(contentX + 24, 125, contentWidth - 48, 16));
       sy += 20;
       g.drawString(
         proposal.sampleSocialCaptionHook.isNotEmpty ? proposal.sampleSocialCaptionHook : 'The best celebrations are the ones where you do not have to worry about a single detail. ✨',
@@ -1129,49 +1160,45 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'SEO & Digital Presence Opportunities', 50);
+      drawSectionTitle(g, 'SEO & Digital Presence Opportunities', 45);
 
-      // Score Header Card
-      const cardR = ui.Rect.fromLTWH(contentX, 100, contentWidth, 110);
+      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 110);
       drawCard(g, cardR);
 
-      // Score Badge
       g.drawRectangle(
-        brush: PdfSolidBrush(PdfColor(13, 22, 17)),
+        brush: PdfSolidBrush(PdfColor(13, 20, 16)),
         pen: PdfPen(accentLime, width: 1.5),
-        bounds: const ui.Rect.fromLTWH(contentX + 16, 115, 110, 80),
+        bounds: const ui.Rect.fromLTWH(contentX + 16, 110, 110, 80),
       );
       g.drawString(
         'SEO SCORE',
         captionFont,
         brush: PdfSolidBrush(textMuted),
-        bounds: const ui.Rect.fromLTWH(contentX + 16, 125, 110, 14),
+        bounds: const ui.Rect.fromLTWH(contentX + 16, 120, 110, 14),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
       g.drawString(
         '${proposal.seoAudit.healthScore}/100',
         h1Font,
         brush: PdfSolidBrush(accentLime),
-        bounds: const ui.Rect.fromLTWH(contentX + 16, 145, 110, 30),
+        bounds: const ui.Rect.fromLTWH(contentX + 16, 140, 110, 30),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
-      // Score summary text
       g.drawString(
         proposal.seoAudit.summaryText.isNotEmpty
             ? proposal.seoAudit.summaryText
             : '${proposal.leadCompanyName} has established a solid digital foundation. Key opportunities exist in landing page architecture, schema markup, and entity discoverability.',
         bodyFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 140, 125, contentWidth - 160, 60),
+        bounds: const ui.Rect.fromLTWH(contentX + 140, 120, contentWidth - 160, 60),
       );
 
-      // Priority Initiatives
       // High Priority
-      const highR = ui.Rect.fromLTWH(contentX, 230, contentWidth, 160);
+      const highR = ui.Rect.fromLTWH(contentX, 220, contentWidth, 160);
       drawCard(g, highR);
-      g.drawString('High Priority Initiatives', h3Font, brush: PdfSolidBrush(PdfColor(248, 113, 113)), bounds: const ui.Rect.fromLTWH(contentX + 18, 245, contentWidth - 36, 18));
-      double hy = 270;
+      g.drawString('High Priority Initiatives', h3Font, brush: PdfSolidBrush(PdfColor(248, 113, 113)), bounds: const ui.Rect.fromLTWH(contentX + 18, 235, contentWidth - 36, 18));
+      double hy = 260;
       final highs = proposal.seoAudit.highPriority.isNotEmpty
           ? proposal.seoAudit.highPriority
           : [
@@ -1186,10 +1213,10 @@ class ProposalPdfService {
       }
 
       // Medium Priority
-      const medR = ui.Rect.fromLTWH(contentX, 410, contentWidth, 160);
+      const medR = ui.Rect.fromLTWH(contentX, 400, contentWidth, 160);
       drawCard(g, medR);
-      g.drawString('Medium Priority Enhancements', h3Font, brush: PdfSolidBrush(PdfColor(192, 132, 252)), bounds: const ui.Rect.fromLTWH(contentX + 18, 425, contentWidth - 36, 18));
-      double my = 450;
+      g.drawString('Medium Priority Enhancements', h3Font, brush: PdfSolidBrush(PdfColor(192, 132, 252)), bounds: const ui.Rect.fromLTWH(contentX + 18, 415, contentWidth - 36, 18));
+      double my = 440;
       final meds = proposal.seoAudit.mediumPriority.isNotEmpty
           ? proposal.seoAudit.mediumPriority
           : [
@@ -1203,10 +1230,10 @@ class ProposalPdfService {
       }
 
       // Long-Term Opportunities
-      const longR = ui.Rect.fromLTWH(contentX, 590, contentWidth, 160);
+      const longR = ui.Rect.fromLTWH(contentX, 580, contentWidth, 160);
       drawCard(g, longR);
-      g.drawString('Long-Term Strategic Opportunities', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 18, 605, contentWidth - 36, 18));
-      double ly = 630;
+      g.drawString('Long-Term Strategic Opportunities', h3Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 18, 595, contentWidth - 36, 18));
+      double ly = 620;
       final longs = proposal.seoAudit.longTermOpportunities.isNotEmpty
           ? proposal.seoAudit.longTermOpportunities
           : [
@@ -1228,13 +1255,13 @@ class ProposalPdfService {
       final g = page.graphics;
       drawDarkBase(page);
 
-      drawSectionTitle(g, 'Final Thoughts & Assessment', 50);
+      drawSectionTitle(g, 'Final Thoughts & Assessment', 45);
 
-      const cardR = ui.Rect.fromLTWH(contentX, 100, contentWidth, 650);
+      const cardR = ui.Rect.fromLTWH(contentX, 95, contentWidth, 650);
       drawCard(g, cardR);
 
-      double fy = 130;
-      g.drawString('Executive Conclusion', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 24, 130, contentWidth - 48, 22));
+      double fy = 125;
+      g.drawString('Executive Conclusion', h2Font, brush: PdfSolidBrush(accentLime), bounds: const ui.Rect.fromLTWH(contentX + 24, 125, contentWidth - 48, 22));
       fy += 26;
 
       final conclusionText = proposal.finalThoughtsSummary.isNotEmpty
