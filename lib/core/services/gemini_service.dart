@@ -102,11 +102,13 @@ class GeminiService {
   }
 
   /// Generate an AI image directly via text prompt using OpenRouter Image API
-  /// Uses Google: Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image) — $0.25/$1.50 per 1M tokens, ~4s/image.
+  /// Uses Google: Nano Banana 2 (Gemini 3.1 Flash Image) — $0.50/$3.00 per 1M tokens.
+  /// Supports native resolution ("2K", "1K") and aspect_ratio ("16:9", "9:16", "1:1") in JSON POST.
   /// Supports reference images (input_references) such as brand logos to blend into generated visuals.
   Future<String> generateImage(
     String prompt, {
     String aspectRatio = '16:9',
+    String resolution = '2K',
     String? referenceImageUrl,
   }) async {
     final apiKey = _apiKey.isNotEmpty ? _apiKey : AppConfig.openRouterApiKey;
@@ -121,6 +123,7 @@ class GeminiService {
         'model': AppConfig.openRouterDefaultImageModel,
         'prompt': prompt,
         'aspect_ratio': aspectRatio,
+        'resolution': resolution,
       };
 
       if (includeReference && hasReference) {
@@ -193,10 +196,12 @@ class GeminiService {
   }
 
   /// Initiates video generation via OpenRouter Video API (Alibaba Wan 3.0 Prime)
+  /// Configured with aspect_ratio and resolution directly in JSON POST body.
   Future<String?> generateVideo({
     required String prompt,
     int duration = 4,
     String aspectRatio = '16:9',
+    String resolution = '720p',
   }) async {
     final apiKey = _apiKey.isNotEmpty ? _apiKey : AppConfig.openRouterApiKey;
     if (apiKey.isEmpty) return null;
@@ -215,7 +220,7 @@ class GeminiService {
           'prompt': prompt,
           'duration': duration,
           'aspect_ratio': aspectRatio,
-          'resolution': '720p',
+          'resolution': resolution,
         }),
       ).timeout(const Duration(seconds: 10));
 
@@ -242,10 +247,14 @@ class GeminiService {
     final seed = timestamp % 100000;
 
     // AI Dynamic Prompt for commercial synthesis
-    final imagePrompt = 'Modern commercial 8k photography for $clientName operating in $industry, cutting-edge corporate aesthetic, cinematic studio lighting, photorealistic high detail';
+    final imagePrompt = 'Modern commercial photography for $clientName operating in $industry, cutting-edge corporate aesthetic, cinematic studio lighting, photorealistic high detail';
 
-    // AI generated image via OpenRouter Image API (FLUX.2 Klein 4B)
-    final photoUrl = await generateImage(imagePrompt);
+    // AI generated image via OpenRouter Image API (Google Gemini 3.1 Flash Image)
+    final photoUrl = await generateImage(
+      imagePrompt,
+      aspectRatio: '16:9',
+      resolution: '2K',
+    );
 
     final sampleVideoUrls = [
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',

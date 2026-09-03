@@ -1273,6 +1273,8 @@ class _MediaPickerCard extends ConsumerStatefulWidget {
   final String proposalId;
   final String? logoUrl;
   final String? companyName;
+  final String aspectRatio;
+  final String resolution;
   final ValueChanged<String> onMediaUrlChanged;
 
   const _MediaPickerCard({
@@ -1282,6 +1284,8 @@ class _MediaPickerCard extends ConsumerStatefulWidget {
     required this.proposalId,
     this.logoUrl,
     this.companyName,
+    this.aspectRatio = '16:9',
+    this.resolution = '2K',
     required this.onMediaUrlChanged,
   });
 
@@ -1362,6 +1366,8 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> with Automat
       proposalId: widget.proposalId,
       logoUrl: widget.logoUrl,
       companyName: widget.companyName,
+      aspectRatio: widget.aspectRatio,
+      resolution: widget.resolution,
     );
 
     _activeImageGenerations[key] = future;
@@ -1640,6 +1646,19 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> with Automat
                 widget.title,
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: ClinicSageColors.primary),
               ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: const Color(0xFFA3E635).withOpacity(0.5), width: 0.8),
+                ),
+                child: Text(
+                  'JSON: ${widget.aspectRatio} · ${widget.resolution}',
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFA3E635)),
+                ),
+              ),
               const Spacer(),
               if (_isGenerating || _isUploading)
                 Row(
@@ -1781,7 +1800,7 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> with Automat
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
-                          'Seedream 5.0 Pro · OpenRouter',
+                          'Gemini 3.1 Flash Image · OpenRouter',
                           style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: Color(0xFFA3E635)),
                         ),
                       ),
@@ -1797,10 +1816,23 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> with Automat
                     ),
                   ),
                   const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Text(
+                      'POST JSON Payload: {"aspect_ratio": "${widget.aspectRatio}", "resolution": "${widget.resolution}"}',
+                      style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFFA3E635), fontFamily: 'monospace'),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Text(
                     hasLogo
                         ? 'Blending official ${widget.companyName ?? 'Brand'} logo as illuminated architectural signage & luxury backdrop...'
-                        : 'Rendering photorealistic lighting, cinematic grading, and 4K commercial detail...',
+                        : 'Rendering photorealistic lighting, cinematic grading, and 2K commercial detail...',
                     style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
                   ),
                   const SizedBox(height: 4),
@@ -2295,6 +2327,8 @@ class _Tab3CreativeDirectionState extends State<_Tab3CreativeDirection> with Aut
               proposalId: proposal.id,
               logoUrl: proposal.companyLogoUrl,
               companyName: proposal.leadCompanyName,
+              aspectRatio: '16:9',
+              resolution: '2K',
               onMediaUrlChanged: (url) => onChanged(proposal.copyWith(visualDirectionImageUrl: url)),
             ),
           ],
@@ -2568,6 +2602,8 @@ class _Tab3CreativeDirectionState extends State<_Tab3CreativeDirection> with Aut
               proposalId: proposal.id,
               logoUrl: proposal.companyLogoUrl,
               companyName: proposal.leadCompanyName,
+              aspectRatio: '9:16',
+              resolution: '2K',
               onMediaUrlChanged: (url) => onChanged(proposal.copyWith(sampleReelMediaUrl: url)),
             ),
           ],
@@ -2582,7 +2618,7 @@ class _Tab3CreativeDirectionState extends State<_Tab3CreativeDirection> with Aut
     final industry = proposal.industry.isNotEmpty ? proposal.industry : 'Commercial Enterprise';
     final notes = proposal.visualGuidelineNotes.isNotEmpty ? proposal.visualGuidelineNotes : 'Modern premium aesthetic';
     final keywords = proposal.visualKeywords.isNotEmpty ? proposal.visualKeywords.take(4).join(', ') : 'commercial, authentic';
-    return 'Cinematic flagship advertising visual for $company ($industry). Aesthetic: $notes. Atmosphere: $keywords. Rich dynamic lighting, commercial photography, authentic subject interaction, photorealistic, 8k resolution, no artificial watermark text';
+    return 'Cinematic flagship advertising visual for $company ($industry). Aesthetic: $notes. Atmosphere: $keywords. Dynamic commercial lighting, authentic subject interaction, photorealistic details, no artificial watermark text';
   }
 
   static String _buildTunedReelPrompt(ProposalModel proposal) {
@@ -2598,7 +2634,7 @@ class _Tab3CreativeDirectionState extends State<_Tab3CreativeDirection> with Aut
       }
     }
     final sceneDesc = firstScene.isNotEmpty ? firstScene : 'engaging real-world interaction with students and educators';
-    return '9:16 vertical smartphone commercial video still for $company in $industry. Concept: "$topic". Scene: $sceneDesc. Authentic real subject interaction, modern vibrant natural lighting, shallow depth of field, award-winning cinematography, photorealistic, 8k resolution, no text overlays, no artifacts';
+    return 'Smartphone commercial video still for $company in $industry. Concept: "$topic". Scene: $sceneDesc. Authentic real subject interaction, modern vibrant natural lighting, shallow depth of field, award-winning cinematography, photorealistic commercial fidelity, no text overlays, no artifacts';
   }
 }
 
@@ -2764,6 +2800,8 @@ class _Tab4CopywritingAndSeoState extends State<_Tab4CopywritingAndSeo> with Aut
                       proposalId: proposal.id,
                       logoUrl: proposal.companyLogoUrl,
                       companyName: proposal.leadCompanyName,
+                      aspectRatio: '1:1',
+                      resolution: '2K',
                       onMediaUrlChanged: (url) {
                         final list = List<Map<String, dynamic>>.from(proposal.socialPosts);
                         list[pIdx] = {...p, 'imageUrl': url};
@@ -2954,7 +2992,7 @@ class _Tab4CopywritingAndSeoState extends State<_Tab4CopywritingAndSeo> with Aut
     final industry = proposal.industry.isNotEmpty ? proposal.industry : 'Commercial Enterprise';
     final headline = (post['headline'] as String? ?? '').replaceAll(RegExp(r'["“”]'), '').trim();
     final title = post['title'] as String? ?? 'High-Value Campaign';
-    return '1:1 square high-converting social media campaign ad visual for $company ($industry). Campaign Angle: "$title". Core Theme: "$headline". Premium modern commercial photography, studio lighting, authentic human engagement, rich cinematic color grading, photorealistic, 8k resolution, award-winning social visual, no artificial watermark text overlays, no artifacts';
+    return 'High-converting social media campaign ad visual for $company in $industry. Campaign Angle: "$title". Core Theme: "$headline". Premium modern commercial photography, studio lighting, authentic human engagement, rich cinematic color grading, photorealistic commercial fidelity, award-winning social visual, no artificial watermark text overlays, no artifacts';
   }
 }
 

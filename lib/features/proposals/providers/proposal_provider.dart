@@ -328,14 +328,17 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
     );
   }
 
-  /// Generate an AI image directly via OpenRouter (ByteDance Seedream 5.0 Pro)
+  /// Generate an AI image directly via OpenRouter (Google Gemini 3.1 Flash Image)
   /// and upload to Firebase Storage for permanent, CDN-cached hosting.
+  /// Configured with native aspect_ratio and resolution in the JSON POST payload.
   Future<String> generateAiAssetImage({
     required String prompt,
     required String category,
     String? proposalId,
     String? logoUrl,
     String? companyName,
+    String? aspectRatio,
+    String? resolution,
   }) async {
     // If a company logo is provided, seamlessly weave it into the prompt and reference image input
     String finalPrompt = prompt;
@@ -343,8 +346,25 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
       finalPrompt = '$prompt, seamlessly incorporating and blending the official brand logo of $companyName into the visual scene as an illuminated architectural insignia, luxury backdrop signage, discreet metallic embossement, or elegant brand mark harmoniously balanced with the lighting and aesthetic.';
     }
 
+    // Determine target aspect ratio based on explicit parameter or category inference
+    String targetAspectRatio = aspectRatio ?? '16:9';
+    if (aspectRatio == null || aspectRatio.isEmpty) {
+      final catLower = category.toLowerCase();
+      if (catLower.contains('reel') || catLower.contains('vertical') || catLower.contains('story') || catLower.contains('video') || catLower.contains('9:16')) {
+        targetAspectRatio = '9:16';
+      } else if (catLower.contains('social') || catLower.contains('post') || catLower.contains('copywriting') || catLower.contains('square') || catLower.contains('1:1')) {
+        targetAspectRatio = '1:1';
+      } else {
+        targetAspectRatio = '16:9';
+      }
+    }
+
+    final targetResolution = (resolution != null && resolution.isNotEmpty) ? resolution : '2K';
+
     final rawImage = await GeminiService.instance.generateImage(
       finalPrompt,
+      aspectRatio: targetAspectRatio,
+      resolution: targetResolution,
       referenceImageUrl: logoUrl,
     );
     if (rawImage.isEmpty) {
