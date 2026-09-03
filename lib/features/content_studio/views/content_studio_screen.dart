@@ -174,6 +174,10 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
 
   bool _isGenerating = false;
   bool _isGeneratingAll = false;
+  ContentType? _currentlyGeneratingType;
+  double _currentItemProgress = 0.0;
+  String _currentStageText = '';
+  int _generateAllCompletedCount = 0;
 
   final Map<ContentType, TextEditingController> _vettedControllers = {
     for (final t in ContentType.values) t: TextEditingController(),
@@ -310,12 +314,29 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
             client: client,
             selectedType: _selectedType,
             isGeneratingAll: _isGeneratingAll,
+            completedCount: _generateAllCompletedCount,
+            totalCount: ContentType.values.length,
             onGenerateAll: () => _onGenerateAll(client),
           ),
+          // ── Real-Time Generation Progress Banner ─────────
+          if (_isGeneratingAll || _isGenerating)
+            _GenerationProgressBanner(
+              isGeneratingAll: _isGeneratingAll,
+              currentlyGeneratingType: _currentlyGeneratingType ?? _selectedType,
+              currentItemProgress: _currentItemProgress,
+              currentStageText: _currentStageText,
+              completedCount: _generateAllCompletedCount,
+              totalCount: ContentType.values.length,
+              hasGenerated: _hasGenerated,
+            ),
           // ── Type Tabs & Contextual Sub-Media Selector ────
           _ContentTypeTabs(
             selectedType: _selectedType,
             statuses: _statuses,
+            hasGenerated: _hasGenerated,
+            currentlyGeneratingType: _currentlyGeneratingType,
+            currentItemProgress: _currentItemProgress,
+            isGeneratingAll: _isGeneratingAll,
             onTypeSelected: _onTypeSelected,
           ),
           _SubMediaSelectorBar(
@@ -337,7 +358,9 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
                     aiText: _aiTexts[_selectedType] ?? '',
                     mediaAsset: _mediaAssets[_selectedType],
                     hasGenerated: _hasGenerated[_selectedType] ?? false,
-                    isGenerating: _isGenerating,
+                    isGenerating: _isGenerating || (_isGeneratingAll && _currentlyGeneratingType == _selectedType),
+                    generationProgress: _currentItemProgress,
+                    generationStage: _currentStageText,
                     onGenerate: () => _onGenerate(client),
                   ),
                 ),
@@ -366,7 +389,19 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
   }
 
   Future<void> _onGenerate(ClientModel client) async {
-    setState(() => _isGenerating = true);
+    setState(() {
+      _isGenerating = true;
+      _currentlyGeneratingType = _selectedType;
+      _currentItemProgress = 0.15;
+      _currentStageText = 'Ingesting brand discovery & extracted pitch deck text...';
+    });
+
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    setState(() {
+      _currentItemProgress = 0.40;
+      _currentStageText = 'Gemini 2.5 Flash formulating strategic ${_selectedType.label} copy...';
+    });
 
     final text = await GeminiService.instance.generateContent(
       type: _selectedType,
@@ -382,6 +417,12 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
       extractedPdfContent: client.extractedPdfContent,
     );
 
+    if (!mounted) return;
+    setState(() {
+      _currentItemProgress = 0.75;
+      _currentStageText = 'Synthesizing Flux visual assets & scene storyboards...';
+    });
+
     final media = await GeminiService.instance.generateMediaAsset(
       type: _selectedType,
       clientName: client.name,
@@ -391,16 +432,56 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
 
     if (!mounted) return;
     setState(() {
+      _currentItemProgress = 1.0;
+      _currentStageText = 'Finalizing deliverable & saving to Firestore...';
       _isGenerating = false;
+      _currentlyGeneratingType = null;
       _hasGenerated[_selectedType] = true;
       _aiTexts[_selectedType] = text;
       _mediaAssets[_selectedType] = media;
     });
+
+    final am = ref.read(authProvider).user;
+    final amId = am?.id ?? 'am-default';
+    await FirebaseService.instance.saveDeliverable(
+      amId,
+      client.id,
+      _selectedType.value,
+      {
+        'title': _selectedType.label,
+        'aiGeneratedText': text,
+        'status': _statuses[_selectedType]!.value,
+      },
+    );
   }
 
   Future<void> _onGenerateAll(ClientModel client) async {
-    setState(() => _isGeneratingAll = true);
-    for (final t in ContentType.values) {
+    setState(() {
+      _isGeneratingAll = true;
+      _generateAllCompletedCount = 0;
+    });
+
+    final am = ref.read(authProvider).user;
+    final amId = am?.id ?? 'am-default';
+
+    for (int i = 0; i < ContentType.values.length; i++) {
+      final t = ContentType.values[i];
+      if (!mounted) return;
+      setState(() {
+        _currentlyGeneratingType = t;
+        _selectedType = t;
+        _selectedSubTabId = getSubTabsForType(t).first.id;
+        _currentItemProgress = 0.15;
+        _currentStageText = 'Item ${i + 1} of 11: Ingesting discovery inputs for ${t.label}...';
+      });
+
+      await Future.delayed(const Duration(milliseconds: 250));
+      if (!mounted) return;
+      setState(() {
+        _currentItemProgress = 0.45;
+        _currentStageText = 'Item ${i + 1} of 11: Gemini 2.5 Flash generating ${t.label}...';
+      });
+
       final text = await GeminiService.instance.generateContent(
         type: t,
         clientName: client.name,
@@ -414,21 +495,51 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
         referenceDocuments: client.documentStoragePaths,
         extractedPdfContent: client.extractedPdfContent,
       );
+
+      if (!mounted) return;
+      setState(() {
+        _currentItemProgress = 0.80;
+        _currentStageText = 'Item ${i + 1} of 11: Synthesizing visual media for ${t.label}...';
+      });
+
       final media = await GeminiService.instance.generateMediaAsset(
         type: t,
         clientName: client.name,
         industry: client.industry,
         extractedPdfContent: client.extractedPdfContent,
       );
+
       if (!mounted) return;
       setState(() {
         _hasGenerated[t] = true;
         _aiTexts[t] = text;
         _mediaAssets[t] = media;
+        _generateAllCompletedCount = i + 1;
+        _currentItemProgress = 1.0;
       });
+
+      await FirebaseService.instance.saveDeliverable(
+        amId,
+        client.id,
+        t.value,
+        {
+          'title': t.label,
+          'aiGeneratedText': text,
+          'status': _statuses[t]!.value,
+        },
+      );
     }
+
     if (mounted) {
-      setState(() => _isGeneratingAll = false);
+      setState(() {
+        _isGeneratingAll = false;
+        _currentlyGeneratingType = null;
+        _currentItemProgress = 0.0;
+        _currentStageText = '';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✨ All 11 marketing deliverables generated & saved to Firestore!')),
+      );
     }
   }
 
@@ -529,18 +640,198 @@ class _SubMediaSelectorBar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Generation Progress Banner
+// ─────────────────────────────────────────────────────────────────────────────
+class _GenerationProgressBanner extends StatelessWidget {
+  final bool isGeneratingAll;
+  final ContentType currentlyGeneratingType;
+  final double currentItemProgress;
+  final String currentStageText;
+  final int completedCount;
+  final int totalCount;
+  final Map<ContentType, bool> hasGenerated;
+
+  const _GenerationProgressBanner({
+    required this.isGeneratingAll,
+    required this.currentlyGeneratingType,
+    required this.currentItemProgress,
+    required this.currentStageText,
+    required this.completedCount,
+    required this.totalCount,
+    required this.hasGenerated,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final overallProgress = isGeneratingAll
+        ? ((completedCount + currentItemProgress) / totalCount).clamp(0.0, 1.0)
+        : currentItemProgress.clamp(0.0, 1.0);
+    final overallPct = (overallProgress * 100).round();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: ClinicSageColors.surface,
+        border: const Border(bottom: BorderSide(color: ClinicSageColors.border)),
+        boxShadow: [
+          BoxShadow(
+            color: ClinicSageColors.tertiary.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: ClinicSageColors.tertiaryLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.auto_awesome, size: 16, color: ClinicSageColors.tertiary),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          isGeneratingAll
+                              ? 'Synthesizing All Campaign Deliverables (Item ${completedCount + 1} of $totalCount: ${currentlyGeneratingType.label})'
+                              : 'Synthesizing ${currentlyGeneratingType.label}',
+                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: ClinicSageColors.tertiary,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '$overallPct%',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currentStageText.isNotEmpty ? currentStageText : 'Processing marketing context...',
+                      style: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.secondary, fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (isGeneratingAll)
+                Text(
+                  '$completedCount / $totalCount Ready',
+                  style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700, color: ClinicSageColors.tertiary),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Animated Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: overallProgress),
+              duration: const Duration(milliseconds: 250),
+              builder: (context, val, child) {
+                return LinearProgressIndicator(
+                  value: val,
+                  minHeight: 6,
+                  backgroundColor: ClinicSageColors.border,
+                  valueColor: const AlwaysStoppedAnimation(ClinicSageColors.tertiary),
+                );
+              },
+            ),
+          ),
+          if (isGeneratingAll) ...[
+            const SizedBox(height: 8),
+            // Segmented items progress chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: ContentType.values.map((type) {
+                  final isDone = hasGenerated[type] == true;
+                  final isCurrent = type == currentlyGeneratingType;
+                  return Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: isDone
+                          ? ClinicSageColors.statusVettedBg
+                          : (isCurrent ? ClinicSageColors.tertiaryLight : ClinicSageColors.neutral),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isDone
+                            ? ClinicSageColors.tertiary.withValues(alpha: 0.3)
+                            : (isCurrent ? ClinicSageColors.tertiary : ClinicSageColors.border),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isDone)
+                          const Icon(Icons.check_circle, size: 10, color: ClinicSageColors.tertiary)
+                        else if (isCurrent)
+                          const SizedBox(
+                            width: 10,
+                            height: 10,
+                            child: CircularProgressIndicator(strokeWidth: 1.5, color: ClinicSageColors.tertiary),
+                          )
+                        else
+                          const Icon(Icons.radio_button_unchecked, size: 10, color: ClinicSageColors.secondary),
+                        const SizedBox(width: 4),
+                        Text(
+                          type.label,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                            color: isDone || isCurrent ? ClinicSageColors.primary : ClinicSageColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Studio Top Bar
 // ─────────────────────────────────────────────────────────────────────────────
 class _StudioTopBar extends StatelessWidget {
   final ClientModel client;
   final ContentType selectedType;
   final bool isGeneratingAll;
+  final int completedCount;
+  final int totalCount;
   final VoidCallback onGenerateAll;
 
   const _StudioTopBar({
     required this.client,
     required this.selectedType,
     required this.isGeneratingAll,
+    this.completedCount = 0,
+    this.totalCount = 11,
     required this.onGenerateAll,
   });
 
@@ -616,7 +907,7 @@ class _StudioTopBar extends StatelessWidget {
                         : const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
                     const SizedBox(width: 7),
                     Text(
-                      isGeneratingAll ? 'Generating Media...' : 'Generate All Content',
+                      isGeneratingAll ? 'Generating ($completedCount/$totalCount)...' : 'Generate All Content',
                       style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -639,9 +930,21 @@ class _StudioTopBar extends StatelessWidget {
 class _ContentTypeTabs extends StatelessWidget {
   final ContentType selectedType;
   final Map<ContentType, VettingStatus> statuses;
+  final Map<ContentType, bool> hasGenerated;
+  final ContentType? currentlyGeneratingType;
+  final double currentItemProgress;
+  final bool isGeneratingAll;
   final ValueChanged<ContentType> onTypeSelected;
 
-  const _ContentTypeTabs({required this.selectedType, required this.statuses, required this.onTypeSelected});
+  const _ContentTypeTabs({
+    required this.selectedType,
+    required this.statuses,
+    required this.hasGenerated,
+    this.currentlyGeneratingType,
+    this.currentItemProgress = 0.0,
+    this.isGeneratingAll = false,
+    required this.onTypeSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -658,17 +961,25 @@ class _ContentTypeTabs extends StatelessWidget {
         child: Row(
           children: ContentType.values.map((t) {
             final isSelected = t == selectedType;
+            final isCurrent = t == currentlyGeneratingType;
+            final isDone = hasGenerated[t] == true;
+
             return GestureDetector(
               onTap: () => onTypeSelected(t),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.only(right: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                margin: const EdgeInsets.only(right: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isSelected ? ClinicSageColors.tertiaryLight : Colors.transparent,
+                  color: isCurrent
+                      ? ClinicSageColors.tertiaryLight
+                      : (isSelected ? ClinicSageColors.tertiaryLight : Colors.transparent),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: isSelected ? ClinicSageColors.tertiary : Colors.transparent,
+                    color: isCurrent
+                        ? ClinicSageColors.tertiary
+                        : (isSelected ? ClinicSageColors.tertiary : Colors.transparent),
+                    width: isCurrent ? 1.5 : 1,
                   ),
                 ),
                 child: Row(
@@ -677,11 +988,48 @@ class _ContentTypeTabs extends StatelessWidget {
                     Text(
                       t.label,
                       style: theme.textTheme.labelMedium?.copyWith(
-                        color: isSelected ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected || isCurrent ? ClinicSageColors.tertiary : ClinicSageColors.secondary,
+                        fontWeight: isSelected || isCurrent ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
-                    if (statuses[t] != VettingStatus.draft) ...[
+                    if (isCurrent) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: ClinicSageColors.tertiary,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 8,
+                              height: 8,
+                              child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${(currentItemProgress * 100).round()}%',
+                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else if (isDone) ...[
+                      const SizedBox(width: 6),
+                      const Icon(Icons.check_circle, size: 12, color: ClinicSageColors.tertiary),
+                    ] else if (isGeneratingAll) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: ClinicSageColors.neutral,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: const Text('Queued', style: TextStyle(fontSize: 8, color: ClinicSageColors.secondary)),
+                      ),
+                    ] else if (statuses[t] != VettingStatus.draft) ...[
                       const SizedBox(width: 6),
                       Container(
                         width: 6,
@@ -714,6 +1062,8 @@ class _AIOutputPanel extends StatelessWidget {
   final GeneratedMediaAsset? mediaAsset;
   final bool hasGenerated;
   final bool isGenerating;
+  final double generationProgress;
+  final String generationStage;
   final VoidCallback onGenerate;
 
   const _AIOutputPanel({
@@ -724,6 +1074,8 @@ class _AIOutputPanel extends StatelessWidget {
     required this.mediaAsset,
     required this.hasGenerated,
     required this.isGenerating,
+    this.generationProgress = 0.5,
+    this.generationStage = '',
     required this.onGenerate,
   });
 
@@ -761,7 +1113,11 @@ class _AIOutputPanel extends StatelessWidget {
           ),
           Expanded(
             child: isGenerating
-                ? _GeneratingAnimation(type: type)
+                ? _GeneratingAnimation(
+                    type: type,
+                    progress: generationProgress,
+                    stageText: generationStage,
+                  )
                 : !hasGenerated
                     ? _EmptyGenerateState(type: type, onGenerate: onGenerate)
                     : _buildSubTabContent(context),
@@ -1460,21 +1816,195 @@ class _SocialCaptionsView extends StatelessWidget {
 
 class _GeneratingAnimation extends StatelessWidget {
   final ContentType type;
-  const _GeneratingAnimation({required this.type});
+  final double progress;
+  final String stageText;
+
+  const _GeneratingAnimation({
+    required this.type,
+    this.progress = 0.5,
+    this.stageText = '',
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final pct = (progress * 100).round();
+
+    final steps = [
+      (
+        step: 1,
+        title: 'Pitch Deck & Context Ingestion',
+        subtitle: 'Ingesting client discovery parameters & extracted pitch deck text',
+        isDone: progress >= 0.35,
+        isActive: progress < 0.35,
+      ),
+      (
+        step: 2,
+        title: 'Gemini 2.5 Flash Copy Synthesis',
+        subtitle: 'Formulating high-converting marketing framework tailored to client industry',
+        isDone: progress >= 0.70,
+        isActive: progress >= 0.35 && progress < 0.70,
+      ),
+      (
+        step: 3,
+        title: 'Flux Visual & Storyboard Media',
+        subtitle: 'Synthesizing visual assets and multi-scene video storyboard',
+        isDone: progress >= 0.95,
+        isActive: progress >= 0.70 && progress < 0.95,
+      ),
+      (
+        step: 4,
+        title: 'Finalizing Deliverable & Cloud Sync',
+        subtitle: 'Buffering output to online Firestore deliverables repository',
+        isDone: progress >= 1.0,
+        isActive: progress >= 0.95,
+      ),
+    ];
+
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(color: ClinicSageColors.tertiary),
-          const SizedBox(height: 20),
-          Text('Generating ${type.label} with Gemini AI...', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Text('Processing client website context, uploaded documents & questionnaire inputs.', style: theme.textTheme.bodySmall),
-        ],
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 480),
+        padding: const EdgeInsets.all(28),
+        margin: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: ClinicSageColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: ClinicSageColors.border),
+          boxShadow: ClinicSageShadows.card,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: ClinicSageColors.tertiaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.auto_awesome, size: 22, color: ClinicSageColors.tertiary),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Generating ${type.label}',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        stageText.isNotEmpty ? stageText : 'AI Engine synthesizing campaign content...',
+                        style: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.secondary, fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: ClinicSageColors.tertiaryLight,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: ClinicSageColors.tertiary.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    '$pct%',
+                    style: const TextStyle(
+                      color: ClinicSageColors.tertiary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0, end: progress),
+                duration: const Duration(milliseconds: 250),
+                builder: (context, val, _) {
+                  return LinearProgressIndicator(
+                    value: val,
+                    minHeight: 8,
+                    backgroundColor: ClinicSageColors.border,
+                    valueColor: const AlwaysStoppedAnimation(ClinicSageColors.tertiary),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Divider(height: 1),
+            const SizedBox(height: 14),
+            Text(
+              'GENERATION PIPELINE',
+              style: theme.textTheme.labelSmall?.copyWith(fontSize: 10, letterSpacing: 0.8, color: ClinicSageColors.secondary),
+            ),
+            const SizedBox(height: 12),
+            ...steps.map((s) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: s.isDone
+                            ? ClinicSageColors.statusVettedBg
+                            : (s.isActive ? ClinicSageColors.tertiaryLight : ClinicSageColors.neutral),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: s.isDone
+                              ? ClinicSageColors.tertiary
+                              : (s.isActive ? ClinicSageColors.tertiary : ClinicSageColors.border),
+                          width: s.isActive ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Center(
+                        child: s.isDone
+                            ? const Icon(Icons.check, size: 13, color: ClinicSageColors.tertiary)
+                            : (s.isActive
+                                ? const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5, color: ClinicSageColors.tertiary))
+                                : Text('${s.step}', style: const TextStyle(fontSize: 10, color: ClinicSageColors.secondary, fontWeight: FontWeight.w600))),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            s.title,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: s.isActive ? FontWeight.w700 : (s.isDone ? FontWeight.w600 : FontWeight.w400),
+                              color: s.isDone || s.isActive ? ClinicSageColors.primary : ClinicSageColors.secondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            s.subtitle,
+                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11, color: ClinicSageColors.secondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (s.isDone)
+                      const Text('Ready', style: TextStyle(fontSize: 10, color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600))
+                    else if (s.isActive)
+                      const Text('Active', style: TextStyle(fontSize: 10, color: ClinicSageColors.tertiary, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

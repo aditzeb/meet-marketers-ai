@@ -26,6 +26,9 @@ class StrategyHubScreen extends ConsumerStatefulWidget {
 class _StrategyHubScreenState extends ConsumerState<StrategyHubScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isGenerating = false;
+  double _strategyProgress = 0.0;
+  String _strategyStage = '';
+  int _strategyCurrentStep = 0;
   SwotMatrix _swot = SwotMatrix.mock;
   late List<SeoKeyword> _seoKeywords;
   late List<PersonaModel> _personas;
@@ -150,8 +153,17 @@ class _StrategyHubScreenState extends ConsumerState<StrategyHubScreen> with Sing
           _StrategyTopBar(
             client: client,
             isGenerating: _isGenerating,
+            progress: _strategyProgress,
             onGenerate: () => _onGenerateAll(client),
           ),
+
+          // ── Real-Time Strategy Generation Progress Banner ─
+          if (_isGenerating)
+            _StrategyProgressBanner(
+              progress: _strategyProgress,
+              currentStep: _strategyCurrentStep,
+              stageText: _strategyStage,
+            ),
 
           // ── Tabs ──────────────────────────────────────────
           Container(
@@ -195,16 +207,41 @@ class _StrategyHubScreenState extends ConsumerState<StrategyHubScreen> with Sing
   }
 
   Future<void> _onGenerateAll(ClientModel client) async {
-    setState(() => _isGenerating = true);
+    setState(() {
+      _isGenerating = true;
+      _strategyProgress = 0.15;
+      _strategyCurrentStep = 1;
+      _strategyStage = 'Ingesting ${client.name} pitch deck & discovery parameters...';
+    });
+
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    setState(() {
+      _strategyProgress = 0.45;
+      _strategyCurrentStep = 2;
+      _strategyStage = 'Gemini 2.5 Flash formulating 4-quadrant SWOT Matrix...';
+    });
+
     final strategy = await GeminiService.instance.generateStrategy(
       clientId: client.id,
       clientName: client.name,
       industry: client.industry,
       extractedPdfContent: client.extractedPdfContent,
     );
+
     if (!mounted) return;
     setState(() {
-      _isGenerating = false;
+      _strategyProgress = 0.75;
+      _strategyCurrentStep = 3;
+      _strategyStage = 'Mining high-volume SEO keywords & search intent metrics...';
+    });
+
+    await Future.delayed(const Duration(milliseconds: 250));
+    if (!mounted) return;
+    setState(() {
+      _strategyProgress = 0.95;
+      _strategyCurrentStep = 4;
+      _strategyStage = 'Constructing buyer personas & omni-channel publishing calendar...';
       _swot = strategy.swot;
       if (strategy.seoKeywords.isNotEmpty) {
         _seoKeywords = List.from(strategy.seoKeywords);
@@ -219,11 +256,24 @@ class _StrategyHubScreenState extends ConsumerState<StrategyHubScreen> with Sing
 
     await _saveCurrentStrategy();
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✨ Strategy matrix generated with Gemini AI & saved to Firestore!')),
-      );
-    }
+    if (!mounted) return;
+    setState(() {
+      _strategyProgress = 1.0;
+      _strategyStage = 'Strategy matrix finalized & saved to Firestore!';
+    });
+
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    setState(() {
+      _isGenerating = false;
+      _strategyProgress = 0.0;
+      _strategyCurrentStep = 0;
+      _strategyStage = '';
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('✨ Strategy matrix generated with Gemini AI & saved to Firestore!')),
+    );
   }
 
   void _onAddCalendarEvent(String title, String platform, DateTime scheduledDate, String contentType) {
@@ -248,13 +298,21 @@ class _StrategyHubScreenState extends ConsumerState<StrategyHubScreen> with Sing
 class _StrategyTopBar extends StatelessWidget {
   final ClientModel client;
   final bool isGenerating;
+  final double progress;
   final VoidCallback onGenerate;
 
-  const _StrategyTopBar({required this.client, required this.isGenerating, required this.onGenerate});
+  const _StrategyTopBar({
+    required this.client,
+    required this.isGenerating,
+    this.progress = 0.0,
+    required this.onGenerate,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final pct = (progress * 100).round();
+
     return Container(
       height: 58,
       padding: const EdgeInsets.symmetric(horizontal: ClinicSageSpacing.lg),
@@ -312,7 +370,7 @@ class _StrategyTopBar extends StatelessWidget {
                         : const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
                     const SizedBox(width: 7),
                     Text(
-                      isGenerating ? 'Generating...' : 'Generate Strategy',
+                      isGenerating ? 'Generating ($pct%)...' : 'Generate Strategy',
                       style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ],
@@ -324,6 +382,164 @@ class _StrategyTopBar extends StatelessWidget {
           OutlinedButton(
             onPressed: () => GoRouter.of(context).go(AppRoutes.clientReviewPath(client.id)),
             child: const Text('Go to Review →'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Real-Time Strategy Generation Progress Banner
+// ─────────────────────────────────────────────────────────────────────────────
+class _StrategyProgressBanner extends StatelessWidget {
+  final double progress;
+  final int currentStep;
+  final String stageText;
+
+  const _StrategyProgressBanner({
+    required this.progress,
+    required this.currentStep,
+    required this.stageText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final pct = (progress * 100).round();
+
+    final steps = [
+      (num: 1, label: 'Ingest Pitch Deck & Context', isDone: progress >= 0.35, isActive: progress < 0.35),
+      (num: 2, label: 'SWOT Matrix', isDone: progress >= 0.70, isActive: progress >= 0.35 && progress < 0.70),
+      (num: 3, label: 'SEO Keywords', isDone: progress >= 0.90, isActive: progress >= 0.70 && progress < 0.90),
+      (num: 4, label: 'Personas & Calendar', isDone: progress >= 1.0, isActive: progress >= 0.90),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: ClinicSageColors.surface,
+        border: const Border(bottom: BorderSide(color: ClinicSageColors.border)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF8B5CF6)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Synthesizing Strategic Intelligence Framework',
+                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8B5CF6),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '$pct%',
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      stageText.isNotEmpty ? stageText : 'Formulating SWOT, SEO Keywords, Personas & Publishing Calendar...',
+                      style: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.secondary, fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: progress),
+              duration: const Duration(milliseconds: 250),
+              builder: (context, val, child) {
+                return LinearProgressIndicator(
+                  value: val,
+                  minHeight: 6,
+                  backgroundColor: ClinicSageColors.border,
+                  valueColor: const AlwaysStoppedAnimation(Color(0xFF8B5CF6)),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: steps.map((s) {
+                return Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: s.isDone
+                        ? const Color(0xFF10B981).withOpacity(0.1)
+                        : (s.isActive ? const Color(0xFF8B5CF6).withOpacity(0.12) : ClinicSageColors.neutral),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: s.isDone
+                          ? const Color(0xFF10B981).withOpacity(0.3)
+                          : (s.isActive ? const Color(0xFF8B5CF6) : ClinicSageColors.border),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (s.isDone)
+                        const Icon(Icons.check_circle, size: 10, color: Color(0xFF10B981))
+                      else if (s.isActive)
+                        const SizedBox(
+                          width: 10,
+                          height: 10,
+                          child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF8B5CF6)),
+                        )
+                      else
+                        const Icon(Icons.radio_button_unchecked, size: 10, color: ClinicSageColors.secondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        s.label,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: s.isActive ? FontWeight.w700 : FontWeight.w500,
+                          color: s.isDone || s.isActive ? ClinicSageColors.primary : ClinicSageColors.secondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
