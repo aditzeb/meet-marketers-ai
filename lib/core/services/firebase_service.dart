@@ -373,6 +373,49 @@ class FirebaseService {
     return result;
   }
 
+  /// Fetch Client Agentic Harness Profile from Firestore
+  Future<Map<String, dynamic>?> getClientAgenticHarness(String amId, String clientId) async {
+    final currentUid = _getCurrentUid(amId);
+    if (_isFirebaseAvailable) {
+      try {
+        final doc = await firestore
+            .collection('account_managers')
+            .doc(currentUid)
+            .collection('clients')
+            .doc(clientId)
+            .collection('agentic_harness')
+            .doc('profile')
+            .get();
+
+        if (doc.exists && doc.data() != null) {
+          return doc.data()!;
+        }
+      } catch (e) {
+        debugPrint('Firestore getClientAgenticHarness error: $e');
+      }
+    }
+    return null;
+  }
+
+  /// Save Client Agentic Harness Profile to Firestore
+  Future<void> saveClientAgenticHarness(String amId, String clientId, Map<String, dynamic> data) async {
+    final currentUid = _getCurrentUid(amId);
+    if (_isFirebaseAvailable) {
+      try {
+        await firestore
+            .collection('account_managers')
+            .doc(currentUid)
+            .collection('clients')
+            .doc(clientId)
+            .collection('agentic_harness')
+            .doc('profile')
+            .set(data, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore saveClientAgenticHarness error: $e');
+      }
+    }
+  }
+
   /// Upload client asset directly to Firebase Storage and return download URL
   Future<String?> uploadFile({
     required String clientId,

@@ -9,6 +9,8 @@ import '../../dashboard/providers/client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/services/firebase_service.dart';
 import '../../../core/services/pdf_extractor_service.dart';
+import '../../../data/models/client_agentic_harness_model.dart';
+import '../../../core/services/client_agentic_harness_service.dart';
 
 import '../../../shared/widgets/workspace_phase_header.dart';
 
@@ -46,6 +48,11 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
   // Dynamic Lists
   List<String> _competitors = [''];
   List<String> _roleModels = [''];
+
+  // Agentic Harness State
+  ClientAgenticHarnessModel? _harness;
+  bool _isSynthesizingHarness = false;
+  final _ruleController = TextEditingController();
 
   @override
   void initState() {
@@ -92,11 +99,20 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
       _isExtractingPdf = false;
       _isUploadingStorage = false;
     });
+
+    final am = ref.read(authProvider).user;
+    final amId = am?.id ?? 'am-default';
+    ClientAgenticHarnessService.instance.getHarness(amId, widget.clientId).then((harness) {
+      if (mounted) {
+        setState(() => _harness = harness);
+      }
+    });
   }
 
   @override
   void dispose() {
     _websiteController.dispose();
+    _ruleController.dispose();
     for (final c in _questionnaireControllers.values) {
       c.dispose();
     }
@@ -262,6 +278,20 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
                       onRemove: (index) => setState(() => _roleModels.removeAt(index)),
                     ),
                   ),
+                  // ── Section 8: Client Agentic Brain & Learning Harness ─────────
+                  _Section(
+                    number: '08',
+                    title: 'Client Agentic Brain & Learning Harness',
+                    subtitle: 'Persistent AI memory that continuously learns from client inputs, pitch decks, and account manager directives.',
+                    child: _AgenticHarnessView(
+                      harness: _harness,
+                      isSynthesizing: _isSynthesizingHarness,
+                      ruleController: _ruleController,
+                      onSync: _onSynthesizeHarness,
+                      onAddRule: _onAddRule,
+                      onDeleteRule: _onDeleteRule,
+                    ),
+                  ),
                   const SizedBox(height: ClinicSageSpacing.xl),
 
                   // ── Generate CTA ───────────────────────────
@@ -311,6 +341,17 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
       updatedClient.toJson(),
     );
 
+    // Trigger Agentic Harness synthesis in background to continuously learn from inputs
+    ClientAgenticHarnessService.instance.synthesizeHarness(
+      client: updatedClient,
+      amId: amId,
+      trigger: 'inputs_save',
+    ).then((updatedHarness) {
+      if (mounted) {
+        setState(() => _harness = updatedHarness);
+      }
+    });
+
     if (mounted) {
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -319,13 +360,92 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
             children: [
               const Icon(Icons.cloud_done, color: Colors.white, size: 16),
               const SizedBox(width: 8),
-              Text('Inputs saved to Firebase for ${updatedClient.name}!'),
+              Text('Inputs saved to Firebase for ${updatedClient.name}! Agentic Brain updating...'),
             ],
           ),
           backgroundColor: ClinicSageColors.tertiary,
           duration: const Duration(seconds: 3),
         ),
       );
+    }
+  }
+
+  Future<void> _onSynthesizeHarness() async {
+    final client = ref.read(clientProvider).getClient(widget.clientId);
+    if (client == null) return;
+
+    setState(() => _isSynthesizingHarness = true);
+    final am = ref.read(authProvider).user;
+    final amId = am?.id ?? 'am-default';
+
+    try {
+      final updated = await ClientAgenticHarnessService.instance.synthesizeHarness(
+        client: client,
+        amId: amId,
+        trigger: 'manual_sync',
+      );
+      if (mounted) {
+        setState(() {
+          _harness = updated;
+          _isSynthesizingHarness = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.psychology, color: Colors.white, size: 16),
+                SizedBox(width: 8),
+                Text('Agentic Brain synchronized & updated with client context!'),
+              ],
+            ),
+            backgroundColor: ClinicSageColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSynthesizingHarness = false);
+    }
+  }
+
+  Future<void> _onAddRule() async {
+    final ruleText = _ruleController.text.trim();
+    if (ruleText.isEmpty) return;
+
+    final am = ref.read(authProvider).user;
+    final amId = am?.id ?? 'am-default';
+
+    final updated = await ClientAgenticHarnessService.instance.addCustomRule(
+      amId: amId,
+      clientId: widget.clientId,
+      rule: ruleText,
+    );
+
+    if (mounted) {
+      setState(() {
+        _harness = updated;
+        _ruleController.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Learned directive: "$ruleText"'),
+          backgroundColor: ClinicSageColors.tertiary,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onDeleteRule(String rule) async {
+    final am = ref.read(authProvider).user;
+    final amId = am?.id ?? 'am-default';
+
+    final updated = await ClientAgenticHarnessService.instance.deleteRule(
+      amId: amId,
+      clientId: widget.clientId,
+      rule: rule,
+    );
+
+    if (mounted) {
+      setState(() => _harness = updated);
     }
   }
 
@@ -1375,3 +1495,469 @@ class _DocumentsDropZone extends StatelessWidget {
     );
   }
 }
+
+/// Agentic Harness & Brain Interactive Panel
+class _AgenticHarnessView extends StatelessWidget {
+  final ClientAgenticHarnessModel? harness;
+  final bool isSynthesizing;
+  final TextEditingController ruleController;
+  final VoidCallback onSync;
+  final VoidCallback onAddRule;
+  final ValueChanged<String> onDeleteRule;
+
+  const _AgenticHarnessView({
+    required this.harness,
+    required this.isSynthesizing,
+    required this.ruleController,
+    required this.onSync,
+    required this.onAddRule,
+    required this.onDeleteRule,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final version = harness?.version ?? 1;
+    final lastTime = harness?.lastSynthesized != null
+        ? '${harness!.lastSynthesized.hour.toString().padLeft(2, '0')}:${harness!.lastSynthesized.minute.toString().padLeft(2, '0')}'
+        : 'Just now';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: ClinicSageColors.surface,
+        borderRadius: BorderRadius.circular(ClinicSageRadius.lg),
+        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.35), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Top Status Header ────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF8B5CF6).withOpacity(0.18),
+                  const Color(0xFF6366F1).withOpacity(0.08),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(ClinicSageRadius.lg),
+                topRight: Radius.circular(ClinicSageRadius.lg),
+              ),
+              border: Border(
+                bottom: BorderSide(color: const Color(0xFF8B5CF6).withOpacity(0.2)),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.4)),
+                  ),
+                  child: const Icon(Icons.psychology_rounded, color: Color(0xFFA78BFA), size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Client Agentic Brain (v$version)',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.check_circle_outline, size: 11, color: Color(0xFF34D399)),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Continuous Learning Active',
+                                  style: TextStyle(
+                                    color: Color(0xFF34D399),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Autonomous OpenRouter Memory Engine • Ingests every questionnaire answer, pitch deck, and edit • Last updated: $lastTime',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: ClinicSageColors.secondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: isSynthesizing ? null : onSync,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B5CF6),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ClinicSageRadius.md)),
+                  ),
+                  icon: isSynthesizing
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.sync_rounded, size: 16),
+                  label: Text(
+                    isSynthesizing ? 'Synthesizing...' : 'Sync & Re-synthesize',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Body Sections ─────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Brand Voice & Tone DNA
+                _HarnessBlock(
+                  icon: Icons.record_voice_over_rounded,
+                  title: 'Brand Voice & Tone DNA',
+                  subtitle: 'Synthesized stylistic identity enforced across all Content Studio copy and proposals.',
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: ClinicSageColors.surface,
+                      borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    ),
+                    child: Text(
+                      harness?.brandVoice.isNotEmpty == true
+                          ? harness!.brandVoice
+                          : 'No custom voice synthesized yet. Upload pitch deck or fill discovery answers to generate.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontStyle: FontStyle.italic,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 2. Core Value Propositions & Moats
+                _HarnessBlock(
+                  icon: Icons.shield_outlined,
+                  title: 'Core Value Propositions & Competitive Moats',
+                  subtitle: 'Key pillars and defensive advantages the AI highlights in strategy and deliverables.',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (harness?.coreValueProps.isNotEmpty == true) ...[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: harness!.coreValueProps.map((vp) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6366F1).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.star_rounded, size: 14, color: Color(0xFF818CF8)),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      vp,
+                                      style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      if (harness?.competitiveMoats.isNotEmpty == true) ...[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: harness!.competitiveMoats.map((moat) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.25)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.verified_outlined, size: 14, color: Color(0xFF34D399)),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      moat,
+                                      style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      if ((harness?.coreValueProps.isEmpty ?? true) && (harness?.competitiveMoats.isEmpty ?? true))
+                        Text(
+                          'Pillars will be extracted automatically when you click "Sync & Re-synthesize" or save inputs.',
+                          style: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.secondary),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 3. Strict Learned Rules & Custom Directives
+                _HarnessBlock(
+                  icon: Icons.gavel_rounded,
+                  title: 'Strict Learned Rules & Directives (Custom Instructions)',
+                  subtitle: 'Every AI task (copy, video script, strategy) will strictly adhere to these rules.',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Active rules list
+                      if (harness?.learnedRules.isNotEmpty == true) ...[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: harness!.learnedRules.map((rule) {
+                            return Chip(
+                              backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+                              ),
+                              avatar: const Icon(Icons.lock_clock, size: 14, color: Color(0xFFA78BFA)),
+                              label: Text(
+                                rule,
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                              ),
+                              deleteIcon: const Icon(Icons.close, size: 14, color: ClinicSageColors.secondary),
+                              onDeleted: () => onDeleteRule(rule),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // Add rule input
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: ruleController,
+                              style: const TextStyle(fontSize: 13, color: Colors.white),
+                              decoration: InputDecoration(
+                                hintText: 'Teach rule, e.g. "Always highlight our APAC network and JETRO partnership"',
+                                hintStyle: TextStyle(fontSize: 12, color: ClinicSageColors.secondary.withOpacity(0.7)),
+                                prefixIcon: const Icon(Icons.add_task_rounded, size: 16, color: Color(0xFFA78BFA)),
+                                filled: true,
+                                fillColor: ClinicSageColors.surface,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                                  borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                                ),
+                              ),
+                              onSubmitted: (_) => onAddRule(),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton.icon(
+                            onPressed: onAddRule,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.25),
+                              foregroundColor: const Color(0xFFA78BFA),
+                              elevation: 0,
+                              side: BorderSide(color: const Color(0xFF8B5CF6).withOpacity(0.4)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ClinicSageRadius.md)),
+                            ),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Teach Directive', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 4. Knowledge Digest & Evolution Log
+                if (harness?.knowledgeDigest.isNotEmpty == true && harness!.knowledgeDigest != 'No discovery inputs ingested yet.') ...[
+                  _HarnessBlock(
+                    icon: Icons.auto_stories_rounded,
+                    title: 'Synthesized Client Knowledge Digest',
+                    subtitle: 'Dense, fact-based summary of business model, traction, and proprietary strengths.',
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: ClinicSageColors.surface,
+                        borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      ),
+                      child: Text(
+                        harness!.knowledgeDigest,
+                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withOpacity(0.85), height: 1.5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // 5. Recent Learning Events
+                if (harness?.evolutionLog.isNotEmpty == true) ...[
+                  _HarnessBlock(
+                    icon: Icons.history_rounded,
+                    title: 'Recent Learning Milestones',
+                    subtitle: 'Audit trail of events where the Agentic Brain evolved from user inputs and uploads.',
+                    child: Column(
+                      children: harness!.evolutionLog.take(4).map((evt) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF8B5CF6),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      evt.title,
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                                    ),
+                                    Text(
+                                      evt.description,
+                                      style: TextStyle(fontSize: 11, color: ClinicSageColors.secondary.withOpacity(0.8)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                '${evt.timestamp.hour.toString().padLeft(2, '0')}:${evt.timestamp.minute.toString().padLeft(2, '0')}',
+                                style: const TextStyle(fontSize: 10, color: ClinicSageColors.secondary),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HarnessBlock extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  const _HarnessBlock({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFFA78BFA)),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: ClinicSageColors.secondary,
+            fontSize: 11,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+

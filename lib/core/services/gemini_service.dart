@@ -6,6 +6,7 @@ import '../../data/models/content_deliverable_model.dart';
 import '../../data/models/strategy_deliverable_model.dart';
 import '../../data/models/proposal_model.dart';
 import 'proposal_domain_engine.dart';
+import 'client_agentic_harness_service.dart';
 
 /// Task types for OpenRouter autonomous routing and capability detection
 enum OpenRouterTaskType {
@@ -54,6 +55,51 @@ class GeminiService {
 
   /// Exposed fallback generator for testing and offline execution
   String getFallbackContent(ContentType type, String clientName) => _getFallbackContent(type, clientName);
+
+  /// Public entrypoint for simple text generation with OpenRouter task routing
+  Future<String?> generateSimpleText({
+    required String prompt,
+    OpenRouterTaskType taskType = OpenRouterTaskType.generalMarketing,
+    String? systemPrompt,
+    List<String>? mediaUrls,
+    int? maxTokens,
+    double temperature = 0.7,
+  }) => _callOpenRouterAutonomous(
+    prompt: prompt,
+    taskType: taskType,
+    systemPrompt: systemPrompt,
+    mediaUrls: mediaUrls,
+    maxTokens: maxTokens,
+    temperature: temperature,
+  );
+
+  /// Robust JSON extractor from AI output containing markdown or conversational preambles
+  String extractJsonFromText(String raw) {
+    var text = raw.trim();
+    if (text.startsWith('```json')) {
+      text = text.substring(7);
+    } else if (text.startsWith('```')) {
+      text = text.substring(3);
+    }
+    if (text.endsWith('```')) {
+      text = text.substring(0, text.length - 3);
+    }
+    text = text.trim();
+
+    final firstBrace = text.indexOf('{');
+    final lastBrace = text.lastIndexOf('}');
+    if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+      return text.substring(firstBrace, lastBrace + 1);
+    }
+
+    final firstBracket = text.indexOf('[');
+    final lastBracket = text.lastIndexOf(']');
+    if (firstBracket != -1 && lastBracket != -1 && lastBracket > firstBracket) {
+      return text.substring(firstBracket, lastBracket + 1);
+    }
+
+    return text;
+  }
 
   /// Generate an AI image directly via text prompt using OpenRouter Image API
   /// Uses ByteDance Seed: Seedream 5.0 Pro ($0.045/image) for commercial visual-production quality
@@ -227,6 +273,14 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
   }) async {
     final history = <String>[];
 
+    String? harnessContext;
+    if (clientId != null && clientId.isNotEmpty) {
+      final cached = ClientAgenticHarnessService.instance.getCachedHarness(clientId);
+      if (cached != null) {
+        harnessContext = ClientAgenticHarnessService.instance.buildContextInjection(cached);
+      }
+    }
+
     final prompt = _buildContentPrompt(
       type: type,
       clientName: clientName,
@@ -239,6 +293,7 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
       referenceDocuments: referenceDocuments,
       extractedPdfContent: extractedPdfContent,
       vettedHistory: history,
+      agenticHarnessContext: harnessContext,
     );
 
     final taskType = switch (type) {
@@ -274,11 +329,20 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
         ? 'Ingested Pitch Deck & Strategy Content:\n${extractedPdfContent.length > 3000 ? extractedPdfContent.substring(0, 3000) : extractedPdfContent}\n\n'
         : '';
 
+    String? harnessContext;
+    if (clientId.isNotEmpty) {
+      final cached = ClientAgenticHarnessService.instance.getCachedHarness(clientId);
+      if (cached != null) {
+        harnessContext = ClientAgenticHarnessService.instance.buildContextInjection(cached);
+      }
+    }
+
     final prompt = '''
 You are an expert strategic advisor generating a comprehensive marketing strategy EXCLUSIVELY FOR CLIENT "$clientName" (Industry: "$industry").
 DO NOT talk about Meet Marketers AI or agency software. Focus 100% on "$clientName".
 
 $pdfContext
+${harnessContext ?? ''}
 Return a JSON object strictly matching this schema:
 {
   "swot": {
@@ -386,6 +450,7 @@ Return a JSON object strictly matching this schema:
     String? pitchDeckFileName,
     String? pitchDeckStorageUrl,
     String? amId,
+    String? clientId,
   }) async {
     final proposalId = 'prop-${DateTime.now().millisecondsSinceEpoch}';
 
@@ -402,10 +467,18 @@ Return a JSON object strictly matching this schema:
       extractedPitchDeckText: extractedPitchDeckText,
     );
 
-    // 2. Build domain-aware AI prompt for Gemini
+    // 2. Build domain-aware AI prompt for OpenRouter
     final socialText = (socialUrls != null && socialUrls.isNotEmpty)
         ? socialUrls.entries.map((e) => '${e.key}: ${e.value}').join(', ')
         : 'None provided';
+
+    String? harnessContext;
+    if (clientId != null && clientId.isNotEmpty) {
+      final cached = ClientAgenticHarnessService.instance.getCachedHarness(clientId);
+      if (cached != null) {
+        harnessContext = ClientAgenticHarnessService.instance.buildContextInjection(cached);
+      }
+    }
 
     final hasPitchDeck = extractedPitchDeckText != null && extractedPitchDeckText.trim().isNotEmpty;
     final pitchDeckContext = hasPitchDeck
@@ -426,6 +499,7 @@ Generate a comprehensive, bespoke 13-section "Digital & Content Direction Propos
 Website: $websiteUrl
 Social Media: $socialText
 $pitchDeckContext
+${harnessContext ?? ''}
 
 STRICT REQUIREMENTS:
 1. Ground the strategy entirely in this business's actual offerings, target clients, and sector dynamics ($industry).
@@ -678,6 +752,7 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     List<String>? referenceDocuments,
     String? extractedPdfContent,
     List<String>? vettedHistory,
+    String? agenticHarnessContext,
   }) {
     final Map<String, String> qLabels = {
       'targetCustomer': 'Who is your target customer?',
@@ -713,6 +788,9 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     final historyText = (vettedHistory != null && vettedHistory.isNotEmpty)
         ? '\nApproved Historical Benchmarks (Emulate Brand Voice & Preference):\n${vettedHistory.take(5).map((h) => '--- Approved Benchmark ---\n$h').join('\n')}\n'
         : '';
+    final harnessText = (agenticHarnessContext != null && agenticHarnessContext.isNotEmpty)
+        ? '\n$agenticHarnessContext\n'
+        : '';
 
     return '''
 You are an elite AI marketing strategist generating content EXCLUSIVELY FOR CLIENT: "$clientName" (Industry: "$industry", Website: "${websiteUrl ?? 'N/A'}").
@@ -726,7 +804,7 @@ Ingested Discovery Intake Information for "$clientName":
 $qText
 $compText$roleText$imagesText$docsText$pdfText
 $historyText
-
+$harnessText
 Task: Generate a clean, conversion-driven ${type.label} tailored specifically for "$clientName".
 
 FORMATTING RULES:
