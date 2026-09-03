@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/router/app_router.dart';
+import '../../../shared/widgets/app_logo.dart';
 import '../providers/auth_provider.dart';
 
 /// Phase 0: Account Manager Authentication
@@ -150,16 +151,7 @@ class _BrandPanel extends StatelessWidget {
               opacity: logoOpacity,
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      gradient: ClinicSageGradients.tertiary,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: ClinicSageShadows.aiGlow,
-                    ),
-                    child: const Icon(Icons.auto_awesome, size: 20, color: Colors.white),
-                  ),
+                  const AppLogo(size: 40, showBorder: false),
                   const SizedBox(width: 14),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

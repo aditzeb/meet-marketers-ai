@@ -7,6 +7,7 @@ import '../../data/models/client_model.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/dashboard/providers/client_provider.dart';
 import '../dialogs/create_client_dialog.dart';
+import 'app_logo.dart';
 
 /// Persistent AM Navigation Shell — wraps all authenticated screens
 /// with a fixed 260px sidebar showing the real client roster.
@@ -140,16 +141,7 @@ class _ExpandedSidebar extends StatelessWidget {
           child: ClipRect(
             child: Row(
               children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    gradient: ClinicSageGradients.brandVibrant,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: ClinicSageShadows.aiGlow,
-                  ),
-                  child: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
-                ),
+                const AppLogo(size: 32),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -713,17 +705,7 @@ class _CollapsedSidebar extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Container(
-          width: 34,
-          height: 34,
-          margin: const EdgeInsets.symmetric(horizontal: 15),
-          decoration: BoxDecoration(
-            gradient: ClinicSageGradients.brandVibrant,
-            borderRadius: BorderRadius.circular(9),
-            boxShadow: ClinicSageShadows.aiGlow,
-          ),
-          child: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
-        ),
+        const AppLogo(size: 34),
         const SizedBox(height: 16),
         const Divider(indent: 12, endIndent: 12),
         const SizedBox(height: 8),
