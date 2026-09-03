@@ -102,7 +102,7 @@ class GeminiService {
   }
 
   /// Generate an AI image directly via text prompt using OpenRouter Image API
-  /// Uses ByteDance Seed: Seedream 5.0 Pro ($0.045/image) for commercial visual-production quality.
+  /// Uses Google: Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image) — $0.25/$1.50 per 1M tokens, ~4s/image.
   /// Supports reference images (input_references) such as brand logos to blend into generated visuals.
   Future<String> generateImage(
     String prompt, {
