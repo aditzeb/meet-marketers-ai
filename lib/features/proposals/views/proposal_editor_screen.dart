@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/services/proposal_pdf_service.dart';
 import '../../../core/services/proposal_domain_engine.dart';
+import '../../../core/services/web_download_helper.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/proposal_model.dart';
 import '../providers/proposal_provider.dart';
@@ -732,18 +734,32 @@ class _StatusBadge extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB 1: Strategy & Executive Summary & SWOT Matrix & 4Ps
 // ─────────────────────────────────────────────────────────────────────────────
-class _Tab1Strategy extends StatelessWidget {
+class _Tab1Strategy extends StatefulWidget {
   final ProposalModel proposal;
   final ValueChanged<ProposalModel> onChanged;
 
   const _Tab1Strategy({required this.proposal, required this.onChanged});
 
   @override
+  State<_Tab1Strategy> createState() => _Tab1StrategyState();
+}
+
+class _Tab1StrategyState extends State<_Tab1Strategy> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
-    return ListView(
+    super.build(context);
+    final proposal = widget.proposal;
+    final onChanged = widget.onChanged;
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      children: [
-        // Pitch Deck Extraction Banner
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Pitch Deck Extraction Banner
         if (proposal.pitchDeckFileName != null || (proposal.extractedPitchDeckText != null && proposal.extractedPitchDeckText!.isNotEmpty))
           Container(
             margin: const EdgeInsets.only(bottom: 20),
@@ -955,6 +971,7 @@ class _Tab1Strategy extends StatelessWidget {
           ],
         ),
       ],
+      ),
     );
   }
 }
@@ -962,20 +979,33 @@ class _Tab1Strategy extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB 2: PEST Analysis, Competitor Benchmark & Perceptual Map
 // ─────────────────────────────────────────────────────────────────────────────
-class _Tab2MarketPositioning extends StatelessWidget {
+class _Tab2MarketPositioning extends StatefulWidget {
   final ProposalModel proposal;
   final ValueChanged<ProposalModel> onChanged;
 
   const _Tab2MarketPositioning({required this.proposal, required this.onChanged});
 
   @override
+  State<_Tab2MarketPositioning> createState() => _Tab2MarketPositioningState();
+}
+
+class _Tab2MarketPositioningState extends State<_Tab2MarketPositioning> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
+    final proposal = widget.proposal;
+    final onChanged = widget.onChanged;
     final pest = proposal.pestAnalysis;
 
-    return ListView(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      children: [
-        // PEST Analysis
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // PEST Analysis
         _SectionContainer(
           title: 'PEST Environmental Analysis',
           subtitle: 'Political, Economic, Social, and Technological market drivers (Page 4 of PDF)',
@@ -1228,6 +1258,7 @@ class _Tab2MarketPositioning extends StatelessWidget {
           ],
         ),
       ],
+      ),
     );
   }
 }
@@ -1258,17 +1289,41 @@ class _MediaPickerCard extends ConsumerStatefulWidget {
   ConsumerState<_MediaPickerCard> createState() => _MediaPickerCardState();
 }
 
-class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
+class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  // Global in-flight task tracker: keeps generation running seamlessly across scrolls and tab switches
+  static final Map<String, Future<String>> _activeImageGenerations = {};
+
   bool _isGenerating = false;
   bool _isUploading = false;
   late TextEditingController _urlCtrl;
   late TextEditingController _promptCtrl;
+
+  String get _taskKey => '${widget.proposalId}::${widget.title}';
 
   @override
   void initState() {
     super.initState();
     _urlCtrl = TextEditingController(text: widget.mediaUrl ?? '');
     _promptCtrl = TextEditingController(text: widget.promptHint);
+    _checkActiveTask();
+  }
+
+  void _checkActiveTask() {
+    final key = _taskKey;
+    if (_activeImageGenerations.containsKey(key)) {
+      _isGenerating = true;
+      _activeImageGenerations[key]!.then((url) {
+        if (mounted) {
+          _urlCtrl.text = url;
+          setState(() => _isGenerating = false);
+        }
+      }).catchError((_) {
+        if (mounted) setState(() => _isGenerating = false);
+      });
+    }
   }
 
   @override
@@ -1280,6 +1335,7 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
     if (oldWidget.promptHint != widget.promptHint && _promptCtrl.text == oldWidget.promptHint) {
       _promptCtrl.text = widget.promptHint;
     }
+    _checkActiveTask();
   }
 
   @override
@@ -1290,23 +1346,36 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
   }
 
   Future<void> _generateAi() async {
+    final key = _taskKey;
+    if (_activeImageGenerations.containsKey(key)) {
+      setState(() => _isGenerating = true);
+      return;
+    }
+
     setState(() => _isGenerating = true);
+    final notifier = ref.read(proposalProvider.notifier);
+    final activePrompt = _promptCtrl.text.trim().isNotEmpty ? _promptCtrl.text.trim() : widget.promptHint;
+
+    final future = notifier.generateAiAssetImage(
+      prompt: activePrompt,
+      category: widget.title,
+      proposalId: widget.proposalId,
+      logoUrl: widget.logoUrl,
+      companyName: widget.companyName,
+    );
+
+    _activeImageGenerations[key] = future;
+
     try {
-      final notifier = ref.read(proposalProvider.notifier);
-      final activePrompt = _promptCtrl.text.trim().isNotEmpty ? _promptCtrl.text.trim() : widget.promptHint;
-      final url = await notifier.generateAiAssetImage(
-        prompt: activePrompt,
-        category: widget.title,
-        proposalId: widget.proposalId,
-        logoUrl: widget.logoUrl,
-        companyName: widget.companyName,
-      );
+      final url = await future;
+      // Unconditionally update proposal model so data is never lost if scrolled off-screen
+      widget.onMediaUrlChanged(url);
+
       if (mounted) {
         _urlCtrl.text = url;
-        widget.onMediaUrlChanged(url);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✨ OpenRouter AI visual synthesized for ${widget.title} (with brand blending)'),
+            content: Text('✨ High-resolution AI visual synthesized for ${widget.title}!'),
             backgroundColor: ClinicSageColors.tertiary,
           ),
         );
@@ -1333,6 +1402,7 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
         );
       }
     } finally {
+      _activeImageGenerations.remove(key);
       if (mounted) setState(() => _isGenerating = false);
     }
   }
@@ -1381,6 +1451,19 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
     }
   }
 
+  void _showExpandedImage(BuildContext context, String rawUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.92),
+      builder: (ctx) => _ExpandedImageDialog(
+        title: widget.title,
+        rawUrl: rawUrl,
+        companyName: widget.companyName,
+        logoUrl: widget.logoUrl,
+      ),
+    );
+  }
+
   Widget _buildImagePreview(String rawUrl) {
     final trimmed = rawUrl.trim();
     Widget imageWidget;
@@ -1411,56 +1494,87 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
 
     final hasLogo = widget.logoUrl != null && widget.logoUrl!.trim().isNotEmpty;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        height: 220,
-        width: double.infinity,
-        color: const Color(0xFF0F172A),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            imageWidget,
-            if (hasLogo)
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.75),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.white.withOpacity(0.25)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: Container(
-                          width: 18,
-                          height: 18,
-                          color: Colors.white,
-                          child: widget.logoUrl!.startsWith('data:image')
-                              ? Image.memory(
-                                  base64Decode(widget.logoUrl!.substring(widget.logoUrl!.indexOf(',') + 1)),
-                                  fit: BoxFit.contain,
-                                )
-                              : Image.network(widget.logoUrl!, fit: BoxFit.contain),
-                        ),
-                      ),
-                      if (widget.companyName != null && widget.companyName!.isNotEmpty) ...[
-                        const SizedBox(width: 6),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _showExpandedImage(context, rawUrl),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            height: 220,
+            width: double.infinity,
+            color: const Color(0xFF0F172A),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                imageWidget,
+                // Top-left click-to-expand badge
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFA3E635).withOpacity(0.6), width: 0.8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.zoom_in, size: 14, color: Color(0xFFA3E635)),
+                        SizedBox(width: 5),
                         Text(
-                          widget.companyName!,
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                          'Click to Expand',
+                          style: TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.w700),
                         ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-          ],
+                // Top-right brand watermark badge
+                if (hasLogo)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.75),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.white.withOpacity(0.25)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              color: Colors.white,
+                              child: widget.logoUrl!.startsWith('data:image')
+                                  ? Image.memory(
+                                      base64Decode(widget.logoUrl!.substring(widget.logoUrl!.indexOf(',') + 1)),
+                                      fit: BoxFit.contain,
+                                    )
+                                  : Image.network(widget.logoUrl!, fit: BoxFit.contain),
+                            ),
+                          ),
+                          if (widget.companyName != null && widget.companyName!.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Text(
+                              widget.companyName!,
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -1506,6 +1620,7 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final hasUrl = _urlCtrl.text.isNotEmpty;
     final hasLogo = widget.logoUrl != null && widget.logoUrl!.trim().isNotEmpty;
 
@@ -1550,8 +1665,17 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
                 onPressed: (_isGenerating || _isUploading) ? null : _generateAi,
-                icon: const Icon(Icons.auto_awesome, size: 14),
-                label: const Text('Generate with AI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                icon: _isGenerating
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA3E635))),
+                      )
+                    : const Icon(Icons.auto_awesome, size: 14),
+                label: Text(
+                  _isGenerating ? 'Synthesizing Visual...' : 'Generate with AI',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                ),
               ),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
@@ -1619,11 +1743,329 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
             ),
             onChanged: widget.onMediaUrlChanged,
           ),
+
+          // ── Persistent Active Image Generation Progress Card ──────────
+          if (_isGenerating) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFA3E635).withOpacity(0.5)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA3E635)),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Synthesizing High-Resolution Visual with AI...',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFA3E635).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Seedream 5.0 Pro · OpenRouter',
+                          style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: Color(0xFFA3E635)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const ClipRRect(
+                    borderRadius: BorderRadius.all(Radius.circular(2)),
+                    child: LinearProgressIndicator(
+                      minHeight: 3,
+                      backgroundColor: Color(0xFF1E293B),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA3E635)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    hasLogo
+                        ? 'Blending official ${widget.companyName ?? 'Brand'} logo as illuminated architectural signage & luxury backdrop...'
+                        : 'Rendering photorealistic lighting, cinematic grading, and 4K commercial detail...',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '✓ Persistent Task: You can safely scroll and edit other sections. Your image will appear here automatically when complete.',
+                    style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           if (hasUrl) ...[
             const SizedBox(height: 12),
             _buildImagePreview(_urlCtrl.text),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Interactive Full-Resolution Lightbox Viewer
+// ─────────────────────────────────────────────────────────────────────────────
+class _ExpandedImageDialog extends StatelessWidget {
+  final String title;
+  final String rawUrl;
+  final String? companyName;
+  final String? logoUrl;
+
+  const _ExpandedImageDialog({
+    required this.title,
+    required this.rawUrl,
+    this.companyName,
+    this.logoUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = rawUrl.trim();
+    Widget imageWidget;
+    Uint8List? rawBytes;
+
+    if (trimmed.startsWith('data:image')) {
+      final commaIdx = trimmed.indexOf(',');
+      if (commaIdx != -1) {
+        try {
+          rawBytes = base64Decode(trimmed.substring(commaIdx + 1));
+          imageWidget = Image.memory(rawBytes, fit: BoxFit.contain);
+        } catch (_) {
+          imageWidget = const Center(child: Text('Failed to decode image bytes', style: TextStyle(color: Colors.white)));
+        }
+      } else {
+        imageWidget = const Center(child: Text('Invalid data URI', style: TextStyle(color: Colors.white)));
+      }
+    } else {
+      imageWidget = Image.network(
+        trimmed,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Center(child: Text('Failed to load remote image', style: TextStyle(color: Colors.white))),
+      );
+    }
+
+    final hasLogo = logoUrl != null && logoUrl!.trim().isNotEmpty;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.92,
+        height: MediaQuery.of(context).size.height * 0.90,
+        decoration: BoxDecoration(
+          color: const Color(0xFF090D10),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF334155), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.8),
+              blurRadius: 30,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Top Bar
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: const BoxDecoration(
+                color: Color(0xFF0F172A),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                border: Border(bottom: BorderSide(color: Color(0xFF1E293B))),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFA3E635).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.fullscreen, color: Color(0xFFA3E635), size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${companyName ?? 'Executive Proposal Asset'} · High-Resolution Inspection · Interactive Zoom & Pan',
+                          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Copy Link Button
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xFF475569)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: rawUrl));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✓ Image asset data/URL copied to clipboard!'),
+                          backgroundColor: Color(0xFF10B981),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.copy, size: 14),
+                    label: const Text('Copy Asset', style: TextStyle(fontSize: 11)),
+                  ),
+                  const SizedBox(width: 8),
+                  // Download Button
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFA3E635),
+                      foregroundColor: const Color(0xFF0A0D0D),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    onPressed: () {
+                      final cleanName = '${title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                      if (rawBytes != null) {
+                        downloadWebBytes(rawBytes, cleanName);
+                      } else {
+                        downloadWebFile(rawUrl, cleanName);
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('✓ Downloading $cleanName...'),
+                          backgroundColor: const Color(0xFF10B981),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.download, size: 14),
+                    label: const Text('Download High-Res', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                    tooltip: 'Close (Esc)',
+                  ),
+                ],
+              ),
+            ),
+            // Center Canvas with InteractiveViewer
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(
+                    color: const Color(0xFF05080A),
+                    child: Center(
+                      child: InteractiveViewer(
+                        minScale: 0.5,
+                        maxScale: 5.0,
+                        clipBehavior: Clip.none,
+                        child: imageWidget,
+                      ),
+                    ),
+                  ),
+                  if (hasLogo)
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                color: Colors.white,
+                                child: logoUrl!.startsWith('data:image')
+                                    ? Image.memory(
+                                        base64Decode(logoUrl!.substring(logoUrl!.indexOf(',') + 1)),
+                                        fit: BoxFit.contain,
+                                      )
+                                    : Image.network(logoUrl!, fit: BoxFit.contain),
+                              ),
+                            ),
+                            if (companyName != null && companyName!.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                companyName!,
+                                style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  // Bottom helper tip
+                  Positioned(
+                    bottom: 12,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.65),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.pinch, color: Color(0xFFA3E635), size: 14),
+                            SizedBox(width: 6),
+                            Text(
+                              'Pinch or scroll-wheel to zoom · Drag to pan around image',
+                              style: TextStyle(color: Colors.white70, fontSize: 10.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1695,28 +2137,44 @@ class _CompanyLogoCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: hasLogo ? const Color(0xFF86EFAC) : ClinicSageColors.border),
-            ),
-            padding: const EdgeInsets.all(4),
-            child: hasLogo
-                ? (logoUrl!.startsWith('data:image')
-                    ? Image.memory(
-                        base64Decode(logoUrl!.substring(logoUrl!.indexOf(',') + 1)),
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 20),
+          MouseRegion(
+            cursor: hasLogo ? SystemMouseCursors.click : SystemMouseCursors.basic,
+            child: GestureDetector(
+              onTap: hasLogo
+                  ? () => showDialog(
+                        context: context,
+                        barrierColor: Colors.black.withOpacity(0.92),
+                        builder: (ctx) => _ExpandedImageDialog(
+                          title: '$companyName Official Brand Logo',
+                          rawUrl: logoUrl!,
+                          companyName: companyName,
+                        ),
                       )
-                    : Image.network(
-                        logoUrl!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 20),
-                      ))
-                : const Icon(Icons.add_photo_alternate_outlined, color: ClinicSageColors.secondary, size: 24),
+                  : null,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: hasLogo ? const Color(0xFF86EFAC) : ClinicSageColors.border),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: hasLogo
+                    ? (logoUrl!.startsWith('data:image')
+                        ? Image.memory(
+                            base64Decode(logoUrl!.substring(logoUrl!.indexOf(',') + 1)),
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 20),
+                          )
+                        : Image.network(
+                            logoUrl!,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 20),
+                          ))
+                    : const Icon(Icons.add_photo_alternate_outlined, color: ClinicSageColors.secondary, size: 24),
+              ),
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1777,18 +2235,32 @@ class _CompanyLogoCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB 3: Creative Direction, Visual Guidelines & Content Framework
 // ─────────────────────────────────────────────────────────────────────────────
-class _Tab3CreativeDirection extends StatelessWidget {
+class _Tab3CreativeDirection extends StatefulWidget {
   final ProposalModel proposal;
   final ValueChanged<ProposalModel> onChanged;
 
   const _Tab3CreativeDirection({required this.proposal, required this.onChanged});
 
   @override
+  State<_Tab3CreativeDirection> createState() => _Tab3CreativeDirectionState();
+}
+
+class _Tab3CreativeDirectionState extends State<_Tab3CreativeDirection> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
-    return ListView(
+    super.build(context);
+    final proposal = widget.proposal;
+    final onChanged = widget.onChanged;
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      children: [
-        // 1. Visual Direction & Keywords
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Visual Direction & Keywords
         _SectionContainer(
           title: '1. Visual Direction & Aesthetic Framework',
           subtitle: 'Core creative direction, visual keywords, and hero media asset (Page 8 of PDF)',
@@ -2101,6 +2573,7 @@ class _Tab3CreativeDirection extends StatelessWidget {
           ],
         ),
       ],
+      ),
     );
   }
 
@@ -2132,18 +2605,32 @@ class _Tab3CreativeDirection extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // TAB 4: Copywriting, Social Media & SEO Audit
 // ─────────────────────────────────────────────────────────────────────────────
-class _Tab4CopywritingAndSeo extends StatelessWidget {
+class _Tab4CopywritingAndSeo extends StatefulWidget {
   final ProposalModel proposal;
   final ValueChanged<ProposalModel> onChanged;
 
   const _Tab4CopywritingAndSeo({required this.proposal, required this.onChanged});
 
   @override
+  State<_Tab4CopywritingAndSeo> createState() => _Tab4CopywritingAndSeoState();
+}
+
+class _Tab4CopywritingAndSeoState extends State<_Tab4CopywritingAndSeo> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
-    return ListView(
+    super.build(context);
+    final proposal = widget.proposal;
+    final onChanged = widget.onChanged;
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      children: [
-        // 1. 3 Multi-Angle Social Media Post Concepts (Page 10 of PDF)
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. 3 Multi-Angle Social Media Post Concepts (Page 10 of PDF)
         _SectionContainer(
           title: '1. Sample Social Media Copywriting & Graphic Mockups',
           subtitle: '3 high-converting post angles tailored to ${proposal.leadCompanyName} and ${proposal.industry} (Page 10 of PDF)',
@@ -2458,6 +2945,7 @@ class _Tab4CopywritingAndSeo extends StatelessWidget {
           ],
         ),
       ],
+      ),
     );
   }
 
