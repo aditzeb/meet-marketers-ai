@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/views/auth_screen.dart';
+import '../../features/auth/views/pending_approval_screen.dart';
 import '../../features/dashboard/views/dashboard_screen.dart';
 import '../../features/client_inputs/views/client_inputs_screen.dart';
 import '../../features/content_studio/views/content_studio_screen.dart';
@@ -16,6 +17,7 @@ import '../../shared/widgets/app_shell.dart';
 // Route name constants
 abstract class AppRoutes {
   static const String auth = '/auth';
+  static const String pendingApproval = '/pending-approval';
   static const String dashboard = '/dashboard';
   static const String userManagement = '/user-management';
   static const String clientInputs = '/client/:clientId/inputs';
@@ -46,19 +48,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final authState = ref.read(authProvider);
       final isAuthRoute = state.matchedLocation == AppRoutes.auth;
+      final isPendingRoute = state.matchedLocation == AppRoutes.pendingApproval;
 
       // Unauthenticated users must stay on or be redirected to /auth
       if (!authState.isAuthenticated) {
         return isAuthRoute ? null : AppRoutes.auth;
       }
 
-      // Authenticated users on /auth are directed to /dashboard
-      if (isAuthRoute) {
+      final user = authState.user;
+
+      // Newly registered accounts cannot do anything until assigned a role by Admin
+      if (user != null && user.isPending) {
+        return isPendingRoute ? null : AppRoutes.pendingApproval;
+      }
+
+      // Approved users with active roles should not stay on /auth or /pending-approval
+      if (isAuthRoute || isPendingRoute) {
         return AppRoutes.dashboard;
       }
 
       // Restricted to Admin role only
-      if (state.matchedLocation == AppRoutes.userManagement && authState.user?.isAdmin != true) {
+      if (state.matchedLocation == AppRoutes.userManagement && user?.isAdmin != true) {
         return AppRoutes.dashboard;
       }
 
@@ -70,6 +80,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.auth,
         name: 'auth',
         builder: (context, state) => const AuthScreen(),
+      ),
+
+      // ── Pending Role Assignment ──────────────────────────
+      GoRoute(
+        path: AppRoutes.pendingApproval,
+        name: 'pending-approval',
+        builder: (context, state) => const PendingApprovalScreen(),
       ),
 
       // ── Authenticated Shell (persistent sidebar) ─────────

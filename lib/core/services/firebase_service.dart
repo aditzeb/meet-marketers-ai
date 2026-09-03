@@ -29,19 +29,25 @@ class FirebaseService {
       if (user != null) {
         debugPrint('Firebase Auth user state updated: ${user.uid} (${user.email})');
         final existing = await getAccountManager(user.uid);
+        final cleanEmail = (user.email ?? '').toLowerCase().trim();
+        final isOwner = cleanEmail == 'aditya@herbalties.com';
+
         if (existing == null) {
           final isFirst = await _isFirstRegisteredUser();
-          final role = (isFirst || (user.email != null && user.email!.toLowerCase().contains('admin'))) ? 'admin' : 'accountManager';
+          final role = (isOwner || isFirst || cleanEmail.contains('admin')) ? 'admin' : 'pending';
           final am = AccountManagerModel(
             id: user.uid,
-            displayName: user.displayName ?? user.email?.split('@').first ?? 'Account Manager',
-            email: user.email ?? 'am@agency.com',
+            displayName: user.displayName ?? user.email?.split('@').first ?? 'User',
+            email: user.email ?? '',
             createdAt: DateTime.now(),
             lastLoginAt: DateTime.now(),
             role: role,
             assignedClientIds: const [],
           );
           await _ensureAccountManagerDoc(am);
+        } else if (isOwner && existing.role != 'admin') {
+          // Self-heal: ensure aditya@herbalties.com is permanently admin
+          await _ensureAccountManagerDoc(existing.copyWith(role: 'admin'));
         }
       }
     });
@@ -50,8 +56,12 @@ class FirebaseService {
   Future<bool> _isFirstRegisteredUser() async {
     if (!_isFirebaseAvailable) return false;
     try {
-      final snap = await firestore.collection('account_managers').limit(2).get();
-      return snap.docs.isEmpty;
+      final snap = await firestore.collection('users').limit(2).get();
+      if (snap.docs.isEmpty) {
+        final amSnap = await firestore.collection('account_managers').limit(2).get();
+        return amSnap.docs.isEmpty;
+      }
+      return false;
     } catch (_) {
       return false;
     }
@@ -60,9 +70,27 @@ class FirebaseService {
   Future<AccountManagerModel?> getAccountManager(String uid) async {
     if (!_isFirebaseAvailable) return null;
     try {
-      final doc = await firestore.collection('account_managers').doc(uid).get();
-      if (doc.exists && doc.data() != null) {
-        return AccountManagerModel.fromJson(doc.id, doc.data()!);
+      Map<String, dynamic>? data;
+
+      // 1. Check 'users' collection first (preferred)
+      final userDoc = await firestore.collection('users').doc(uid).get();
+      if (userDoc.exists && userDoc.data() != null) {
+        data = Map<String, dynamic>.from(userDoc.data()!);
+      } else {
+        // 2. Fallback to 'account_managers' collection
+        final amDoc = await firestore.collection('account_managers').doc(uid).get();
+        if (amDoc.exists && amDoc.data() != null) {
+          data = Map<String, dynamic>.from(amDoc.data()!);
+        }
+      }
+
+      if (data != null) {
+        final email = (data['email'] as String? ?? '').toLowerCase().trim();
+        // Guaranteed: aditya@herbalties.com is ALWAYS highest role (admin)
+        if (email == 'aditya@herbalties.com') {
+          data['role'] = 'admin';
+        }
+        return AccountManagerModel.fromJson(uid, data);
       }
     } catch (e) {
       debugPrint('Firestore getAccountManager error: $e');
@@ -73,20 +101,47 @@ class FirebaseService {
   Future<void> _ensureAccountManagerDoc(AccountManagerModel am) async {
     if (!_isFirebaseAvailable) return;
     try {
-      final doc = await firestore.collection('account_managers').doc(am.id).get();
+      final email = am.email.toLowerCase().trim();
+      final isOwner = email == 'aditya@herbalties.com';
       final payload = am.toJson();
-      if (doc.exists && doc.data() != null) {
-        final existingData = doc.data()!;
-        if (existingData.containsKey('role')) {
-          payload['role'] = existingData['role'];
+
+      // Check existing role in both collections to avoid rolling back admin edits
+      final userDoc = await firestore.collection('users').doc(am.id).get();
+      final amDoc = await firestore.collection('account_managers').doc(am.id).get();
+
+      String role = am.role;
+      List<dynamic> assignments = am.assignedClientIds;
+
+      if (userDoc.exists && userDoc.data() != null) {
+        final ud = userDoc.data()!;
+        if (ud.containsKey('role') && ud['role'] != null) {
+          role = ud['role'].toString();
         }
-        if (existingData.containsKey('assignedClientIds')) {
-          payload['assignedClientIds'] = existingData['assignedClientIds'];
+        if (ud.containsKey('assignedClientIds') && ud['assignedClientIds'] != null) {
+          assignments = ud['assignedClientIds'] as List;
+        }
+      } else if (amDoc.exists && amDoc.data() != null) {
+        final ad = amDoc.data()!;
+        if (ad.containsKey('role') && ad['role'] != null) {
+          role = ad['role'].toString();
+        }
+        if (ad.containsKey('assignedClientIds') && ad['assignedClientIds'] != null) {
+          assignments = ad['assignedClientIds'] as List;
         }
       }
+
+      // Hardcode highest role for aditya@herbalties.com
+      if (isOwner) {
+        role = 'admin';
+      }
+
+      payload['role'] = role;
+      payload['assignedClientIds'] = assignments;
       payload['lastLoginAt'] = DateTime.now().toIso8601String();
-      await firestore.collection('account_managers').doc(am.id).set(payload, SetOptions(merge: true));
+
+      // Synchronize to BOTH collections so Firestore never desyncs
       await firestore.collection('users').doc(am.id).set(payload, SetOptions(merge: true));
+      await firestore.collection('account_managers').doc(am.id).set(payload, SetOptions(merge: true));
     } catch (e) {
       debugPrint('Firestore _ensureAccountManagerDoc error: $e');
     }
@@ -94,6 +149,9 @@ class FirebaseService {
 
   // ── Authentication ────────────────────────────────────────────────────────
   Future<AccountManagerModel?> signInWithEmail(String email, String password) async {
+    final cleanEmail = email.toLowerCase().trim();
+    final isOwner = cleanEmail == 'aditya@herbalties.com';
+
     if (_isFirebaseAvailable) {
       try {
         final cred = await auth.signInWithEmailAndPassword(email: email, password: password);
@@ -101,7 +159,7 @@ class FirebaseService {
           var am = await getAccountManager(cred.user!.uid);
           if (am == null) {
             final isFirst = await _isFirstRegisteredUser();
-            final role = (isFirst || email.toLowerCase().contains('admin')) ? 'admin' : 'accountManager';
+            final role = (isOwner || isFirst || cleanEmail.contains('admin')) ? 'admin' : 'pending';
             am = AccountManagerModel(
               id: cred.user!.uid,
               displayName: cred.user!.displayName ?? email.split('@').first,
@@ -113,6 +171,9 @@ class FirebaseService {
             );
             await _ensureAccountManagerDoc(am);
           } else {
+            if (isOwner && am.role != 'admin') {
+              am = am.copyWith(role: 'admin');
+            }
             await _ensureAccountManagerDoc(am);
           }
           return am;
@@ -145,18 +206,22 @@ class FirebaseService {
       email: email,
       createdAt: DateTime.now(),
       lastLoginAt: DateTime.now(),
-      role: email.toLowerCase().contains('admin') ? 'admin' : 'accountManager',
+      role: (isOwner || cleanEmail.contains('admin')) ? 'admin' : 'pending',
     );
   }
 
   Future<AccountManagerModel?> signUpWithEmail(String name, String email, String password) async {
+    final cleanEmail = email.toLowerCase().trim();
+    final isOwner = cleanEmail == 'aditya@herbalties.com';
+
     if (_isFirebaseAvailable) {
       try {
         final cred = await auth.createUserWithEmailAndPassword(email: email, password: password);
         if (cred.user != null) {
           await cred.user!.updateDisplayName(name);
           final isFirst = await _isFirstRegisteredUser();
-          final role = (isFirst || email.toLowerCase().contains('admin')) ? 'admin' : 'accountManager';
+          // Newly registered accounts must be assigned a role by Admin, unless owner/first
+          final role = (isOwner || isFirst || cleanEmail.contains('admin')) ? 'admin' : 'pending';
           final am = AccountManagerModel(
             id: cred.user!.uid,
             displayName: name,
@@ -194,7 +259,7 @@ class FirebaseService {
       email: email,
       createdAt: DateTime.now(),
       lastLoginAt: DateTime.now(),
-      role: email.toLowerCase().contains('admin') ? 'admin' : 'accountManager',
+      role: (isOwner || cleanEmail.contains('admin')) ? 'admin' : 'pending',
     );
   }
 
@@ -202,8 +267,55 @@ class FirebaseService {
   Future<List<AccountManagerModel>> getAllUsers() async {
     if (_isFirebaseAvailable) {
       try {
-        final snap = await firestore.collection('account_managers').get();
-        return snap.docs.map((d) => AccountManagerModel.fromJson(d.id, d.data())).toList();
+        final Map<String, AccountManagerModel> userMap = {};
+
+        // 1. Fetch from 'users' collection
+        try {
+          final usersSnap = await firestore.collection('users').get();
+          for (final d in usersSnap.docs) {
+            userMap[d.id] = AccountManagerModel.fromJson(d.id, d.data());
+          }
+        } catch (e) {
+          debugPrint('Firestore getAllUsers (users) error: $e');
+        }
+
+        // 2. Fetch from 'account_managers' collection and merge
+        try {
+          final amSnap = await firestore.collection('account_managers').get();
+          for (final d in amSnap.docs) {
+            if (!userMap.containsKey(d.id)) {
+              userMap[d.id] = AccountManagerModel.fromJson(d.id, d.data());
+            } else {
+              // Merge assignments if missing
+              final existing = userMap[d.id]!;
+              final amModel = AccountManagerModel.fromJson(d.id, d.data());
+              if (existing.assignedClientIds.isEmpty && amModel.assignedClientIds.isNotEmpty) {
+                userMap[d.id] = existing.copyWith(assignedClientIds: amModel.assignedClientIds);
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Firestore getAllUsers (account_managers) error: $e');
+        }
+
+        // Guaranteed: aditya@herbalties.com has admin role
+        final list = userMap.values.map((u) {
+          if (u.email.toLowerCase().trim() == 'aditya@herbalties.com') {
+            return u.copyWith(role: 'admin');
+          }
+          return u;
+        }).toList();
+
+        list.sort((a, b) {
+          // Put owner and admins first, then pending, then AM
+          if (a.isSuperAdmin) return -1;
+          if (b.isSuperAdmin) return 1;
+          if (a.isPending && !b.isPending) return -1;
+          if (!a.isPending && b.isPending) return 1;
+          return a.displayName.compareTo(b.displayName);
+        });
+
+        return list;
       } catch (e) {
         debugPrint('Firestore getAllUsers error: $e');
       }
@@ -218,17 +330,15 @@ class FirebaseService {
   }) async {
     if (_isFirebaseAvailable) {
       try {
-        await firestore.collection('account_managers').doc(userId).set({
+        final updatePayload = {
           'role': role,
           'assignedClientIds': assignedClientIds,
           'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        };
 
-        await firestore.collection('users').doc(userId).set({
-          'role': role,
-          'assignedClientIds': assignedClientIds,
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        // Update BOTH collections so they are always in perfect sync
+        await firestore.collection('users').doc(userId).set(updatePayload, SetOptions(merge: true));
+        await firestore.collection('account_managers').doc(userId).set(updatePayload, SetOptions(merge: true));
       } catch (e) {
         debugPrint('Firestore updateUserRoleAndAssignments error: $e');
         rethrow;

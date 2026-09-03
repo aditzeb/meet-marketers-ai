@@ -19,6 +19,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   List<ClientModel> _allAgencyClients = [];
   bool _isLoading = true;
   String _searchQuery = '';
+  String _selectedRoleFilter = 'all'; // 'all', 'pending', 'admin', 'accountManager'
   String? _errorMessage;
 
   @override
@@ -54,6 +55,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
   }
 
   Future<void> _updateRole(AccountManagerModel user, String newRole) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       await FirebaseService.instance.updateUserRoleAndAssignments(
         user.id,
@@ -69,16 +71,20 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
       await _loadData();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        String roleLabel = 'Account Manager';
+        if (newRole == 'admin') roleLabel = 'Admin';
+        if (newRole == 'pending') roleLabel = 'Pending (Access Revoked)';
+
+        scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('${user.displayName} role updated to ${newRole == 'admin' ? 'Admin' : 'Account Manager'}'),
+            content: Text('${user.displayName} role updated to $roleLabel'),
             backgroundColor: ClinicSageColors.tertiary,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('Failed to update role: $e'),
             backgroundColor: Colors.redAccent,
@@ -251,11 +257,23 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
 
     final filteredUsers = _users.where((u) {
       final q = _searchQuery.toLowerCase();
-      return u.displayName.toLowerCase().contains(q) || u.email.toLowerCase().contains(q);
+      final matchesSearch = u.displayName.toLowerCase().contains(q) || u.email.toLowerCase().contains(q);
+
+      if (!matchesSearch) return false;
+
+      if (_selectedRoleFilter == 'pending') {
+        return u.isPending;
+      } else if (_selectedRoleFilter == 'admin') {
+        return u.isAdmin;
+      } else if (_selectedRoleFilter == 'accountManager') {
+        return u.isAccountManager;
+      }
+      return true;
     }).toList();
 
     final adminCount = _users.where((u) => u.isAdmin).length;
-    final amCount = _users.where((u) => !u.isAdmin).length;
+    final amCount = _users.where((u) => u.isAccountManager).length;
+    final pendingCount = _users.where((u) => u.isPending).length;
 
     return Scaffold(
       backgroundColor: ClinicSageColors.neutral,
@@ -291,7 +309,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       Text(
-                        'Assign client projects, manage roles (Admin vs Account Manager), and enforce permissions',
+                        'Approve new accounts, assign roles (Admin vs Account Manager), and allocate client workspaces',
                         style: theme.textTheme.labelSmall?.copyWith(fontSize: 11, color: ClinicSageColors.secondary),
                       ),
                     ],
@@ -319,39 +337,48 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                     icon: Icons.people_outline,
                     color: const Color(0xFF6366F1),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   _MetricCard(
-                    title: 'Admins (Can Create Projects)',
+                    title: 'Pending Role Assignment',
+                    value: '$pendingCount',
+                    icon: Icons.hourglass_top_rounded,
+                    color: const Color(0xFFD97706),
+                    highlight: pendingCount > 0,
+                  ),
+                  const SizedBox(width: 14),
+                  _MetricCard(
+                    title: 'Admins (Create Projects)',
                     value: '$adminCount',
                     icon: Icons.shield_outlined,
                     color: ClinicSageColors.tertiary,
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   _MetricCard(
                     title: 'Account Managers',
                     value: '$amCount',
                     icon: Icons.badge_outlined,
                     color: const Color(0xFF0EA5E9),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   _MetricCard(
                     title: 'Agency Client Projects',
                     value: '${_allAgencyClients.length}',
                     icon: Icons.business_outlined,
-                    color: const Color(0xFFF59E0B),
+                    color: const Color(0xFF8B5CF6),
                   ),
                 ],
               ),
             ),
           ),
 
-          // ── Search & Filter Bar ──────────────────────────────
+          // ── Search & Filter Tab Bar ──────────────────────────
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
               child: Row(
                 children: [
                   Expanded(
+                    flex: 4,
                     child: TextField(
                       onChanged: (val) => setState(() => _searchQuery = val),
                       decoration: InputDecoration(
@@ -370,6 +397,34 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Filter Chips
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _FilterTab(
+                        label: 'All (${_users.length})',
+                        isSelected: _selectedRoleFilter == 'all',
+                        onTap: () => setState(() => _selectedRoleFilter = 'all'),
+                      ),
+                      _FilterTab(
+                        label: 'Pending ($pendingCount)',
+                        isSelected: _selectedRoleFilter == 'pending',
+                        isAlert: pendingCount > 0,
+                        onTap: () => setState(() => _selectedRoleFilter = 'pending'),
+                      ),
+                      _FilterTab(
+                        label: 'Admins ($adminCount)',
+                        isSelected: _selectedRoleFilter == 'admin',
+                        onTap: () => setState(() => _selectedRoleFilter = 'admin'),
+                      ),
+                      _FilterTab(
+                        label: 'Account Managers ($amCount)',
+                        isSelected: _selectedRoleFilter == 'accountManager',
+                        onTap: () => setState(() => _selectedRoleFilter = 'accountManager'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -401,7 +456,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
           else if (filteredUsers.isEmpty)
             const SliverFillRemaining(
               child: Center(
-                child: Text('No team accounts found matching your query.'),
+                child: Text('No team accounts found matching your query/filter.'),
               ),
             )
           else
@@ -411,7 +466,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final user = filteredUsers[index];
-                    final isSelf = user.id == currentUser?.id;
+                    final isSelf = user.id == currentUser?.id || user.email.toLowerCase().trim() == currentUser?.email.toLowerCase().trim();
+                    final isOwner = user.isSuperAdmin;
                     final assignedClientNames = _allAgencyClients
                         .where((c) => user.assignedClientIds.contains(c.id))
                         .map((c) => c.name)
@@ -423,9 +479,19 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                       decoration: BoxDecoration(
                         color: ClinicSageColors.surface,
                         borderRadius: BorderRadius.circular(ClinicSageRadius.lg),
-                        border: Border.all(color: ClinicSageColors.border),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x04000000), blurRadius: 10, offset: Offset(0, 2)),
+                        border: Border.all(
+                          color: user.isPending
+                              ? const Color(0xFFFCD34D)
+                              : isOwner
+                                  ? ClinicSageColors.tertiary.withOpacity(0.5)
+                                  : ClinicSageColors.border,
+                          width: user.isPending || isOwner ? 1.5 : 1.0,
+                        ),
+                        boxShadow: [
+                          if (user.isPending)
+                            const BoxShadow(color: Color(0x0CFFB020), blurRadius: 12, offset: Offset(0, 3))
+                          else
+                            const BoxShadow(color: Color(0x04000000), blurRadius: 10, offset: Offset(0, 2)),
                         ],
                       ),
                       child: Row(
@@ -434,14 +500,22 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           // User Avatar
                           CircleAvatar(
                             radius: 22,
-                            backgroundColor: user.isAdmin ? ClinicSageColors.tertiaryLight : const Color(0xFFE0F2FE),
-                            child: Text(
-                              user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: user.isAdmin ? ClinicSageColors.tertiary : const Color(0xFF0284C7),
-                              ),
-                            ),
+                            backgroundColor: isOwner
+                                ? ClinicSageColors.tertiaryLight
+                                : user.isPending
+                                    ? const Color(0xFFFEF3C7)
+                                    : user.isAdmin
+                                        ? ClinicSageColors.tertiaryLight
+                                        : const Color(0xFFE0F2FE),
+                            child: user.isPending
+                                ? const Icon(Icons.hourglass_empty, size: 20, color: Color(0xFFD97706))
+                                : Text(
+                                    user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: isOwner || user.isAdmin ? ClinicSageColors.tertiary : const Color(0xFF0284C7),
+                                    ),
+                                  ),
                           ),
                           const SizedBox(width: 16),
 
@@ -453,10 +527,29 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                 Row(
                                   children: [
                                     Text(
-                                      user.displayName,
+                                      user.displayName.isNotEmpty ? user.displayName : 'Unnamed User',
                                       style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, fontSize: 15),
                                     ),
-                                    if (isSelf) ...[
+                                    if (isOwner) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: ClinicSageColors.tertiaryLight,
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: ClinicSageColors.tertiary.withOpacity(0.4)),
+                                        ),
+                                        child: const Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.star, size: 12, color: ClinicSageColors.tertiary),
+                                            SizedBox(width: 4),
+                                            Text('Primary Owner', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: ClinicSageColors.tertiary)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    if (isSelf && !isOwner) ...[
                                       const SizedBox(width: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -465,6 +558,21 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                           borderRadius: BorderRadius.circular(4),
                                         ),
                                         child: const Text('You', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black54)),
+                                      ),
+                                    ],
+                                    if (user.isPending) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFEF3C7),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: const Color(0xFFFCD34D)),
+                                        ),
+                                        child: const Text(
+                                          'Pending Role Assignment',
+                                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFB45309)),
+                                        ),
                                       ),
                                     ],
                                   ],
@@ -479,40 +587,45 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                   children: [
                                     const Text('Client Access: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ClinicSageColors.secondary)),
                                     Expanded(
-                                      child: user.isAdmin
-                                          ? Row(
-                                              children: [
-                                                Icon(Icons.all_inclusive, size: 14, color: Colors.green.shade700),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  'Full Agency Access (All Projects)',
-                                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.green.shade700),
-                                                ),
-                                              ],
+                                      child: user.isPending
+                                          ? const Text(
+                                              'No Access — User cannot access workspaces or proposals until a role is assigned',
+                                              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Color(0xFFD97706), fontWeight: FontWeight.w500),
                                             )
-                                          : assignedClientNames.isEmpty
-                                              ? const Text(
-                                                  'No client workspaces assigned yet',
-                                                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.redAccent),
+                                          : user.isAdmin
+                                              ? Row(
+                                                  children: [
+                                                    Icon(Icons.all_inclusive, size: 14, color: Colors.green.shade700),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      'Full Agency Access (All Client Projects & Workspace Creation)',
+                                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.green.shade700),
+                                                    ),
+                                                  ],
                                                 )
-                                              : Wrap(
-                                                  spacing: 6,
-                                                  runSpacing: 4,
-                                                  children: assignedClientNames.map((name) {
-                                                    return Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                      decoration: BoxDecoration(
-                                                        color: const Color(0xFFF1F5F9),
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        border: Border.all(color: const Color(0xFFCBD5E1)),
-                                                      ),
-                                                      child: Text(
-                                                        name,
-                                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF334155)),
-                                                      ),
-                                                    );
-                                                  }).toList(),
-                                                ),
+                                              : assignedClientNames.isEmpty
+                                                  ? const Text(
+                                                      'No client workspaces assigned yet (User can create proposals only)',
+                                                      style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.redAccent),
+                                                    )
+                                                  : Wrap(
+                                                      spacing: 6,
+                                                      runSpacing: 4,
+                                                      children: assignedClientNames.map((name) {
+                                                        return Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                          decoration: BoxDecoration(
+                                                            color: const Color(0xFFF1F5F9),
+                                                            borderRadius: BorderRadius.circular(6),
+                                                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                                                          ),
+                                                          child: Text(
+                                                            name,
+                                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF334155)),
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    ),
                                     ),
                                   ],
                                 ),
@@ -520,36 +633,78 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                             ),
                           ),
 
+                          // Quick Approval Action if Pending
+                          if (user.isPending) ...[
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: ClinicSageColors.tertiary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () => _updateRole(user, 'accountManager'),
+                              icon: const Icon(Icons.check_circle_outline, size: 16),
+                              label: const Text('Approve as AM', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                            ),
+                            const SizedBox(width: 10),
+                          ],
+
                           // Role Selector Dropdown
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: user.isAdmin ? ClinicSageColors.tertiaryLight : const Color(0xFFF1F5F9),
+                              color: isOwner
+                                  ? ClinicSageColors.tertiaryLight
+                                  : user.isPending
+                                      ? const Color(0xFFFEF3C7)
+                                      : user.isAdmin
+                                          ? ClinicSageColors.tertiaryLight
+                                          : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: user.isAdmin ? ClinicSageColors.tertiary.withOpacity(0.3) : ClinicSageColors.border),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: user.role,
-                                isDense: true,
-                                icon: const Icon(Icons.arrow_drop_down, size: 18),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'admin',
-                                    child: Text('Admin', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ClinicSageColors.tertiary)),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'accountManager',
-                                    child: Text('Account Manager', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
-                                  ),
-                                ],
-                                onChanged: (newRole) {
-                                  if (newRole != null && newRole != user.role) {
-                                    _updateRole(user, newRole);
-                                  }
-                                },
+                              border: Border.all(
+                                color: isOwner || user.isAdmin
+                                    ? ClinicSageColors.tertiary.withOpacity(0.3)
+                                    : user.isPending
+                                        ? const Color(0xFFFCD34D)
+                                        : ClinicSageColors.border,
                               ),
                             ),
+                            child: isOwner
+                                ? const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                    child: Text(
+                                      'Admin (Owner)',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ClinicSageColors.tertiary),
+                                    ),
+                                  )
+                                : DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: (user.role == 'admin' || user.role == 'accountManager' || user.role == 'pending')
+                                          ? user.role
+                                          : 'pending',
+                                      isDense: true,
+                                      icon: const Icon(Icons.arrow_drop_down, size: 18),
+                                      items: const [
+                                        DropdownMenuItem(
+                                          value: 'admin',
+                                          child: Text('Admin', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ClinicSageColors.tertiary)),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'accountManager',
+                                          child: Text('Account Manager', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569))),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'pending',
+                                          child: Text('Pending (No Access)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB45309))),
+                                        ),
+                                      ],
+                                      onChanged: (newRole) {
+                                        if (newRole != null && newRole != user.role) {
+                                          _updateRole(user, newRole);
+                                        }
+                                      },
+                                    ),
+                                  ),
                           ),
 
                           const SizedBox(width: 12),
@@ -558,20 +713,22 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                           OutlinedButton.icon(
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              side: BorderSide(color: user.isAdmin ? Colors.grey.shade300 : ClinicSageColors.tertiary),
+                              side: BorderSide(
+                                color: (user.isAdmin || user.isPending) ? Colors.grey.shade300 : ClinicSageColors.tertiary,
+                              ),
                             ),
-                            onPressed: user.isAdmin ? null : () => _openAssignDialog(user),
+                            onPressed: (user.isAdmin || user.isPending) ? null : () => _openAssignDialog(user),
                             icon: Icon(
                               Icons.edit_note,
                               size: 16,
-                              color: user.isAdmin ? Colors.grey : ClinicSageColors.tertiary,
+                              color: (user.isAdmin || user.isPending) ? Colors.grey : ClinicSageColors.tertiary,
                             ),
                             label: Text(
                               'Assign Projects',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: user.isAdmin ? Colors.grey : ClinicSageColors.tertiary,
+                                color: (user.isAdmin || user.isPending) ? Colors.grey : ClinicSageColors.tertiary,
                               ),
                             ),
                           ),
@@ -594,12 +751,14 @@ class _MetricCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final bool highlight;
 
   const _MetricCard({
     required this.title,
     required this.value,
     required this.icon,
     required this.color,
+    this.highlight = false,
   });
 
   @override
@@ -609,29 +768,90 @@ class _MetricCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: ClinicSageColors.surface,
+          color: highlight ? const Color(0xFFFFFBEB) : ClinicSageColors.surface,
           borderRadius: BorderRadius.circular(ClinicSageRadius.lg),
-          border: Border.all(color: ClinicSageColors.border),
+          border: Border.all(color: highlight ? const Color(0xFFFCD34D) : ClinicSageColors.border),
+          boxShadow: highlight
+              ? [const BoxShadow(color: Color(0x10D97706), blurRadius: 10, offset: Offset(0, 3))]
+              : null,
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: color, size: 20),
             ),
-            const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                Text(title, style: theme.textTheme.labelSmall?.copyWith(fontSize: 10, color: ClinicSageColors.secondary)),
-              ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(value, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: highlight ? const Color(0xFFB45309) : null)),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelSmall?.copyWith(fontSize: 10, color: highlight ? const Color(0xFF92400E) : ClinicSageColors.secondary),
+                  ),
+                ],
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterTab extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final bool isAlert;
+  final VoidCallback onTap;
+
+  const _FilterTab({
+    required this.label,
+    required this.isSelected,
+    this.isAlert = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isAlert ? const Color(0xFFD97706) : ClinicSageColors.tertiary)
+              : (isAlert ? const Color(0xFFFEF3C7) : ClinicSageColors.surface),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? Colors.transparent
+                : isAlert
+                    ? const Color(0xFFFCD34D)
+                    : ClinicSageColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected
+                ? Colors.white
+                : isAlert
+                    ? const Color(0xFFB45309)
+                    : ClinicSageColors.secondary,
+          ),
         ),
       ),
     );

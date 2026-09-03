@@ -5,6 +5,43 @@ import 'package:meet_marketers_ai/data/models/proposal_model.dart';
 
 void main() {
   group('Auth & RBAC Role-Based Access Control Tests', () {
+    test('aditya@herbalties.com is guaranteed SuperAdmin role and cannot be demoted', () {
+      // Even if Firestore JSON contains role 'accountManager' or 'pending', aditya@herbalties.com must be admin
+      final doc = AccountManagerModel.fromJson('user-aditya', {
+        'displayName': 'Ananda Aditya',
+        'email': 'aditya@herbalties.com',
+        'role': 'accountManager', // incoming outdated/rollback data
+      });
+
+      expect(doc.isSuperAdmin, isTrue);
+      expect(doc.isAdmin, isTrue);
+      expect(doc.isPending, isFalse);
+      expect(doc.role, equals('admin'));
+
+      // Serialization preserves admin
+      final json = doc.toJson();
+      expect(json['role'], equals('admin'));
+
+      // Can access any client
+      expect(doc.canAccessClient('any-client-123'), isTrue);
+    });
+
+    test('New registered accounts default to pending role and cannot do anything until assigned', () {
+      final newMember = AccountManagerModel.fromJson('new-user-1', {
+        'displayName': 'John Doe',
+        'email': 'john@agency.com',
+        // role omitted or pending
+      });
+
+      expect(newMember.isPending, isTrue);
+      expect(newMember.isAdmin, isFalse);
+      expect(newMember.isAccountManager, isFalse);
+      expect(newMember.hasActiveRole, isFalse);
+
+      // Pending users cannot access any client workspaces
+      expect(newMember.canAccessClient('client-1'), isFalse);
+    });
+
     test('AccountManagerModel correctly differentiates Admin vs Account Manager roles', () {
       final admin = AccountManagerModel(
         id: 'user-admin-1',
@@ -149,8 +186,11 @@ void main() {
         throwsA(predicate((e) => e.toString().contains('Only Admins can create new client projects.'))),
       );
 
-      // Proposal Creation: Unrestricted for EVERY account
+      // Proposal Creation: Unrestricted for EVERY active account
       ProposalModel createProposal(AccountManagerModel user, String leadName) {
+        if (user.isPending) {
+          throw Exception('Permission Denied: Account pending role assignment.');
+        }
         final now = DateTime.now();
         return ProposalModel(
           id: 'prop-${now.millisecondsSinceEpoch}',
