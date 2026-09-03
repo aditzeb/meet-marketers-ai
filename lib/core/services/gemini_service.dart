@@ -56,8 +56,8 @@ class GeminiService {
   String getFallbackContent(ContentType type, String clientName) => _getFallbackContent(type, clientName);
 
   /// Generate an AI image directly via text prompt using OpenRouter Image API
-  /// Uses FLUX.2 Klein 4B for optimal quality-to-performance ratio ($0.0000034/image, ~1.8s)
-  Future<String> generateImage(String prompt) async {
+  /// Uses ByteDance Seed: Seedream 5.0 Pro ($0.045/image) for commercial visual-production quality
+  Future<String> generateImage(String prompt, {String aspectRatio = '16:9'}) async {
     final apiKey = _apiKey.isNotEmpty ? _apiKey : AppConfig.openRouterApiKey;
     if (apiKey.isNotEmpty) {
       try {
@@ -72,8 +72,9 @@ class GeminiService {
           body: jsonEncode({
             'model': AppConfig.openRouterDefaultImageModel,
             'prompt': prompt,
+            'aspect_ratio': aspectRatio,
           }),
-        ).timeout(const Duration(seconds: 12));
+        ).timeout(const Duration(seconds: 20));
 
         if (resp.statusCode == 200) {
           final data = jsonDecode(resp.body) as Map<String, dynamic>;
