@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1258,18 +1259,19 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
       final url = await notifier.generateAiAssetImage(
         prompt: widget.promptHint,
         category: widget.title,
+        proposalId: widget.proposalId,
       );
       if (mounted) {
         _urlCtrl.text = url;
         widget.onMediaUrlChanged(url);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('AI asset synthesized for ${widget.title}')),
+          SnackBar(content: Text('✨ OpenRouter AI visual synthesized for ${widget.title}')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating AI image: $e')),
+          SnackBar(content: Text('OpenRouter Image error: $e')),
         );
       }
     } finally {
@@ -1313,6 +1315,68 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
+  }
+
+  Widget _buildImagePreview(String rawUrl) {
+    final trimmed = rawUrl.trim();
+    if (trimmed.startsWith('data:image')) {
+      final commaIdx = trimmed.indexOf(',');
+      if (commaIdx != -1) {
+        try {
+          final bytes = base64Decode(trimmed.substring(commaIdx + 1));
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              height: 160,
+              width: double.infinity,
+              color: const Color(0xFF0F172A),
+              child: Image.memory(
+                bytes,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _errorPlaceholder('Base64 image decode error'),
+              ),
+            ),
+          );
+        } catch (_) {}
+      }
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 160,
+        width: double.infinity,
+        color: const Color(0xFF0F172A),
+        child: Image.network(
+          trimmed,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _errorPlaceholder('Asset linked: $trimmed'),
+        ),
+      ),
+    );
+  }
+
+  Widget _errorPlaceholder(String text) {
+    return Container(
+      height: 60,
+      alignment: Alignment.center,
+      color: const Color(0xFFF1F5F9),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.broken_image, size: 16, color: Color(0xFF94A3B8)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 11, color: ClinicSageColors.secondary),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1389,22 +1453,8 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
             onChanged: widget.onMediaUrlChanged,
           ),
           if (hasUrl) ...[
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: Image.network(
-                _urlCtrl.text,
-                height: 110,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 40,
-                  alignment: Alignment.center,
-                  color: Colors.white,
-                  child: Text('Asset linked: ${_urlCtrl.text}', style: const TextStyle(fontSize: 10, color: ClinicSageColors.secondary), overflow: TextOverflow.ellipsis),
-                ),
-              ),
-            ),
+            const SizedBox(height: 12),
+            _buildImagePreview(_urlCtrl.text),
           ],
         ],
       ),

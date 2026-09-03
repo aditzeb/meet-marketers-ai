@@ -105,47 +105,49 @@ class GeminiService {
   /// Uses ByteDance Seed: Seedream 5.0 Pro ($0.045/image) for commercial visual-production quality
   Future<String> generateImage(String prompt, {String aspectRatio = '16:9'}) async {
     final apiKey = _apiKey.isNotEmpty ? _apiKey : AppConfig.openRouterApiKey;
-    if (apiKey.isNotEmpty) {
-      try {
-        final resp = await http.post(
-          Uri.parse('${AppConfig.openRouterBaseUrl}/images'),
-          headers: {
-            'Authorization': 'Bearer $apiKey',
-            'Content-Type': 'application/json',
-            'HTTP-Referer': AppConfig.openRouterSiteUrl,
-            'X-Title': AppConfig.openRouterSiteName,
-          },
-          body: jsonEncode({
-            'model': AppConfig.openRouterDefaultImageModel,
-            'prompt': prompt,
-            'aspect_ratio': aspectRatio,
-          }),
-        ).timeout(const Duration(seconds: 20));
-
-        if (resp.statusCode == 200) {
-          final data = jsonDecode(resp.body) as Map<String, dynamic>;
-          final list = data['data'] as List?;
-          if (list != null && list.isNotEmpty) {
-            final first = list[0] as Map<String, dynamic>;
-            final b64 = first['b64_json'];
-            if (b64 is String && b64.isNotEmpty) {
-              return 'data:image/jpeg;base64,$b64';
-            }
-            final url = first['url'];
-            if (url is String && url.isNotEmpty) {
-              return url;
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('OpenRouter image generation warning: $e');
-      }
+    if (apiKey.isEmpty) {
+      throw Exception('OpenRouter API key is not configured.');
     }
 
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final seed = timestamp % 100000;
-    final cleanPrompt = Uri.encodeComponent(prompt);
-    return 'https://image.pollinations.ai/prompt/$cleanPrompt?width=1280&height=720&model=flux&seed=$seed&nologo=true';
+    try {
+      final resp = await http.post(
+        Uri.parse('${AppConfig.openRouterBaseUrl}/images'),
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+          'HTTP-Referer': AppConfig.openRouterSiteUrl,
+          'X-Title': AppConfig.openRouterSiteName,
+        },
+        body: jsonEncode({
+          'model': AppConfig.openRouterDefaultImageModel,
+          'prompt': prompt,
+          'aspect_ratio': aspectRatio,
+        }),
+      ).timeout(const Duration(seconds: 90));
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final list = data['data'] as List?;
+        if (list != null && list.isNotEmpty) {
+          final first = list[0] as Map<String, dynamic>;
+          final b64 = first['b64_json'];
+          if (b64 is String && b64.isNotEmpty) {
+            return 'data:image/jpeg;base64,$b64';
+          }
+          final url = first['url'];
+          if (url is String && url.isNotEmpty) {
+            return url;
+          }
+        }
+      } else {
+        throw Exception('OpenRouter Image API error ${resp.statusCode}: ${resp.body}');
+      }
+    } catch (e) {
+      debugPrint('OpenRouter image generation error: $e');
+      rethrow;
+    }
+
+    throw Exception('OpenRouter did not return an image asset.');
   }
 
   /// Initiates video generation via OpenRouter Video API (Alibaba Wan 3.0 Prime)

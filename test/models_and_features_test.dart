@@ -148,7 +148,7 @@ void main() {
       expect(asset.videoUrl.isNotEmpty, isTrue);
       expect(asset.caption.contains('AlphaWave Test'), isTrue);
       expect(asset.storyboard.length, greaterThanOrEqualTo(3));
-    });
+    }, timeout: const Timeout(Duration(minutes: 2)));
   });
 
   group('StrategyDeliverableModel Tests', () {

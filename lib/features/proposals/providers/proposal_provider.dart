@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/firebase_service.dart';
@@ -323,19 +324,41 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
     );
   }
 
-  /// Generate an AI image or curated visual for proposal media
+  /// Generate an AI image directly via OpenRouter (ByteDance Seedream 5.0 Pro)
+  /// and upload to Firebase Storage for permanent, CDN-cached hosting.
   Future<String> generateAiAssetImage({
     required String prompt,
     required String category,
+    String? proposalId,
   }) async {
-    try {
-      final imgUrl = await GeminiService.instance.generateImage(prompt);
-      if (imgUrl.isNotEmpty) return imgUrl;
-    } catch (e) {
-      debugPrint('AI image generation error: $e');
+    final rawImage = await GeminiService.instance.generateImage(prompt);
+    if (rawImage.isEmpty) {
+      throw Exception('OpenRouter image generation returned an empty payload.');
     }
-    final encoded = Uri.encodeComponent(prompt.split(' ').take(3).join(' '));
-    return 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200&auto=format&fit=crop&q=80&sig=$encoded';
+
+    // If OpenRouter returns base64 data, upload to Firebase Storage for clean CDN URL
+    if (rawImage.startsWith('data:image')) {
+      try {
+        final commaIdx = rawImage.indexOf(',');
+        if (commaIdx != -1) {
+          final b64 = rawImage.substring(commaIdx + 1);
+          final bytes = base64Decode(b64);
+          final fileName = 'ai_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final storageUrl = await uploadMediaAsset(
+            proposalId: proposalId ?? 'general_assets',
+            fileName: fileName,
+            bytes: bytes,
+          );
+          if (storageUrl.isNotEmpty) {
+            return storageUrl;
+          }
+        }
+      } catch (e) {
+        debugPrint('Firebase Storage upload notice for OpenRouter image: $e');
+      }
+    }
+
+    return rawImage;
   }
 }
 
