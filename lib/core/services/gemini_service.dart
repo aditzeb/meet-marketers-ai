@@ -140,14 +140,26 @@ class GeminiService {
           }
         }
       } else {
-        throw Exception('OpenRouter Image API error ${resp.statusCode}: ${resp.body}');
+        String errorDetail = resp.body;
+        try {
+          final errJson = jsonDecode(resp.body);
+          if (errJson is Map && errJson['error'] != null) {
+            final errObj = errJson['error'];
+            if (errObj is Map && errObj['message'] != null) {
+              errorDetail = errObj['message'].toString();
+            } else {
+              errorDetail = errObj.toString();
+            }
+          }
+        } catch (_) {}
+        throw Exception('OpenRouter Image API Error (${resp.statusCode}): $errorDetail');
       }
     } catch (e) {
       debugPrint('OpenRouter image generation error: $e');
       rethrow;
     }
 
-    throw Exception('OpenRouter did not return an image asset.');
+    throw Exception('OpenRouter image generation returned an empty result.');
   }
 
   /// Initiates video generation via OpenRouter Video API (Alibaba Wan 3.0 Prime)

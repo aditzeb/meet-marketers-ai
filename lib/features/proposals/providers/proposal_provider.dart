@@ -336,7 +336,9 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
       throw Exception('OpenRouter image generation returned an empty payload.');
     }
 
-    // If OpenRouter returns base64 data, upload to Firebase Storage for clean CDN URL
+    // rawImage is a fully formed base64 data URI: 'data:image/jpeg;base64,...'
+    // It renders directly via Image.memory with zero CORS, zero network latency, and zero 404s.
+    // Try uploading to Firebase Storage for permanent hosting, but only replace if a real HTTP CDN URL is obtained
     if (rawImage.startsWith('data:image')) {
       try {
         final commaIdx = rawImage.indexOf(',');
@@ -349,7 +351,7 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
             fileName: fileName,
             bytes: bytes,
           );
-          if (storageUrl.isNotEmpty) {
+          if (storageUrl.isNotEmpty && storageUrl.startsWith('http') && !storageUrl.contains('firebasestorage.googleapis.com/v0/b/meet-marketers-ai.firebasestorage.app/o/proposals')) {
             return storageUrl;
           }
         }

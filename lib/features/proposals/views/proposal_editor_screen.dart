@@ -1265,13 +1265,31 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
         _urlCtrl.text = url;
         widget.onMediaUrlChanged(url);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✨ OpenRouter AI visual synthesized for ${widget.title}')),
+          SnackBar(
+            content: Text('✨ OpenRouter AI visual synthesized for ${widget.title}'),
+            backgroundColor: ClinicSageColors.tertiary,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('OpenRouter Image error: $e')),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text('AI Image API Error: $e')),
+              ],
+            ),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 8),
+            action: SnackBarAction(
+              label: 'DISMISS',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
+          ),
         );
       }
     } finally {
@@ -1301,7 +1319,10 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
             _urlCtrl.text = url;
             widget.onMediaUrlChanged(url);
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Uploaded ${f.name} successfully to Firebase Storage!')),
+              SnackBar(
+                content: Text('Uploaded ${f.name} successfully!'),
+                backgroundColor: ClinicSageColors.tertiary,
+              ),
             );
           }
         }
@@ -1309,7 +1330,10 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload error: $e')),
+          SnackBar(
+            content: Text('Upload error: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -1327,7 +1351,7 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
           return ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Container(
-              height: 160,
+              height: 220,
               width: double.infinity,
               color: const Color(0xFF0F172A),
               child: Image.memory(
@@ -1344,13 +1368,13 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        height: 160,
+        height: 220,
         width: double.infinity,
         color: const Color(0xFF0F172A),
         child: Image.network(
           trimmed,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _errorPlaceholder('Asset linked: $trimmed'),
+          errorBuilder: (_, __, ___) => _errorPlaceholder('Asset failed to load from: $trimmed'),
         ),
       ),
     );
@@ -1358,20 +1382,35 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
 
   Widget _errorPlaceholder(String text) {
     return Container(
-      height: 60,
+      height: 72,
       alignment: Alignment.center,
-      color: const Color(0xFFF1F5F9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.broken_image, size: 16, color: Color(0xFF94A3B8)),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 11, color: ClinicSageColors.secondary),
-              overflow: TextOverflow.ellipsis,
+          const Icon(Icons.broken_image_outlined, size: 20, color: Color(0xFFDC2626)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  text,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFDC2626)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Click "Generate with AI" above to synthesize a fresh high-resolution visual, or upload one directly.',
+                  style: TextStyle(fontSize: 10, color: Color(0xFF7F1D1D)),
+                ),
+              ],
             ),
           ),
         ],
