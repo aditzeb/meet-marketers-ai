@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/router/app_router.dart';
 import '../../../shared/widgets/clinic_card.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../../data/models/content_deliverable_model.dart';
-import '../../../core/services/hive_cache_service.dart';
 import '../../../core/services/firebase_service.dart';
 import '../../../data/models/client_model.dart';
 import '../../dashboard/providers/client_provider.dart';
@@ -36,21 +37,30 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     _loadItems();
   }
 
-  void _loadItems() {
-    _items = ContentType.values.map((t) {
-      final key = 'draft_${widget.clientId}_${t.value}';
-      final cachedText = HiveCacheService.instance.getDraftBuffer(key);
-      final hasText = cachedText != null && cachedText.isNotEmpty;
+  void _loadItems() async {
+    final am = ref.read(authProvider).user;
+    final amId = am?.id ?? 'am-default';
 
-      return _ReviewItem(
-        id: 'del_${widget.clientId}_${t.value}',
-        type: t,
-        title: '${t.label} Campaign Asset',
-        aiText: 'AI-generated ${t.label.toLowerCase()} framework ready for review.',
-        vettedText: hasText ? cachedText : '',
-        status: hasText ? VettingStatus.vetted : VettingStatus.draft,
-      );
-    }).toList();
+    final deliverables = await FirebaseService.instance.getDeliverables(amId, widget.clientId);
+    if (!mounted) return;
+
+    setState(() {
+      _items = ContentType.values.map((t) {
+        final data = deliverables[t.value];
+        final text = data != null ? ((data['vettedOutputText'] as String?) ?? (data['content'] as String?) ?? '') : '';
+        final statusStr = data != null ? (data['status'] as String? ?? 'draft') : 'draft';
+        final hasText = text.isNotEmpty;
+
+        return _ReviewItem(
+          id: 'del_${widget.clientId}_${t.value}',
+          type: t,
+          title: '${t.label} Campaign Asset',
+          aiText: 'AI-generated ${t.label.toLowerCase()} framework ready for review.',
+          vettedText: text,
+          status: hasText ? VettingStatus.fromString(statusStr) : VettingStatus.draft,
+        );
+      }).toList();
+    });
   }
 
   List<_ReviewItem> get _filteredItems {
@@ -73,6 +83,32 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   Widget build(BuildContext context) {
     final clientState = ref.watch(clientProvider);
     final client = clientState.getClient(widget.clientId);
+
+    if (client == null) {
+      return Scaffold(
+        backgroundColor: ClinicSageColors.neutral,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.search_off_outlined, size: 48, color: ClinicSageColors.secondary),
+              const SizedBox(height: 16),
+              const Text('Client workspace not found in Firestore.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ClinicSageColors.tertiary,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => context.go(AppRoutes.dashboard),
+                icon: const Icon(Icons.arrow_back, size: 16),
+                label: const Text('Return to Dashboard'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: ClinicSageColors.neutral,
@@ -184,10 +220,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         'content': item.vettedText.isNotEmpty ? item.vettedText : item.aiText,
       };
 
-      // Save each individual deliverable doc to Firestore & local flywheel store
-      final finalContent = item.vettedText.isNotEmpty ? item.vettedText : item.aiText;
-      await HiveCacheService.instance.saveVettedDeliverable(client.id, item.type.value, finalContent);
-
+      // Save each individual deliverable doc to Firestore
       await FirebaseService.instance.saveDeliverable(
         amId,
         client.id,

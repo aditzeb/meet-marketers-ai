@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:http/http.dart' as http;
-import 'hive_cache_service.dart';
 import '../../firebase_options.dart';
 import '../config/app_config.dart';
 import '../../data/models/content_deliverable_model.dart';
@@ -134,7 +133,7 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
     List<String>? referenceDocuments,
     String? extractedPdfContent,
   }) async {
-    final history = clientId != null ? HiveCacheService.instance.getVettedHistory(clientId) : <String>[];
+    final history = <String>[];
 
     final prompt = _buildContentPrompt(
       type: type,

@@ -64,9 +64,8 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
   }
 
   void _loadClientData() {
-    final clients = ref.read(clientProvider).clients;
-    final client = clients.where((c) => c.id == widget.clientId).firstOrNull ??
-        ref.read(clientProvider).getClient(widget.clientId);
+    final client = ref.read(clientProvider).getClient(widget.clientId);
+    if (client == null) return;
 
     // Reset website controller specifically to this client (blank if none)
     _websiteController.text = client.websiteUrl ?? '';
@@ -108,6 +107,32 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
   Widget build(BuildContext context) {
     final clientState = ref.watch(clientProvider);
     final client = clientState.getClient(widget.clientId);
+
+    if (client == null) {
+      return Scaffold(
+        backgroundColor: ClinicSageColors.neutral,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.search_off_outlined, size: 48, color: ClinicSageColors.secondary),
+              const SizedBox(height: 16),
+              const Text('Client workspace not found in Firestore.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ClinicSageColors.tertiary,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => context.go(AppRoutes.dashboard),
+                icon: const Icon(Icons.arrow_back, size: 16),
+                label: const Text('Return to Dashboard'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: ClinicSageColors.neutral,
@@ -349,7 +374,9 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
 
           // Auto-save immediately to client state & Firestore
           final currentClient = ref.read(clientProvider).getClient(widget.clientId);
-          _onSave(currentClient);
+          if (currentClient != null) {
+            _onSave(currentClient);
+          }
 
           final wordCount = extracted.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -421,7 +448,9 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
             _isImagesDragOver = false;
           });
           final currentClient = ref.read(clientProvider).getClient(widget.clientId);
-          _onSave(currentClient);
+          if (currentClient != null) {
+            _onSave(currentClient);
+          }
         }
       }
     } catch (e) {
@@ -489,7 +518,9 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
             _isDocsDragOver = false;
           });
           final currentClient = ref.read(clientProvider).getClient(widget.clientId);
-          _onSave(currentClient);
+          if (currentClient != null) {
+            _onSave(currentClient);
+          }
         }
       }
     } catch (e) {

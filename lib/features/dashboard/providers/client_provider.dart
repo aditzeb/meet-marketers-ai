@@ -22,17 +22,8 @@ class ClientState {
     return clients.where((c) => c.name.toLowerCase().contains(q) || c.industry.toLowerCase().contains(q)).toList();
   }
 
-  ClientModel get activeClient {
-    if (clients.isEmpty) {
-      return ClientModel(
-        id: 'client-meet-ventures',
-        name: 'Meet Ventures',
-        industry: 'Investment',
-        websiteUrl: 'https://www.meetventures.com/',
-        createdAt: DateTime.now(),
-        lastActivity: DateTime.now(),
-      );
-    }
+  ClientModel? get activeClient {
+    if (clients.isEmpty) return null;
     if (activeClientId != null) {
       final match = clients.where((c) => c.id == activeClientId).firstOrNull;
       if (match != null) return match;
@@ -40,10 +31,8 @@ class ClientState {
     return clients.first;
   }
 
-  ClientModel getClient(String clientId) {
-    final match = clients.where((c) => c.id == clientId).firstOrNull;
-    if (match != null) return match;
-    return activeClient;
+  ClientModel? getClient(String clientId) {
+    return clients.where((c) => c.id == clientId).firstOrNull;
   }
 
   ClientState copyWith({
@@ -76,7 +65,7 @@ class ClientNotifier extends StateNotifier<ClientState> {
     final clients = await FirebaseService.instance.getClients(amId);
     state = ClientState(
       clients: clients,
-      activeClientId: clients.isNotEmpty ? clients.first.id : 'client-meet-ventures',
+      activeClientId: clients.isNotEmpty ? clients.first.id : null,
       isLoading: false,
       searchQuery: state.searchQuery,
     );

@@ -68,11 +68,16 @@ void main() {
 
       expect(state.filteredClients.length, equals(1));
       expect(state.filteredClients.first.name, equals('Gamma Health'));
-      expect(state.activeClient.id, equals('c2'));
+      expect(state.activeClient?.id, equals('c2'));
 
       // Fallback when activeClientId not found
       final fallbackState = state.copyWith(activeClientId: 'non-existent');
-      expect(fallbackState.activeClient.id, equals('c1'));
+      expect(fallbackState.activeClient?.id, equals('c1'));
+
+      // Empty state returns null for activeClient and getClient
+      const emptyState = ClientState(clients: []);
+      expect(emptyState.activeClient, isNull);
+      expect(emptyState.getClient('any-id'), isNull);
     });
   });
 

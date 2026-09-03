@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/firebase_service.dart';
-import '../../../core/services/hive_cache_service.dart';
 import '../../../data/models/account_manager_model.dart';
 
 class AuthState {
@@ -55,19 +54,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } catch (e) {
         debugPrint('Firebase Auth listener error: $e');
       }
-    }
-
-    // Check Hive cache
-    final sessionData = HiveCacheService.instance.getUserSession();
-    if (sessionData != null) {
-      try {
-        final user = AccountManagerModel.fromJson(
-          sessionData['id'] as String? ?? 'am-default',
-          sessionData,
-        );
-        state = AuthState(user: user);
-        return;
-      } catch (_) {}
     }
 
     // If Firebase is available, sign in anonymously, otherwise use default AM session

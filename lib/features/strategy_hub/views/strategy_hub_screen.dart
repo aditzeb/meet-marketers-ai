@@ -113,6 +113,32 @@ class _StrategyHubScreenState extends ConsumerState<StrategyHubScreen> with Sing
     final clientState = ref.watch(clientProvider);
     final client = clientState.getClient(widget.clientId);
 
+    if (client == null) {
+      return Scaffold(
+        backgroundColor: ClinicSageColors.neutral,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.search_off_outlined, size: 48, color: ClinicSageColors.secondary),
+              const SizedBox(height: 16),
+              const Text('Client workspace not found in Firestore.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ClinicSageColors.tertiary,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => context.go(AppRoutes.dashboard),
+                icon: const Icon(Icons.arrow_back, size: 16),
+                label: const Text('Return to Dashboard'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: ClinicSageColors.neutral,
       body: Column(

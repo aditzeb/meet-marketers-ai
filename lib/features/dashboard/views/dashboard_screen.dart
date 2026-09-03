@@ -10,7 +10,8 @@ import '../../../data/models/client_model.dart';
 import '../../../data/models/content_deliverable_model.dart';
 import '../providers/client_provider.dart';
 import '../../../shared/dialogs/create_client_dialog.dart';
-import '../../../core/services/hive_cache_service.dart';
+import '../../../core/services/firebase_service.dart';
+import '../../auth/providers/auth_provider.dart';
 
 /// Individual Client Dashboard & Command Center Screen
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -27,6 +28,77 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final clientState = ref.watch(clientProvider);
     final activeClient = clientState.activeClient;
+
+    if (clientState.isLoading) {
+      return const Scaffold(
+        backgroundColor: ClinicSageColors.neutral,
+        body: Center(child: CircularProgressIndicator(color: ClinicSageColors.tertiary)),
+      );
+    }
+
+    if (clientState.clients.isEmpty || activeClient == null) {
+      return Scaffold(
+        backgroundColor: ClinicSageColors.neutral,
+        body: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 520),
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              color: ClinicSageColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: ClinicSageColors.border),
+              boxShadow: ClinicSageShadows.card,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: ClinicSageColors.tertiaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.business_outlined, size: 44, color: ClinicSageColors.tertiary),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'No Client Workspaces',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: ClinicSageColors.primary),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Your online Firestore database has 0 clients. Create your first client workspace to start ingesting discovery inputs, generating SWOT strategies, and automating deliverables.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: ClinicSageColors.secondary, height: 1.5),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ClinicSageColors.tertiary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    CreateClientDialog.show(
+                      context,
+                      onCreate: (name, industry, websiteUrl) async {
+                        final newClient = await ref.read(clientProvider.notifier).createClient(name, industry, websiteUrl);
+                        if (context.mounted) {
+                          context.go(AppRoutes.clientInputsPath(newClient.id));
+                        }
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Create New Client Workspace', style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: ClinicSageColors.neutral,
@@ -358,82 +430,93 @@ class _ClientDashboardHeader extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Individual Client Metrics Row
 // ─────────────────────────────────────────────────────────────────────────────
-class _IndividualClientMetricsRow extends StatelessWidget {
+class _IndividualClientMetricsRow extends ConsumerWidget {
   final ClientModel client;
   const _IndividualClientMetricsRow({required this.client});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     int totalInputs = 0;
     if (client.websiteUrl != null && client.websiteUrl!.isNotEmpty) totalInputs++;
     if (client.pitchDeckStoragePath != null) totalInputs++;
     totalInputs += client.imageStoragePaths.length;
     totalInputs += client.documentStoragePaths.length;
 
-    int generatedCount = 0;
-    int vettedCount = 0;
-    for (final type in ContentType.values) {
-      final key = 'draft_${client.id}_${type.value}';
-      final draft = HiveCacheService.instance.getDraftBuffer(key);
-      if (draft != null && draft.trim().isNotEmpty) {
-        generatedCount++;
-        vettedCount++;
-      }
-    }
-    // Default mock initial count for visual polish
-    if (generatedCount == 0) generatedCount = 6;
-    if (vettedCount == 0) vettedCount = 4;
+    final amId = ref.watch(authProvider).user?.id ?? 'am-default';
 
-    final vettedPercentage = (vettedCount / 11 * 100).round();
+    return FutureBuilder<Map<String, Map<String, dynamic>>>(
+      future: FirebaseService.instance.getDeliverables(amId, client.id),
+      builder: (context, snapshot) {
+        final deliverables = snapshot.data ?? {};
+        int generatedCount = 0;
+        int vettedCount = 0;
 
-    final metrics = [
-      (
-        icon: Icons.folder_zip_outlined,
-        label: 'Ingested Files & Context',
-        value: '$totalInputs Files',
-        delta: '${client.questionnaireAnswers.length}/6 Answers',
-        gradient: ClinicSageGradients.tertiary,
-      ),
-      (
-        icon: Icons.auto_graph_outlined,
-        label: 'Strategic Frameworks',
-        value: '4 Ready',
-        delta: 'SWOT & SEO Keywords',
-        gradient: const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)]),
-      ),
-      (
-        icon: Icons.collections_bookmark_outlined,
-        label: 'Deliverables Generated',
-        value: '$generatedCount / 11',
-        delta: 'Phase 3 Production',
-        gradient: const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)]),
-      ),
-      (
-        icon: Icons.verified_user_outlined,
-        label: 'Vetted & Approved',
-        value: '$vettedCount / 11',
-        delta: '$vettedPercentage% Vetted',
-        gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)]),
-      ),
-    ];
+        for (final type in ContentType.values) {
+          final data = deliverables[type.value];
+          if (data != null) {
+            final text = (data['vettedOutputText'] as String?) ?? (data['content'] as String?) ?? '';
+            if (text.trim().isNotEmpty) {
+              generatedCount++;
+              final status = data['status'] as String? ?? 'draft';
+              if (status == VettingStatus.vetted.value || status == VettingStatus.locked.value) {
+                vettedCount++;
+              }
+            }
+          }
+        }
 
-    return Row(
-      children: metrics.asMap().entries.map((entry) {
-        final i = entry.key;
-        final m = entry.value;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: i < metrics.length - 1 ? ClinicSageSpacing.md : 0),
-            child: MetricCard(
-              icon: m.icon,
-              label: m.label,
-              value: m.value,
-              delta: m.delta,
-              iconGradient: m.gradient,
-            ),
+        final vettedPercentage = (vettedCount / 11 * 100).round();
+
+        final metrics = [
+          (
+            icon: Icons.folder_zip_outlined,
+            label: 'Ingested Files & Context',
+            value: '$totalInputs Files',
+            delta: '${client.questionnaireAnswers.length}/6 Answers',
+            gradient: ClinicSageGradients.tertiary,
           ),
+          (
+            icon: Icons.auto_graph_outlined,
+            label: 'Strategic Frameworks',
+            value: client.extractedPdfContent != null ? 'Ready' : 'Pending',
+            delta: 'Pitch Deck & SWOT',
+            gradient: const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)]),
+          ),
+          (
+            icon: Icons.collections_bookmark_outlined,
+            label: 'Deliverables Generated',
+            value: '$generatedCount / 11',
+            delta: 'Phase 3 Production',
+            gradient: const LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)]),
+          ),
+          (
+            icon: Icons.verified_user_outlined,
+            label: 'Vetted & Approved',
+            value: '$vettedCount / 11',
+            delta: '$vettedPercentage% Vetted',
+            gradient: const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)]),
+          ),
+        ];
+
+        return Row(
+          children: metrics.asMap().entries.map((entry) {
+            final i = entry.key;
+            final m = entry.value;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: i < metrics.length - 1 ? ClinicSageSpacing.md : 0),
+                child: MetricCard(
+                  icon: m.icon,
+                  label: m.label,
+                  value: m.value,
+                  delta: m.delta,
+                  iconGradient: m.gradient,
+                ),
+              ),
+            );
+          }).toList(),
         );
-      }).toList(),
+      },
     );
   }
 }
@@ -609,100 +692,109 @@ class _PhaseLifecycleCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // 11 Deliverables Matrix for THIS Specific Client
 // ─────────────────────────────────────────────────────────────────────────────
-class _IndividualDeliverablesMatrix extends StatelessWidget {
+class _IndividualDeliverablesMatrix extends ConsumerWidget {
   final ClientModel client;
   const _IndividualDeliverablesMatrix({required this.client});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final amId = ref.watch(authProvider).user?.id ?? 'am-default';
 
-    return ClinicCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+    return FutureBuilder<Map<String, Map<String, dynamic>>>(
+      future: FirebaseService.instance.getDeliverables(amId, client.id),
+      builder: (context, snapshot) {
+        final deliverables = snapshot.data ?? {};
+
+        return ClinicCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        gradient: ClinicSageGradients.tertiary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.dashboard_customize_outlined, size: 16, color: Colors.white),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Text('${client.name} — 11 Campaign Deliverables', style: theme.textTheme.titleMedium),
-                        Text('Real-time production and vetting status across all deliverable types', style: theme.textTheme.bodySmall?.copyWith(fontSize: 11)),
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            gradient: ClinicSageGradients.tertiary,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.dashboard_customize_outlined, size: 16, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${client.name} — 11 Campaign Deliverables', style: theme.textTheme.titleMedium),
+                            Text('Real-time production and vetting status across all deliverable types in Firestore', style: theme.textTheme.bodySmall?.copyWith(fontSize: 11)),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-                TextButton.icon(
-                  onPressed: () => context.go(AppRoutes.clientContentPath(client.id)),
-                  icon: const Icon(Icons.open_in_new, size: 14),
-                  label: const Text('Open Content Studio'),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: ContentType.values.length,
-            separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
-            itemBuilder: (ctx, idx) {
-              final type = ContentType.values[idx];
-              final key = 'draft_${client.id}_${type.value}';
-              final draft = HiveCacheService.instance.getDraftBuffer(key);
-              final isVetted = draft != null && draft.trim().isNotEmpty;
-              final status = isVetted ? VettingStatus.vetted : VettingStatus.draft;
-
-              return ListTile(
-                dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: ClinicSageColors.tertiaryLight,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(_typeIcon(type), size: 16, color: ClinicSageColors.tertiary),
-                ),
-                title: Text(
-                  type.label,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  isVetted ? 'Vetted text buffered in flywheel repository' : 'Ready for AI generation',
-                  style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    StatusBadge(status: status, compact: true),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios, size: 12, color: ClinicSageColors.secondary),
+                    TextButton.icon(
                       onPressed: () => context.go(AppRoutes.clientContentPath(client.id)),
+                      icon: const Icon(Icons.open_in_new, size: 14),
+                      label: const Text('Open Content Studio'),
                     ),
                   ],
                 ),
-              );
-            },
+              ),
+              const Divider(height: 1),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: ContentType.values.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+                itemBuilder: (ctx, idx) {
+                  final type = ContentType.values[idx];
+                  final delData = deliverables[type.value];
+                  final text = delData != null ? ((delData['vettedOutputText'] as String?) ?? (delData['content'] as String?) ?? '') : '';
+                  final isGenerated = text.trim().isNotEmpty;
+                  final statusStr = delData != null ? (delData['status'] as String? ?? 'draft') : 'draft';
+                  final status = isGenerated ? VettingStatus.fromString(statusStr) : VettingStatus.draft;
+
+                  return ListTile(
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: ClinicSageColors.tertiaryLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(_typeIcon(type), size: 16, color: ClinicSageColors.tertiary),
+                    ),
+                    title: Text(
+                      type.label,
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      isGenerated ? 'Generated and saved to online Firestore' : 'Ready for AI generation',
+                      style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        StatusBadge(status: status, compact: true),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_forward_ios, size: 12, color: ClinicSageColors.secondary),
+                          onPressed: () => context.go(AppRoutes.clientContentPath(client.id)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

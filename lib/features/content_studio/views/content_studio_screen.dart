@@ -7,7 +7,6 @@ import '../../../core/router/app_router.dart';
 import '../../../shared/widgets/status_badge.dart';
 import '../../../data/models/content_deliverable_model.dart';
 import '../../../core/services/gemini_service.dart';
-import '../../../core/services/hive_cache_service.dart';
 import '../../../core/services/firebase_service.dart';
 import '../../../data/models/client_model.dart';
 import '../../dashboard/providers/client_provider.dart';
@@ -207,16 +206,33 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
     }
   }
 
-  void _restoreDrafts() {
-    for (final t in ContentType.values) {
-      final key = 'draft_${widget.clientId}_${t.value}';
-      final cached = HiveCacheService.instance.getDraftBuffer(key);
-      if (cached != null && cached.isNotEmpty) {
-        _vettedControllers[t]!.text = cached;
-        _hasGenerated[t] = true;
-        _statuses[t] = VettingStatus.inReview;
+  void _restoreDrafts() async {
+    final am = ref.read(authProvider).user;
+    final amId = am?.id ?? 'am-default';
+
+    final deliverables = await FirebaseService.instance.getDeliverables(amId, widget.clientId);
+    if (!mounted) return;
+
+    setState(() {
+      for (final t in ContentType.values) {
+        final data = deliverables[t.value];
+        if (data != null) {
+          final text = (data['vettedOutputText'] as String?) ?? (data['content'] as String?) ?? '';
+          final statusStr = (data['status'] as String?) ?? 'draft';
+          if (text.isNotEmpty) {
+            _vettedControllers[t]!.text = text;
+            _hasGenerated[t] = true;
+            _statuses[t] = VettingStatus.fromString(statusStr);
+            _aiTexts[t] = text;
+          }
+        } else {
+          _vettedControllers[t]!.text = '';
+          _hasGenerated[t] = false;
+          _statuses[t] = VettingStatus.draft;
+          _aiTexts[t] = '';
+        }
       }
-    }
+    });
   }
 
   void _onTypeSelected(ContentType type) {
@@ -227,10 +243,6 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
   }
 
   void _onTextChanged(ContentType type, String value) {
-    final key = 'draft_${widget.clientId}_${type.value}';
-    HiveCacheService.instance.saveDraftBuffer(key, value);
-    HiveCacheService.instance.saveVettedDeliverable(widget.clientId, type.value, value);
-
     final am = ref.read(authProvider).user;
     final amId = am?.id ?? 'am-default';
 
@@ -257,6 +269,33 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
   Widget build(BuildContext context) {
     final clientState = ref.watch(clientProvider);
     final client = clientState.getClient(widget.clientId);
+
+    if (client == null) {
+      return Scaffold(
+        backgroundColor: ClinicSageColors.neutral,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.search_off_outlined, size: 48, color: ClinicSageColors.secondary),
+              const SizedBox(height: 16),
+              const Text('Client workspace not found in Firestore.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ClinicSageColors.tertiary,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => context.go(AppRoutes.dashboard),
+                icon: const Icon(Icons.arrow_back, size: 16),
+                label: const Text('Return to Dashboard'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final subTabs = getSubTabsForType(_selectedType);
 
     return Scaffold(

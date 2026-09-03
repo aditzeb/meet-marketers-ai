@@ -4,17 +4,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
-import 'core/services/hive_cache_service.dart';
 import 'core/services/firebase_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Initialize Hive Web-safe local caching
-  await HiveCacheService.instance.init();
-
-  // 2. Initialize Firebase for project meet-marketers-ai
+  // Initialize Firebase for project meet-marketers-ai
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,

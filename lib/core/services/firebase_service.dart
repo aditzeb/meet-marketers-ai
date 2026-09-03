@@ -179,32 +179,23 @@ class FirebaseService {
             .orderBy('lastActivity', descending: true)
             .get();
 
-        if (snap.docs.isNotEmpty) {
-          return snap.docs.map((d) => ClientModel.fromJson(d.id, d.data())).toList();
-        } else {
-          // Seed initial clients directly to Firestore for new user
-          for (var seedClient in _initialSeedClients) {
-            final payload = seedClient.toJson();
-            await firestore
-                .collection('account_managers')
-                .doc(currentUid)
-                .collection('clients')
-                .doc(seedClient.id)
-                .set(payload);
-
-            await firestore
-                .collection('clients')
-                .doc(seedClient.id)
-                .set({...payload, 'ownerUid': currentUid});
-          }
-          return _initialSeedClients;
-        }
+        return snap.docs.map((d) => ClientModel.fromJson(d.id, d.data())).toList();
       } catch (e) {
         debugPrint('Firestore getClients error: $e');
+        try {
+          final fallbackSnap = await firestore
+              .collection('account_managers')
+              .doc(currentUid)
+              .collection('clients')
+              .get();
+          return fallbackSnap.docs.map((d) => ClientModel.fromJson(d.id, d.data())).toList();
+        } catch (e2) {
+          debugPrint('Firestore getClients fallback error: $e2');
+        }
       }
     }
 
-    return _initialSeedClients;
+    return [];
   }
 
   Future<ClientModel> createClient(String amId, String name, String industry, {String? websiteUrl}) async {
@@ -356,6 +347,31 @@ class FirebaseService {
     return null;
   }
 
+  /// Get all deliverables for a client directly from Firestore
+  Future<Map<String, Map<String, dynamic>>> getDeliverables(String amId, String clientId) async {
+    final currentUid = _getCurrentUid(amId);
+    final result = <String, Map<String, dynamic>>{};
+
+    if (_isFirebaseAvailable) {
+      try {
+        final snap = await firestore
+            .collection('account_managers')
+            .doc(currentUid)
+            .collection('clients')
+            .doc(clientId)
+            .collection('deliverables')
+            .get();
+
+        for (final doc in snap.docs) {
+          result[doc.id] = doc.data();
+        }
+      } catch (e) {
+        debugPrint('Firestore getDeliverables error: $e');
+      }
+    }
+    return result;
+  }
+
   /// Upload client asset directly to Firebase Storage and return download URL
   Future<String?> uploadFile({
     required String clientId,
@@ -389,44 +405,4 @@ class FirebaseService {
     }
     return 'https://firebasestorage.googleapis.com/v0/b/meet-marketers-ai.firebasestorage.app/o/clients%2F$clientId%2F$folder%2F$cleanName?alt=media';
   }
-
-  // ── Seed Clients Fallback Data ──────────────────────────────────────────
-  static final List<ClientModel> _initialSeedClients = [
-    ClientModel(
-      id: 'client-meet-ventures',
-      name: 'Meet Ventures',
-      industry: 'Investment',
-      websiteUrl: 'https://www.meetventures.com/',
-      createdAt: DateTime.now(),
-      lastActivity: DateTime.now(),
-      status: ClientStatus.active,
-    ),
-    ClientModel(
-      id: 'client-alpha',
-      name: 'AlphaWave Studio',
-      industry: 'SaaS / Tech',
-      websiteUrl: 'https://alphawave.studio',
-      createdAt: DateTime.now().subtract(const Duration(days: 30)),
-      lastActivity: DateTime.now(),
-      status: ClientStatus.active,
-    ),
-    ClientModel(
-      id: 'client-beta',
-      name: 'BetaForm Agency',
-      industry: 'Marketing',
-      websiteUrl: 'https://betaform.agency',
-      createdAt: DateTime.now().subtract(const Duration(days: 20)),
-      lastActivity: DateTime.now().subtract(const Duration(hours: 4)),
-      status: ClientStatus.active,
-    ),
-    ClientModel(
-      id: 'client-gamma',
-      name: 'Gamma Health',
-      industry: 'Healthcare',
-      websiteUrl: 'https://gammahealth.co',
-      createdAt: DateTime.now().subtract(const Duration(days: 15)),
-      lastActivity: DateTime.now().subtract(const Duration(days: 2)),
-      status: ClientStatus.onboarding,
-    ),
-  ];
 }
