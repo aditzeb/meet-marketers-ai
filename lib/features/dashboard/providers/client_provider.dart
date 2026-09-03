@@ -55,6 +55,13 @@ class ClientNotifier extends StateNotifier<ClientState> {
 
   ClientNotifier(this.ref) : super(const ClientState()) {
     loadClients();
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (previous?.user?.id != next.user?.id ||
+          previous?.user?.role != next.user?.role ||
+          previous?.user?.assignedClientIds.length != next.user?.assignedClientIds.length) {
+        loadClients();
+      }
+    });
   }
 
   Future<void> loadClients() async {
@@ -62,10 +69,10 @@ class ClientNotifier extends StateNotifier<ClientState> {
     final am = ref.read(authProvider).user;
     final amId = am?.id ?? 'am-default';
 
-    final clients = await FirebaseService.instance.getClients(amId);
+    final clients = await FirebaseService.instance.getClients(amId, user: am);
     state = ClientState(
       clients: clients,
-      activeClientId: clients.isNotEmpty ? clients.first.id : null,
+      activeClientId: clients.isNotEmpty ? (state.activeClientId ?? clients.first.id) : null,
       isLoading: false,
       searchQuery: state.searchQuery,
     );
@@ -81,6 +88,9 @@ class ClientNotifier extends StateNotifier<ClientState> {
 
   Future<ClientModel> createClient(String name, String industry, String? websiteUrl) async {
     final am = ref.read(authProvider).user;
+    if (am != null && !am.isAdmin) {
+      throw Exception('Permission Denied: Only Admins can create new client projects.');
+    }
     final amId = am?.id ?? 'am-default';
 
     final newClient = await FirebaseService.instance.createClient(

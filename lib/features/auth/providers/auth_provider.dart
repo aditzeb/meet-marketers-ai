@@ -36,39 +36,42 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void _initAuthListener() {
-    // Check active Firebase Auth user first if Firebase is available
     if (FirebaseService.instance.isFirebaseAvailable) {
       try {
-        final currentUser = FirebaseAuth.instance.currentUser;
-        if (currentUser != null) {
-          final am = AccountManagerModel(
-            id: currentUser.uid,
-            displayName: currentUser.displayName ?? currentUser.email?.split('@').first ?? 'Account Manager',
-            email: currentUser.email ?? 'am@agency.com',
-            createdAt: DateTime.now(),
-            lastLoginAt: DateTime.now(),
-          );
-          state = AuthState(user: am);
-          return;
-        }
+        FirebaseAuth.instance.authStateChanges().listen((currentUser) async {
+          if (currentUser != null) {
+            final am = await FirebaseService.instance.getAccountManager(currentUser.uid);
+            state = AuthState(
+              user: am ??
+                  AccountManagerModel(
+                    id: currentUser.uid,
+                    displayName: currentUser.displayName ?? currentUser.email?.split('@').first ?? 'Account Manager',
+                    email: currentUser.email ?? 'am@agency.com',
+                    createdAt: DateTime.now(),
+                    lastLoginAt: DateTime.now(),
+                    role: (currentUser.email != null && currentUser.email!.toLowerCase().contains('admin')) ? 'admin' : 'accountManager',
+                  ),
+              isLoading: false,
+            );
+          } else {
+            state = const AuthState(user: null, isLoading: false);
+          }
+        });
+        return;
       } catch (e) {
         debugPrint('Firebase Auth listener error: $e');
       }
     }
+    state = const AuthState(user: null, isLoading: false);
+  }
 
-    // If Firebase is available, sign in anonymously, otherwise use default AM session
-    if (FirebaseService.instance.isFirebaseAvailable) {
-      signInAnonymously();
-    } else {
-      state = AuthState(
-        user: AccountManagerModel(
-          id: 'am-default',
-          displayName: 'Account Manager',
-          email: 'am@agency.com',
-          createdAt: DateTime.now(),
-          lastLoginAt: DateTime.now(),
-        ),
-      );
+  Future<void> reloadUser() async {
+    final current = state.user;
+    if (current != null) {
+      final updated = await FirebaseService.instance.getAccountManager(current.id);
+      if (updated != null) {
+        state = state.copyWith(user: updated);
+      }
     }
   }
 
@@ -79,7 +82,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(user: user, isLoading: false);
       return user != null;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      final cleanMsg = e.toString().replaceFirst('Exception: ', '');
+      state = state.copyWith(isLoading: false, error: cleanMsg);
       return false;
     }
   }
@@ -91,19 +95,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(user: user, isLoading: false);
       return user != null;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-      return false;
-    }
-  }
-
-  Future<bool> signInAnonymously() async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final user = await FirebaseService.instance.signInAnonymously();
-      state = AuthState(user: user, isLoading: false);
-      return user != null;
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      final cleanMsg = e.toString().replaceFirst('Exception: ', '');
+      state = state.copyWith(isLoading: false, error: cleanMsg);
       return false;
     }
   }

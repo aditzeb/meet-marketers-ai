@@ -10,6 +10,8 @@ class AccountManagerModel extends Equatable {
   final DateTime createdAt;
   final DateTime lastLoginAt;
   final int totalClients;
+  final String role; // 'admin' or 'accountManager'
+  final List<String> assignedClientIds;
 
   const AccountManagerModel({
     required this.id,
@@ -19,7 +21,13 @@ class AccountManagerModel extends Equatable {
     required this.createdAt,
     required this.lastLoginAt,
     this.totalClients = 0,
+    this.role = 'accountManager',
+    this.assignedClientIds = const [],
   });
+
+  bool get isAdmin => role.toLowerCase() == 'admin';
+
+  bool canAccessClient(String clientId) => isAdmin || assignedClientIds.contains(clientId);
 
   factory AccountManagerModel.fromJson(String id, Map<String, dynamic> json) {
     return AccountManagerModel(
@@ -30,6 +38,8 @@ class AccountManagerModel extends Equatable {
       createdAt: _parseTimestamp(json['createdAt']),
       lastLoginAt: _parseTimestamp(json['lastLoginAt']),
       totalClients: json['totalClients'] as int? ?? 0,
+      role: json['role'] as String? ?? 'accountManager',
+      assignedClientIds: (json['assignedClientIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
 
@@ -41,6 +51,8 @@ class AccountManagerModel extends Equatable {
       'createdAt': createdAt.toIso8601String(),
       'lastLoginAt': lastLoginAt.toIso8601String(),
       'totalClients': totalClients,
+      'role': role,
+      'assignedClientIds': assignedClientIds,
     };
   }
 
@@ -50,6 +62,8 @@ class AccountManagerModel extends Equatable {
     String? avatarUrl,
     DateTime? lastLoginAt,
     int? totalClients,
+    String? role,
+    List<String>? assignedClientIds,
   }) {
     return AccountManagerModel(
       id: id,
@@ -59,6 +73,8 @@ class AccountManagerModel extends Equatable {
       createdAt: createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       totalClients: totalClients ?? this.totalClients,
+      role: role ?? this.role,
+      assignedClientIds: assignedClientIds ?? this.assignedClientIds,
     );
   }
 
@@ -74,5 +90,15 @@ class AccountManagerModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, displayName, email, avatarUrl, createdAt, lastLoginAt, totalClients];
+  List<Object?> get props => [
+        id,
+        displayName,
+        email,
+        avatarUrl,
+        createdAt,
+        lastLoginAt,
+        totalClients,
+        role,
+        assignedClientIds,
+      ];
 }

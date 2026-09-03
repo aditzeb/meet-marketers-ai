@@ -27,7 +27,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final clientState = ref.watch(clientProvider);
-    final activeClient = clientState.activeClient;
+    final activeClient = clientState.activeClient ?? (clientState.clients.isNotEmpty ? clientState.clients.first : null);
 
     if (clientState.isLoading) {
       return const Scaffold(
@@ -36,63 +36,86 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       );
     }
 
+    final currentUser = ref.watch(authProvider).user;
+    final isAdmin = currentUser?.isAdmin ?? false;
+
     if (clientState.clients.isEmpty || activeClient == null) {
       return Scaffold(
         backgroundColor: ClinicSageColors.neutral,
         body: Center(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 520),
-            padding: const EdgeInsets.all(40),
+            constraints: const BoxConstraints(maxWidth: 480),
+            padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
               color: ClinicSageColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(ClinicSageRadius.lg),
               border: Border.all(color: ClinicSageColors.border),
-              boxShadow: ClinicSageShadows.card,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: const BoxDecoration(
-                    color: ClinicSageColors.tertiaryLight,
-                    shape: BoxShape.circle,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isAdmin ? ClinicSageColors.tertiaryLight : const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.business_outlined, size: 44, color: ClinicSageColors.tertiary),
+                  child: Icon(
+                    isAdmin ? Icons.business_outlined : Icons.lock_person_outlined,
+                    size: 40,
+                    color: isAdmin ? ClinicSageColors.tertiary : const Color(0xFF2563EB),
+                  ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'No Client Workspaces',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: ClinicSageColors.primary),
+                Text(
+                  isAdmin ? 'No Client Workspaces' : 'No Assigned Client Projects',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: ClinicSageColors.primary),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Your online Firestore database has 0 clients. Create your first client workspace to start ingesting discovery inputs, generating SWOT strategies, and automating deliverables.',
+                Text(
+                  isAdmin
+                      ? 'Your online Firestore database has 0 clients. Create your first client workspace to start ingesting discovery inputs, generating SWOT strategies, and automating deliverables.'
+                      : 'You do not have access to any client workspaces yet. Please contact an Administrator to assign client projects to your account. You can still create and manage strategic proposals.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: ClinicSageColors.secondary, height: 1.5),
+                  style: const TextStyle(fontSize: 13, color: ClinicSageColors.secondary, height: 1.5),
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ClinicSageColors.tertiary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                if (isAdmin)
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ClinicSageColors.tertiary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      CreateClientDialog.show(
+                        context,
+                        onCreate: (name, industry, websiteUrl) async {
+                          final newClient = await ref.read(clientProvider.notifier).createClient(name, industry, websiteUrl);
+                          if (context.mounted) {
+                            context.go(AppRoutes.clientInputsPath(newClient.id));
+                          }
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Create New Client Workspace', style: TextStyle(fontWeight: FontWeight.w600)),
+                  )
+                else
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ClinicSageColors.tertiary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () {
+                      context.go(AppRoutes.proposals);
+                    },
+                    icon: const Icon(Icons.description_outlined, size: 16),
+                    label: const Text('Open Proposal Engine', style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
-                  onPressed: () {
-                    CreateClientDialog.show(
-                      context,
-                      onCreate: (name, industry, websiteUrl) async {
-                        final newClient = await ref.read(clientProvider.notifier).createClient(name, industry, websiteUrl);
-                        if (context.mounted) {
-                          context.go(AppRoutes.clientInputsPath(newClient.id));
-                        }
-                      },
-                    );
-                  },
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Create New Client Workspace', style: TextStyle(fontWeight: FontWeight.w600)),
-                ),
               ],
             ),
           ),
@@ -375,22 +398,23 @@ class _ClientDashboardHeader extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
 
-              // New Client Button
-              ElevatedButton.icon(
-                onPressed: () {
-                  CreateClientDialog.show(
-                    context,
-                    onCreate: (name, industry, websiteUrl) async {
-                      final newClient = await ref.read(clientProvider.notifier).createClient(name, industry, websiteUrl);
-                      if (context.mounted) {
-                        context.go(AppRoutes.clientInputsPath(newClient.id));
-                      }
-                    },
-                  );
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('New Client Workspace'),
-              ),
+              // New Client Button (Admin Only)
+              if (ref.watch(authProvider).user?.isAdmin ?? false)
+                ElevatedButton.icon(
+                  onPressed: () {
+                    CreateClientDialog.show(
+                      context,
+                      onCreate: (name, industry, websiteUrl) async {
+                        final newClient = await ref.read(clientProvider.notifier).createClient(name, industry, websiteUrl);
+                        if (context.mounted) {
+                          context.go(AppRoutes.clientInputsPath(newClient.id));
+                        }
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('New Client Workspace'),
+                ),
             ],
           ),
 
@@ -1097,21 +1121,22 @@ class _ClientRosterTable extends ConsumerWidget {
                     ),
                   ],
                 ),
-                TextButton.icon(
-                  onPressed: () {
-                    CreateClientDialog.show(
-                      context,
-                      onCreate: (name, industry, websiteUrl) async {
-                        final newClient = await ref.read(clientProvider.notifier).createClient(name, industry, websiteUrl);
-                        if (context.mounted) {
-                          context.go(AppRoutes.clientInputsPath(newClient.id));
-                        }
-                      },
-                    );
-                  },
-                  icon: const Icon(Icons.add, size: 14),
-                  label: const Text('Add Client'),
-                ),
+                if (ref.watch(authProvider).user?.isAdmin ?? false)
+                  TextButton.icon(
+                    onPressed: () {
+                      CreateClientDialog.show(
+                        context,
+                        onCreate: (name, industry, websiteUrl) async {
+                          final newClient = await ref.read(clientProvider.notifier).createClient(name, industry, websiteUrl);
+                          if (context.mounted) {
+                            context.go(AppRoutes.clientInputsPath(newClient.id));
+                          }
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.add, size: 14),
+                    label: const Text('Add Client'),
+                  ),
               ],
             ),
           ),

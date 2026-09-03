@@ -77,7 +77,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
                   onToggleMode: () => setState(() => _isSignIn = !_isSignIn),
                   onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
                   onSubmit: _onSubmit,
-                  onGoogleSignIn: _onGoogleSignIn,
                 )),
               ],
             )
@@ -93,7 +92,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
               onToggleMode: () => setState(() => _isSignIn = !_isSignIn),
               onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
               onSubmit: _onSubmit,
-              onGoogleSignIn: _onGoogleSignIn,
             ),
     );
   }
@@ -109,13 +107,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with TickerProviderStat
         ? await ref.read(authProvider.notifier).signIn(email, password)
         : await ref.read(authProvider.notifier).signUp(name.isEmpty ? 'Account Manager' : name, email, password);
 
-    if (mounted && success) {
-      context.go(AppRoutes.dashboard);
-    }
-  }
-
-  void _onGoogleSignIn() async {
-    final success = await ref.read(authProvider.notifier).signIn('google.am@agency.com', 'google-auth-pass');
     if (mounted && success) {
       context.go(AppRoutes.dashboard);
     }
@@ -271,7 +262,6 @@ class _FormPanel extends StatelessWidget {
   final VoidCallback onToggleMode;
   final VoidCallback onToggleObscure;
   final VoidCallback onSubmit;
-  final VoidCallback onGoogleSignIn;
 
   const _FormPanel({
     required this.isSignIn,
@@ -285,7 +275,6 @@ class _FormPanel extends StatelessWidget {
     required this.onToggleMode,
     required this.onToggleObscure,
     required this.onSubmit,
-    required this.onGoogleSignIn,
   });
 
   @override
@@ -453,31 +442,7 @@ class _FormPanel extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
-
-                    Row(
-                      children: [
-                        const Expanded(child: Divider()),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('or', style: theme.textTheme.bodySmall),
-                        ),
-                        const Expanded(child: Divider()),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: isLoading ? null : onGoogleSignIn,
-                        icon: const Icon(Icons.account_circle, size: 20, color: ClinicSageColors.tertiary),
-                        label: const Text('Continue as Account Manager'),
-                      ),
-                    ),
-
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
                     Center(
                       child: RichText(

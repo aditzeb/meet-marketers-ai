@@ -49,13 +49,18 @@ class _AppShellState extends ConsumerState<AppShell> {
               ],
             ),
             child: _sidebarCollapsed
-                ? _CollapsedSidebar(onExpand: () => setState(() => _sidebarCollapsed = false))
+                ? _CollapsedSidebar(
+                    isAdmin: authState.user?.isAdmin ?? false,
+                    onExpand: () => setState(() => _sidebarCollapsed = false),
+                  )
                 : _ExpandedSidebar(
                     clients: clientState.filteredClients,
                     activeClientId: clientState.activeClientId,
                     searchQuery: clientState.searchQuery,
                     userName: authState.user?.displayName ?? 'Account Manager',
                     userEmail: authState.user?.email ?? 'meet@marketers.ai',
+                    userRole: authState.user?.role ?? 'accountManager',
+                    isAdmin: authState.user?.isAdmin ?? false,
                     onSearchChanged: (q) => ref.read(clientProvider.notifier).setSearchQuery(q),
                     onClientSelected: _onClientSelected,
                     onNewClient: _onOpenCreateClientDialog,
@@ -105,6 +110,8 @@ class _ExpandedSidebar extends StatelessWidget {
   final String searchQuery;
   final String userName;
   final String userEmail;
+  final String userRole;
+  final bool isAdmin;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onClientSelected;
   final VoidCallback onNewClient;
@@ -117,6 +124,8 @@ class _ExpandedSidebar extends StatelessWidget {
     required this.searchQuery,
     required this.userName,
     required this.userEmail,
+    required this.userRole,
+    required this.isAdmin,
     required this.onSearchChanged,
     required this.onClientSelected,
     required this.onNewClient,
@@ -186,7 +195,9 @@ class _ExpandedSidebar extends StatelessWidget {
         _SidebarNavItem(
           icon: Icons.grid_view_rounded,
           label: 'Dashboard',
-          isSelected: activeClientId == null && !GoRouterState.of(context).uri.toString().startsWith('/proposals'),
+          isSelected: activeClientId == null &&
+              !GoRouterState.of(context).uri.toString().startsWith('/proposals') &&
+              !GoRouterState.of(context).uri.toString().startsWith('/user-management'),
           onTap: () => GoRouter.of(context).go(AppRoutes.dashboard),
         ),
         _SidebarNavItem(
@@ -195,6 +206,13 @@ class _ExpandedSidebar extends StatelessWidget {
           isSelected: GoRouterState.of(context).uri.toString().startsWith('/proposals'),
           onTap: () => GoRouter.of(context).go(AppRoutes.proposals),
         ),
+        if (isAdmin)
+          _SidebarNavItem(
+            icon: Icons.manage_accounts_outlined,
+            label: 'Team & Access',
+            isSelected: GoRouterState.of(context).uri.toString().startsWith('/user-management'),
+            onTap: () => GoRouter.of(context).go(AppRoutes.userManagement),
+          ),
 
         const SizedBox(height: 12),
         Padding(
@@ -307,33 +325,65 @@ class _ExpandedSidebar extends StatelessWidget {
                 ),
         ),
 
-        // ── New Client Button ─────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(ClinicSageRadius.md),
-            child: InkWell(
-              onTap: onNewClient,
+        // ── New Client Button (Admin Only) ─────────────────
+        if (isAdmin)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            child: Material(
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+              child: InkWell(
+                onTap: onNewClient,
+                borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: ClinicSageGradients.tertiary,
+                    borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+                    boxShadow: ClinicSageShadows.button,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add, size: 16, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        'New Client Workspace',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            child: Tooltip(
+              message: 'Only Admins can create new client workspaces',
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  gradient: ClinicSageGradients.tertiary,
+                  color: ClinicSageColors.neutral,
                   borderRadius: BorderRadius.circular(ClinicSageRadius.md),
-                  boxShadow: ClinicSageShadows.button,
+                  border: Border.all(color: ClinicSageColors.border),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.add, size: 16, color: Colors.white),
-                    const SizedBox(width: 8),
+                    Icon(Icons.lock_outline, size: 13, color: Colors.grey.shade500),
+                    const SizedBox(width: 6),
                     Text(
-                      'New Client Workspace',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                      'Admin Project Creation Only',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -341,12 +391,12 @@ class _ExpandedSidebar extends StatelessWidget {
               ),
             ),
           ),
-        ),
 
         // ── AM Footer ────────────────────────────────────
         _AMFooter(
           userName: userName,
           userEmail: userEmail,
+          userRole: userRole,
           onSignOut: onSignOut,
         ),
       ],
@@ -607,17 +657,21 @@ class _SidebarNavItemState extends State<_SidebarNavItem> {
 class _AMFooter extends StatelessWidget {
   final String userName;
   final String userEmail;
+  final String userRole;
   final VoidCallback onSignOut;
 
   const _AMFooter({
     required this.userName,
     required this.userEmail,
+    required this.userRole,
     required this.onSignOut,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isAdmin = userRole.toLowerCase() == 'admin';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: const BoxDecoration(
@@ -649,13 +703,39 @@ class _AMFooter extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  userName,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: ClinicSageColors.primary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        userName,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: ClinicSageColors.primary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: isAdmin ? ClinicSageColors.tertiaryLight : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: isAdmin ? ClinicSageColors.tertiary.withOpacity(0.4) : ClinicSageColors.border,
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        isAdmin ? 'Admin' : 'AM',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: isAdmin ? ClinicSageColors.tertiary : const Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
                   userEmail,
@@ -687,8 +767,9 @@ class _AMFooter extends StatelessWidget {
 }
 
 class _CollapsedSidebar extends StatelessWidget {
+  final bool isAdmin;
   final VoidCallback onExpand;
-  const _CollapsedSidebar({required this.onExpand});
+  const _CollapsedSidebar({required this.isAdmin, required this.onExpand});
 
   @override
   Widget build(BuildContext context) {
@@ -703,9 +784,9 @@ class _CollapsedSidebar extends StatelessWidget {
             child: InkWell(
               onTap: onExpand,
               borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: const Icon(Icons.chevron_right, size: 20, color: ClinicSageColors.secondary),
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(Icons.chevron_right, size: 20, color: ClinicSageColors.secondary),
               ),
             ),
           ),
@@ -723,9 +804,9 @@ class _CollapsedSidebar extends StatelessWidget {
             child: InkWell(
               onTap: () => GoRouter.of(context).go(AppRoutes.dashboard),
               borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: const Icon(Icons.grid_view_rounded, size: 18, color: ClinicSageColors.secondary),
+              child: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Icon(Icons.grid_view_rounded, size: 18, color: ClinicSageColors.secondary),
               ),
             ),
           ),
@@ -738,13 +819,29 @@ class _CollapsedSidebar extends StatelessWidget {
             child: InkWell(
               onTap: () => GoRouter.of(context).go(AppRoutes.proposals),
               borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: const Icon(Icons.description_outlined, size: 18, color: ClinicSageColors.secondary),
+              child: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Icon(Icons.description_outlined, size: 18, color: ClinicSageColors.secondary),
               ),
             ),
           ),
         ),
+        if (isAdmin)
+          Tooltip(
+            message: 'Team & Access',
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              child: InkWell(
+                onTap: () => GoRouter.of(context).go(AppRoutes.userManagement),
+                borderRadius: BorderRadius.circular(8),
+                child: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(Icons.manage_accounts_outlined, size: 18, color: ClinicSageColors.tertiary),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

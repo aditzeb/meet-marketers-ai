@@ -9,12 +9,15 @@ import '../../features/strategy_hub/views/strategy_hub_screen.dart';
 import '../../features/review/views/review_screen.dart';
 import '../../features/proposals/views/proposals_screen.dart';
 import '../../features/proposals/views/proposal_editor_screen.dart';
+import '../../features/user_management/views/user_management_screen.dart';
+import '../../features/auth/providers/auth_provider.dart';
 import '../../shared/widgets/app_shell.dart';
 
 // Route name constants
 abstract class AppRoutes {
   static const String auth = '/auth';
   static const String dashboard = '/dashboard';
+  static const String userManagement = '/user-management';
   static const String clientInputs = '/client/:clientId/inputs';
   static const String clientContent = '/client/:clientId/content';
   static const String clientStrategy = '/client/:clientId/strategy';
@@ -29,13 +32,36 @@ abstract class AppRoutes {
   static String proposalDetailPath(String id) => '/proposals/$id';
 }
 
+class _AuthListenable extends ChangeNotifier {
+  _AuthListenable(Ref ref) {
+    ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+  }
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.auth,
     debugLogDiagnostics: false,
+    refreshListenable: _AuthListenable(ref),
     redirect: (context, state) {
-      // Auth guard — always allow /auth, everything else requires session
-      // (Real Firebase auth check would happen here)
+      final authState = ref.read(authProvider);
+      final isAuthRoute = state.matchedLocation == AppRoutes.auth;
+
+      // Unauthenticated users must stay on or be redirected to /auth
+      if (!authState.isAuthenticated) {
+        return isAuthRoute ? null : AppRoutes.auth;
+      }
+
+      // Authenticated users on /auth are directed to /dashboard
+      if (isAuthRoute) {
+        return AppRoutes.dashboard;
+      }
+
+      // Restricted to Admin role only
+      if (state.matchedLocation == AppRoutes.userManagement && authState.user?.isAdmin != true) {
+        return AppRoutes.dashboard;
+      }
+
       return null;
     },
     routes: [
@@ -59,6 +85,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => _buildPage(
               state: state,
               child: const DashboardScreen(),
+            ),
+          ),
+
+          // User Management & Access Control (Admin Only)
+          GoRoute(
+            path: AppRoutes.userManagement,
+            name: 'user-management',
+            pageBuilder: (context, state) => _buildPage(
+              state: state,
+              child: const UserManagementScreen(),
             ),
           ),
 

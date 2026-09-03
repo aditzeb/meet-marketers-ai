@@ -28,22 +28,63 @@ class FirebaseService {
     auth.authStateChanges().listen((user) async {
       if (user != null) {
         debugPrint('Firebase Auth user state updated: ${user.uid} (${user.email})');
-        final am = AccountManagerModel(
-          id: user.uid,
-          displayName: user.displayName ?? user.email?.split('@').first ?? 'Account Manager',
-          email: user.email ?? 'am@agency.com',
-          createdAt: DateTime.now(),
-          lastLoginAt: DateTime.now(),
-        );
-        await _ensureAccountManagerDoc(am);
+        final existing = await getAccountManager(user.uid);
+        if (existing == null) {
+          final isFirst = await _isFirstRegisteredUser();
+          final role = (isFirst || (user.email != null && user.email!.toLowerCase().contains('admin'))) ? 'admin' : 'accountManager';
+          final am = AccountManagerModel(
+            id: user.uid,
+            displayName: user.displayName ?? user.email?.split('@').first ?? 'Account Manager',
+            email: user.email ?? 'am@agency.com',
+            createdAt: DateTime.now(),
+            lastLoginAt: DateTime.now(),
+            role: role,
+            assignedClientIds: const [],
+          );
+          await _ensureAccountManagerDoc(am);
+        }
       }
     });
+  }
+
+  Future<bool> _isFirstRegisteredUser() async {
+    if (!_isFirebaseAvailable) return false;
+    try {
+      final snap = await firestore.collection('account_managers').limit(2).get();
+      return snap.docs.isEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<AccountManagerModel?> getAccountManager(String uid) async {
+    if (!_isFirebaseAvailable) return null;
+    try {
+      final doc = await firestore.collection('account_managers').doc(uid).get();
+      if (doc.exists && doc.data() != null) {
+        return AccountManagerModel.fromJson(doc.id, doc.data()!);
+      }
+    } catch (e) {
+      debugPrint('Firestore getAccountManager error: $e');
+    }
+    return null;
   }
 
   Future<void> _ensureAccountManagerDoc(AccountManagerModel am) async {
     if (!_isFirebaseAvailable) return;
     try {
+      final doc = await firestore.collection('account_managers').doc(am.id).get();
       final payload = am.toJson();
+      if (doc.exists && doc.data() != null) {
+        final existingData = doc.data()!;
+        if (existingData.containsKey('role')) {
+          payload['role'] = existingData['role'];
+        }
+        if (existingData.containsKey('assignedClientIds')) {
+          payload['assignedClientIds'] = existingData['assignedClientIds'];
+        }
+      }
+      payload['lastLoginAt'] = DateTime.now().toIso8601String();
       await firestore.collection('account_managers').doc(am.id).set(payload, SetOptions(merge: true));
       await firestore.collection('users').doc(am.id).set(payload, SetOptions(merge: true));
     } catch (e) {
@@ -57,33 +98,55 @@ class FirebaseService {
       try {
         final cred = await auth.signInWithEmailAndPassword(email: email, password: password);
         if (cred.user != null) {
-          final am = AccountManagerModel(
-            id: cred.user!.uid,
-            displayName: cred.user!.displayName ?? email.split('@').first,
-            email: email,
-            createdAt: DateTime.now(),
-            lastLoginAt: DateTime.now(),
-          );
-          await _ensureAccountManagerDoc(am);
+          var am = await getAccountManager(cred.user!.uid);
+          if (am == null) {
+            final isFirst = await _isFirstRegisteredUser();
+            final role = (isFirst || email.toLowerCase().contains('admin')) ? 'admin' : 'accountManager';
+            am = AccountManagerModel(
+              id: cred.user!.uid,
+              displayName: cred.user!.displayName ?? email.split('@').first,
+              email: email,
+              createdAt: DateTime.now(),
+              lastLoginAt: DateTime.now(),
+              role: role,
+              assignedClientIds: const [],
+            );
+            await _ensureAccountManagerDoc(am);
+          } else {
+            await _ensureAccountManagerDoc(am);
+          }
           return am;
         }
-      } catch (e) {
-        debugPrint('Firebase Auth SignIn warning: $e');
-        if (e.toString().contains('user-not-found') || e.toString().contains('invalid-credential')) {
-          return signUpWithEmail(email.split('@').first, email, password);
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Firebase Auth SignIn error: ${e.code} - ${e.message}');
+        String message = 'Authentication failed.';
+        if (e.code == 'user-not-found') {
+          message = 'No account found with this email. Please sign up first.';
+        } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          message = 'Incorrect password. Please verify your credentials and try again.';
+        } else if (e.code == 'invalid-email') {
+          message = 'Please enter a valid email address.';
+        } else if (e.code == 'user-disabled') {
+          message = 'This user account has been deactivated.';
+        } else if (e.message != null && e.message!.isNotEmpty) {
+          message = e.message!;
         }
+        throw Exception(message);
+      } catch (e) {
+        debugPrint('Firebase Auth SignIn exception: $e');
+        rethrow;
       }
     }
 
-    final am = AccountManagerModel(
+    // Fallback if offline
+    return AccountManagerModel(
       id: 'am-${email.hashCode.abs()}',
       displayName: email.split('@').first,
       email: email,
       createdAt: DateTime.now(),
       lastLoginAt: DateTime.now(),
-      totalClients: 5,
+      role: email.toLowerCase().contains('admin') ? 'admin' : 'accountManager',
     );
-    return am;
   }
 
   Future<AccountManagerModel?> signUpWithEmail(String name, String email, String password) async {
@@ -92,62 +155,85 @@ class FirebaseService {
         final cred = await auth.createUserWithEmailAndPassword(email: email, password: password);
         if (cred.user != null) {
           await cred.user!.updateDisplayName(name);
+          final isFirst = await _isFirstRegisteredUser();
+          final role = (isFirst || email.toLowerCase().contains('admin')) ? 'admin' : 'accountManager';
           final am = AccountManagerModel(
             id: cred.user!.uid,
             displayName: name,
             email: email,
             createdAt: DateTime.now(),
             lastLoginAt: DateTime.now(),
+            role: role,
+            assignedClientIds: const [],
           );
           await _ensureAccountManagerDoc(am);
           return am;
         }
-      } catch (e) {
-        debugPrint('Firebase Auth SignUp warning: $e');
-        if (e.toString().contains('email-already-in-use')) {
-          return signInWithEmail(email, password);
+      } on FirebaseAuthException catch (e) {
+        debugPrint('Firebase Auth SignUp error: ${e.code} - ${e.message}');
+        String message = 'Registration failed.';
+        if (e.code == 'email-already-in-use') {
+          message = 'An account already exists for that email. Please sign in instead.';
+        } else if (e.code == 'weak-password') {
+          message = 'Password is too weak. Please use at least 6 characters.';
+        } else if (e.code == 'invalid-email') {
+          message = 'Please enter a valid email address.';
+        } else if (e.message != null && e.message!.isNotEmpty) {
+          message = e.message!;
         }
+        throw Exception(message);
+      } catch (e) {
+        debugPrint('Firebase Auth SignUp exception: $e');
+        rethrow;
       }
     }
 
-    final am = AccountManagerModel(
+    return AccountManagerModel(
       id: 'am-${email.hashCode.abs()}',
       displayName: name,
       email: email,
       createdAt: DateTime.now(),
       lastLoginAt: DateTime.now(),
+      role: email.toLowerCase().contains('admin') ? 'admin' : 'accountManager',
     );
-    return am;
   }
 
-  Future<AccountManagerModel?> signInAnonymously() async {
+  // ── User Management Methods (Admin Access) ─────────────────────────────────
+  Future<List<AccountManagerModel>> getAllUsers() async {
     if (_isFirebaseAvailable) {
       try {
-        final cred = await auth.signInAnonymously();
-        if (cred.user != null) {
-          final am = AccountManagerModel(
-            id: cred.user!.uid,
-            displayName: 'Guest Account Manager',
-            email: 'guest@meetmarketers.ai',
-            createdAt: DateTime.now(),
-            lastLoginAt: DateTime.now(),
-          );
-          await _ensureAccountManagerDoc(am);
-          return am;
-        }
+        final snap = await firestore.collection('account_managers').get();
+        return snap.docs.map((d) => AccountManagerModel.fromJson(d.id, d.data())).toList();
       } catch (e) {
-        debugPrint('Firebase Anonymous SignIn error: $e');
+        debugPrint('Firestore getAllUsers error: $e');
       }
     }
+    return [];
+  }
 
-    final am = AccountManagerModel(
-      id: 'am-guest',
-      displayName: 'Guest Account Manager',
-      email: 'guest@meetmarketers.ai',
-      createdAt: DateTime.now(),
-      lastLoginAt: DateTime.now(),
-    );
-    return am;
+  Future<void> updateUserRoleAndAssignments(
+    String userId, {
+    required String role,
+    required List<String> assignedClientIds,
+  }) async {
+    if (_isFirebaseAvailable) {
+      try {
+        await firestore.collection('account_managers').doc(userId).set({
+          'role': role,
+          'assignedClientIds': assignedClientIds,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        await firestore.collection('users').doc(userId).set({
+          'role': role,
+          'assignedClientIds': assignedClientIds,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore updateUserRoleAndAssignments error: $e');
+        rethrow;
+      }
+    }
   }
 
   Future<void> signOut() async {
@@ -167,12 +253,46 @@ class FirebaseService {
     return amId;
   }
 
+  /// Fetch all client projects across the entire agency (Admin / Central catalog)
+  Future<List<ClientModel>> getAllAgencyClients() async {
+    if (_isFirebaseAvailable) {
+      try {
+        final snap = await firestore.collection('clients').orderBy('lastActivity', descending: true).get();
+        if (snap.docs.isNotEmpty) {
+          return snap.docs.map((d) => ClientModel.fromJson(d.id, d.data())).toList();
+        }
+      } catch (e) {
+        debugPrint('Firestore getAllAgencyClients error: $e');
+        try {
+          final fallbackSnap = await firestore.collection('clients').get();
+          if (fallbackSnap.docs.isNotEmpty) {
+            return fallbackSnap.docs.map((d) => ClientModel.fromJson(d.id, d.data())).toList();
+          }
+        } catch (_) {}
+      }
+    }
+    return [];
+  }
+
   // ── Direct Firestore Clients Management ────────────────────────────────────
-  Future<List<ClientModel>> getClients(String amId) async {
+  Future<List<ClientModel>> getClients(String amId, {AccountManagerModel? user}) async {
     final currentUid = _getCurrentUid(amId);
 
     if (_isFirebaseAvailable) {
       try {
+        // 1. Check all agency clients from root collection
+        final allClients = await getAllAgencyClients();
+
+        if (allClients.isNotEmpty) {
+          // If user provided and is NOT admin, filter by assignedClientIds
+          if (user != null && !user.isAdmin) {
+            return allClients.where((c) => user.canAccessClient(c.id)).toList();
+          }
+          // If admin, return all agency clients
+          return allClients;
+        }
+
+        // Fallback to am-specific collection if root clients is empty
         final snap = await firestore
             .collection('account_managers')
             .doc(currentUid)
@@ -180,19 +300,13 @@ class FirebaseService {
             .orderBy('lastActivity', descending: true)
             .get();
 
-        return snap.docs.map((d) => ClientModel.fromJson(d.id, d.data())).toList();
+        final list = snap.docs.map((d) => ClientModel.fromJson(d.id, d.data())).toList();
+        if (user != null && !user.isAdmin) {
+          return list.where((c) => user.canAccessClient(c.id)).toList();
+        }
+        return list;
       } catch (e) {
         debugPrint('Firestore getClients error: $e');
-        try {
-          final fallbackSnap = await firestore
-              .collection('account_managers')
-              .doc(currentUid)
-              .collection('clients')
-              .get();
-          return fallbackSnap.docs.map((d) => ClientModel.fromJson(d.id, d.data())).toList();
-        } catch (e2) {
-          debugPrint('Firestore getClients fallback error: $e2');
-        }
       }
     }
 
