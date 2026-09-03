@@ -163,10 +163,17 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
       vettedHistory: history,
     );
 
+    final taskType = switch (type) {
+      ContentType.socialMediaPosts || ContentType.emailCampaign || ContentType.otherCopies => OpenRouterTaskType.fastMicrocopy,
+      ContentType.seoKeywordAudit || ContentType.seoTechnicalAudit => OpenRouterTaskType.highComplexityReasoning,
+      _ => OpenRouterTaskType.generalMarketing,
+    };
+
     try {
       final responseText = await _callOpenRouterAutonomous(
         prompt: prompt,
-        taskType: OpenRouterTaskType.generalMarketing,
+        taskType: taskType,
+        mediaUrls: referenceImages,
       );
       if (responseText != null && responseText.trim().isNotEmpty) {
         return cleanMarkdownText(responseText);
@@ -458,13 +465,14 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
   }
 
   /// Core OpenRouter Autonomous Request Engine
-  /// Routes tasks dynamically through OpenRouter auto-router (openrouter/auto)
-  /// with autonomous capability detection (multimodal, high-complexity, microcopy).
+  /// Routes tasks dynamically through OpenRouter auto-router and cost-optimized model cascades
+  /// with price-prioritized provider sorting and strict token limits.
   Future<String?> _callOpenRouterAutonomous({
     required String prompt,
     OpenRouterTaskType taskType = OpenRouterTaskType.generalMarketing,
     String? systemPrompt,
     List<String>? mediaUrls,
+    int? maxTokens,
     double temperature = 0.7,
   }) async {
     final apiKey = _apiKey.isNotEmpty ? _apiKey : AppConfig.openRouterApiKey;
@@ -507,10 +515,42 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
       });
     }
 
-    // Autonomous model selection: OpenRouter dynamic router
+    // Determine cost-optimized model cascade and token boundaries from OpenRouter MCP benchmarks
+    List<String> candidateModels;
+    int tokenCap;
+
+    switch (taskType) {
+      case OpenRouterTaskType.strategicProposal:
+        candidateModels = AppConfig.strategicProposalModels;
+        tokenCap = maxTokens ?? 4000;
+        break;
+      case OpenRouterTaskType.highComplexityReasoning:
+        candidateModels = AppConfig.highComplexityModels;
+        tokenCap = maxTokens ?? 2500;
+        break;
+      case OpenRouterTaskType.fastMicrocopy:
+        candidateModels = AppConfig.fastMicrocopyModels;
+        tokenCap = maxTokens ?? 600;
+        break;
+      case OpenRouterTaskType.multimodalVision:
+        candidateModels = AppConfig.multimodalVisionModels;
+        tokenCap = maxTokens ?? 1200;
+        break;
+      case OpenRouterTaskType.codingRefactor:
+      case OpenRouterTaskType.generalMarketing:
+        candidateModels = AppConfig.generalMarketingModels;
+        tokenCap = maxTokens ?? 1800;
+        break;
+    }
+
+    // Cost-optimized payload: model cascade + provider sort by price + token cap
     final payload = {
-      'model': AppConfig.openRouterDefaultModel, // 'openrouter/auto'
+      'models': candidateModels,
+      'provider': {
+        'sort': 'price',
+      },
       'messages': messages,
+      'max_tokens': tokenCap,
       'temperature': temperature,
     };
 
