@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/firebase_service.dart';
 import '../../../core/services/gemini_service.dart';
@@ -101,17 +102,42 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
     required String industry,
     required String websiteUrl,
     Map<String, String>? socialUrls,
+    String? pitchDeckFileName,
+    Uint8List? pitchDeckBytes,
+    String? extractedPitchDeckText,
   }) async {
+    final hasPitchDeck = pitchDeckBytes != null && pitchDeckBytes.isNotEmpty;
+
     state = state.copyWith(
       isGenerating: true,
       generationProgress: 0.15,
-      generationStage: 'Ingesting $leadCompanyName digital footprint ($websiteUrl)...',
+      generationStage: hasPitchDeck
+          ? 'Extracting strategic context from $pitchDeckFileName with Flutter engine...'
+          : 'Ingesting $leadCompanyName digital footprint ($websiteUrl)...',
     );
+
+    String? pitchDeckStorageUrl;
+    if (hasPitchDeck && pitchDeckFileName != null) {
+      try {
+        final uploaded = await FirebaseService.instance.uploadFile(
+          clientId: 'lead_${DateTime.now().millisecondsSinceEpoch}',
+          folder: 'pitch_decks',
+          fileName: pitchDeckFileName,
+          bytes: pitchDeckBytes,
+          contentType: 'application/pdf',
+        );
+        pitchDeckStorageUrl = uploaded;
+      } catch (e) {
+        debugPrint('Lead pitch deck upload notice: $e');
+      }
+    }
 
     await Future.delayed(const Duration(milliseconds: 300));
     state = state.copyWith(
       generationProgress: 0.40,
-      generationStage: 'Gemini 2.5 Flash formulating SWOT, 4Ps & PEST matrices...',
+      generationStage: hasPitchDeck
+          ? 'Gemini 2.5 Flash aligning pitch deck insights with SWOT & 4Ps...'
+          : 'Gemini 2.5 Flash formulating SWOT, 4Ps & PEST matrices...',
     );
 
     final proposal = await GeminiService.instance.generateProposal(
@@ -119,6 +145,9 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
       industry: industry,
       websiteUrl: websiteUrl,
       socialUrls: socialUrls,
+      extractedPitchDeckText: extractedPitchDeckText,
+      pitchDeckFileName: pitchDeckFileName,
+      pitchDeckStorageUrl: pitchDeckStorageUrl,
       amId: _amId,
     );
 

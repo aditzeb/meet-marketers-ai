@@ -231,6 +231,9 @@ class ProposalModel {
   final DateTime? convertedAt;
   final String? convertedClientId;
   final String? pdfStorageUrl;
+  final String? pitchDeckFileName;
+  final String? pitchDeckStorageUrl;
+  final String? extractedPitchDeckText;
 
   // ── 13 Core Sections matching ProposalSample.pdf ──
   final String executiveSummaryPosition;
@@ -276,6 +279,9 @@ class ProposalModel {
     this.convertedAt,
     this.convertedClientId,
     this.pdfStorageUrl,
+    this.pitchDeckFileName,
+    this.pitchDeckStorageUrl,
+    this.extractedPitchDeckText,
     this.executiveSummaryPosition = '',
     this.executiveSummaryOpportunity = '',
     this.swot = const SwotMatrix(),
@@ -320,6 +326,9 @@ class ProposalModel {
     'convertedAt': convertedAt?.toIso8601String(),
     'convertedClientId': convertedClientId,
     'pdfStorageUrl': pdfStorageUrl,
+    'pitchDeckFileName': pitchDeckFileName,
+    'pitchDeckStorageUrl': pitchDeckStorageUrl,
+    'extractedPitchDeckText': extractedPitchDeckText,
     'executiveSummaryPosition': executiveSummaryPosition,
     'executiveSummaryOpportunity': executiveSummaryOpportunity,
     'swot': swot.toJson(),
@@ -369,6 +378,9 @@ class ProposalModel {
       convertedAt: json['convertedAt'] != null ? DateTime.tryParse(json['convertedAt'] as String) : null,
       convertedClientId: json['convertedClientId'] as String?,
       pdfStorageUrl: json['pdfStorageUrl'] as String?,
+      pitchDeckFileName: json['pitchDeckFileName'] as String?,
+      pitchDeckStorageUrl: json['pitchDeckStorageUrl'] as String?,
+      extractedPitchDeckText: json['extractedPitchDeckText'] as String?,
       executiveSummaryPosition: json['executiveSummaryPosition'] as String? ?? '',
       executiveSummaryOpportunity: json['executiveSummaryOpportunity'] as String? ?? '',
       swot: json['swot'] != null
@@ -425,6 +437,9 @@ class ProposalModel {
     DateTime? convertedAt,
     String? convertedClientId,
     String? pdfStorageUrl,
+    String? pitchDeckFileName,
+    String? pitchDeckStorageUrl,
+    String? extractedPitchDeckText,
     String? executiveSummaryPosition,
     String? executiveSummaryOpportunity,
     SwotMatrix? swot,
@@ -468,6 +483,9 @@ class ProposalModel {
       convertedAt: convertedAt ?? this.convertedAt,
       convertedClientId: convertedClientId ?? this.convertedClientId,
       pdfStorageUrl: pdfStorageUrl ?? this.pdfStorageUrl,
+      pitchDeckFileName: pitchDeckFileName ?? this.pitchDeckFileName,
+      pitchDeckStorageUrl: pitchDeckStorageUrl ?? this.pitchDeckStorageUrl,
+      extractedPitchDeckText: extractedPitchDeckText ?? this.extractedPitchDeckText,
       executiveSummaryPosition: executiveSummaryPosition ?? this.executiveSummaryPosition,
       executiveSummaryOpportunity: executiveSummaryOpportunity ?? this.executiveSummaryOpportunity,
       swot: swot ?? this.swot,

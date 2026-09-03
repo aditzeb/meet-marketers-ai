@@ -1,11 +1,14 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/services/pdf_extractor_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/proposal_provider.dart';
 
-/// Modal dialog to intake Lead details (Website & Social Media URLs) and launch automated AI proposal generation
+/// Modal dialog to intake Lead details (Website, Social Media URLs & Pitch Deck PDF) and launch automated AI proposal generation
 class CreateLeadDialog extends ConsumerStatefulWidget {
   const CreateLeadDialog({super.key});
 
@@ -23,6 +26,10 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
   final _facebookCtrl = TextEditingController();
   final _youtubeCtrl = TextEditingController();
 
+  String? _pitchDeckFileName;
+  Uint8List? _pitchDeckBytes;
+  String? _extractedPitchDeckText;
+  bool _isExtracting = false;
   bool _isSubmitting = false;
 
   @override
@@ -35,6 +42,51 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
     _facebookCtrl.dispose();
     _youtubeCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPitchDeck() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        final bytes = file.bytes;
+        if (bytes != null && bytes.isNotEmpty) {
+          setState(() {
+            _pitchDeckFileName = file.name;
+            _pitchDeckBytes = bytes;
+            _isExtracting = true;
+          });
+
+          // Extract text from PDF using Flutter engine
+          final text = PdfExtractorService.instance.extractTextFromBytes(bytes);
+
+          setState(() {
+            _extractedPitchDeckText = text;
+            _isExtracting = false;
+          });
+        }
+      }
+    } catch (e) {
+      setState(() => _isExtracting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not read pitch deck: $e')),
+        );
+      }
+    }
+  }
+
+  void _removePitchDeck() {
+    setState(() {
+      _pitchDeckFileName = null;
+      _pitchDeckBytes = null;
+      _extractedPitchDeckText = null;
+      _isExtracting = false;
+    });
   }
 
   Future<void> _handleGenerate() async {
@@ -54,6 +106,9 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
         industry: _industryCtrl.text.trim(),
         websiteUrl: _websiteCtrl.text.trim(),
         socialUrls: socialUrls,
+        pitchDeckFileName: _pitchDeckFileName,
+        pitchDeckBytes: _pitchDeckBytes,
+        extractedPitchDeckText: _extractedPitchDeckText,
       );
 
       if (mounted) {
@@ -79,226 +134,332 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
       backgroundColor: ClinicSageColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 580,
+        width: 600,
         padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: ClinicSageGradients.brandVibrant,
-                      borderRadius: BorderRadius.circular(10),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: ClinicSageGradients.brandVibrant,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.auto_awesome, size: 20, color: Colors.white),
                     ),
-                    child: const Icon(Icons.auto_awesome, size: 20, color: Colors.white),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'New Lead · Automated Proposal Generation',
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          Text(
+                            'Key in the lead’s channels and pitch deck to synthesize a complete 13-section proposal.',
+                            style: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.secondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                if (_isSubmitting) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B5CF6).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.25)),
+                    ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'New Lead · Automated Proposal Generation',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        Row(
+                          children: [
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B5CF6)),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                proposalState.generationStage.isNotEmpty
+                                    ? proposalState.generationStage
+                                    : 'Generating Strategic Proposal with Gemini AI...',
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                            ),
+                            Text(
+                              '${(proposalState.generationProgress * 100).round()}%',
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8B5CF6)),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Key in the lead’s website and social channels to synthesize a complete 13-section proposal.',
-                          style: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.secondary),
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: proposalState.generationProgress,
+                            minHeight: 6,
+                            backgroundColor: ClinicSageColors.border,
+                            valueColor: const AlwaysStoppedAnimation(Color(0xFF8B5CF6)),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, size: 20),
+                  const SizedBox(height: 16),
+                ] else ...[
+                  // Company Name
+                  TextFormField(
+                    controller: _nameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Lead / Company Name *',
+                      hintText: 'e.g. White Sails Yacht Singapore',
+                      prefixIcon: Icon(Icons.business_outlined, size: 18),
+                    ),
+                    validator: (val) => (val == null || val.trim().isEmpty) ? 'Company name is required' : null,
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
+                  const SizedBox(height: 14),
 
-              if (_isSubmitting) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.25)),
-                  ),
-                  child: Column(
+                  // Industry & Website
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF8B5CF6)),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _industryCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Industry *',
+                            hintText: 'e.g. Yacht Charter & Tourism',
+                            prefixIcon: Icon(Icons.category_outlined, size: 18),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              proposalState.generationStage.isNotEmpty
-                                  ? proposalState.generationStage
-                                  : 'Generating Strategic Proposal with Gemini AI...',
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                            ),
-                          ),
-                          Text(
-                            '${(proposalState.generationProgress * 100).round()}%',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF8B5CF6)),
-                          ),
-                        ],
+                          validator: (val) => (val == null || val.trim().isEmpty) ? 'Industry is required' : null,
+                        ),
                       ),
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: proposalState.generationProgress,
-                          minHeight: 6,
-                          backgroundColor: ClinicSageColors.border,
-                          valueColor: const AlwaysStoppedAnimation(Color(0xFF8B5CF6)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _websiteCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Website URL *',
+                            hintText: 'https://whitesails.com.sg',
+                            prefixIcon: Icon(Icons.language_outlined, size: 18),
+                          ),
+                          validator: (val) => (val == null || val.trim().isEmpty) ? 'Website URL is required' : null,
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-              ] else ...[
-                // Company Name
-                TextFormField(
-                  controller: _nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Lead / Company Name *',
-                    hintText: 'e.g. White Sails Yacht Singapore',
-                    prefixIcon: Icon(Icons.business_outlined, size: 18),
+                  const SizedBox(height: 16),
+
+                  // ── Company Pitch Deck (PDF) Upload & Extraction ──────
+                  Text(
+                    'COMPANY PITCH DECK (PDF) — STRATEGIC EXTRACTION',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      letterSpacing: 0.5,
+                      fontWeight: FontWeight.w700,
+                      color: ClinicSageColors.secondary,
+                    ),
                   ),
-                  validator: (val) => (val == null || val.trim().isEmpty) ? 'Company name is required' : null,
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(height: 8),
 
-                // Industry & Website
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _industryCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Industry *',
-                          hintText: 'e.g. Yacht Charter & Tourism',
-                          prefixIcon: Icon(Icons.category_outlined, size: 18),
+                  if (_pitchDeckFileName == null)
+                    InkWell(
+                      onTap: _isExtracting ? null : _pickPitchDeck,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: ClinicSageColors.neutral,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: ClinicSageColors.border, style: BorderStyle.solid),
                         ),
-                        validator: (val) => (val == null || val.trim().isEmpty) ? 'Industry is required' : null,
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.upload_file_outlined, color: Color(0xFF8B5CF6), size: 22),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Upload Lead Pitch Deck (PDF)',
+                                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                  ),
+                                  Text(
+                                    'Flutter engine extracts business model & USPs to ground the proposal generation',
+                                    style: TextStyle(fontSize: 11.5, color: ClinicSageColors.secondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _pickPitchDeck,
+                              icon: const Icon(Icons.add, size: 14),
+                              label: const Text('Select PDF', style: TextStyle(fontSize: 11)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.picture_as_pdf, color: Color(0xFF10B981), size: 24),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _pitchDeckFileName!,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (_isExtracting)
+                                  const Row(
+                                    children: [
+                                      SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5)),
+                                      SizedBox(width: 6),
+                                      Text('Extracting PDF text with Flutter engine...', style: TextStyle(fontSize: 11)),
+                                    ],
+                                  )
+                                else
+                                  Text(
+                                    '✓ Extracted ${(_extractedPitchDeckText ?? '').length} characters of brand intelligence',
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF059669), fontWeight: FontWeight.w600),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _removePitchDeck,
+                            icon: const Icon(Icons.close, size: 18, color: ClinicSageColors.secondary),
+                            tooltip: 'Remove Pitch Deck',
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _websiteCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Website URL *',
-                          hintText: 'https://whitesails.com.sg',
-                          prefixIcon: Icon(Icons.language_outlined, size: 18),
-                        ),
-                        validator: (val) => (val == null || val.trim().isEmpty) ? 'Website URL is required' : null,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
-                // Social Media URLs Header
-                Text(
-                  'SOCIAL MEDIA PRESENCE (FOR AUDIT & CONTEXT)',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    letterSpacing: 0.5,
-                    fontWeight: FontWeight.w700,
-                    color: ClinicSageColors.secondary,
+                  // Social Media URLs Header
+                  Text(
+                    'SOCIAL MEDIA PRESENCE (FOR AUDIT & CONTEXT)',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      letterSpacing: 0.5,
+                      fontWeight: FontWeight.w700,
+                      color: ClinicSageColors.secondary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _instagramCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Instagram URL',
-                          hintText: 'https://instagram.com/whitesails',
-                          prefixIcon: Icon(Icons.camera_alt_outlined, size: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _instagramCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Instagram URL',
+                            hintText: 'https://instagram.com/whitesails',
+                            prefixIcon: Icon(Icons.camera_alt_outlined, size: 18),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _linkedinCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'LinkedIn URL',
-                          hintText: 'https://linkedin.com/company/whitesails',
-                          prefixIcon: Icon(Icons.work_outline, size: 18),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _linkedinCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'LinkedIn URL',
+                            hintText: 'https://linkedin.com/company/whitesails',
+                            prefixIcon: Icon(Icons.work_outline, size: 18),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _facebookCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Facebook URL',
-                          hintText: 'https://facebook.com/whitesails',
-                          prefixIcon: Icon(Icons.thumb_up_outlined, size: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _facebookCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Facebook URL',
+                            hintText: 'https://facebook.com/whitesails',
+                            prefixIcon: Icon(Icons.thumb_up_outlined, size: 18),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _youtubeCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'YouTube / TikTok URL',
-                          hintText: 'https://youtube.com/@whitesails',
-                          prefixIcon: Icon(Icons.smart_display_outlined, size: 18),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _youtubeCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'YouTube / TikTok URL',
+                            hintText: 'https://youtube.com/@whitesails',
+                            prefixIcon: Icon(Icons.smart_display_outlined, size: 18),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
 
-                // Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: ClinicSageColors.tertiary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  // Action Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
                       ),
-                      onPressed: _handleGenerate,
-                      icon: const Icon(Icons.auto_awesome, size: 16),
-                      label: const Text('Generate Proposal with AI'),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ClinicSageColors.tertiary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        ),
+                        onPressed: _handleGenerate,
+                        icon: const Icon(Icons.auto_awesome, size: 16),
+                        label: const Text('Generate Proposal with AI'),
+                      ),
+                    ],
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

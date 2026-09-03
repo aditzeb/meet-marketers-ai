@@ -505,12 +505,20 @@ class FirebaseService {
     final currentUid = _getCurrentUid(amId);
 
     // 1. Create client in Firestore
-    final newClient = await createClient(
+    var newClient = await createClient(
       currentUid,
       proposal.leadCompanyName,
       proposal.industry,
       websiteUrl: proposal.websiteUrl,
     );
+
+    if (proposal.extractedPitchDeckText != null && proposal.extractedPitchDeckText!.isNotEmpty) {
+      newClient = newClient.copyWith(
+        extractedPdfContent: proposal.extractedPitchDeckText,
+        pitchDeckStoragePath: proposal.pitchDeckStorageUrl,
+      );
+      await updateClient(currentUid, newClient);
+    }
 
     // 2. Save proposal deliverable in client's deliverables folder
     await saveDeliverable(currentUid, newClient.id, 'proposal', proposal.toJson());

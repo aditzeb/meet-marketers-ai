@@ -20,6 +20,8 @@ void main() {
         },
         contactName: 'Sarah Tan',
         contactEmail: 'sarah@whitesails.com.sg',
+        pitchDeckFileName: 'White_Sails_Deck_2026.pdf',
+        extractedPitchDeckText: 'White Sails operates private luxury yacht charters in Singapore...',
         status: ProposalStatus.readyForReview,
         createdAt: now,
         updatedAt: now,
@@ -79,6 +81,8 @@ void main() {
       expect(reconstituted.industry, equals('Yacht Charter & Tourism'));
       expect(reconstituted.websiteUrl, equals('https://whitesails.com.sg'));
       expect(reconstituted.socialUrls['instagram'], equals('https://instagram.com/whitesails'));
+      expect(reconstituted.pitchDeckFileName, equals('White_Sails_Deck_2026.pdf'));
+      expect(reconstituted.extractedPitchDeckText, contains('White Sails'));
       expect(reconstituted.status, equals(ProposalStatus.readyForReview));
       expect(reconstituted.swot.strengths.length, equals(2));
       expect(reconstituted.marketingMix4Ps.productCurrent, equals('Private charters'));

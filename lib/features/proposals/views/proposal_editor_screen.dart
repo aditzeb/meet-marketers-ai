@@ -485,6 +485,81 @@ class _Tab1Strategy extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
+        // Pitch Deck Extraction Banner
+        if (proposal.pitchDeckFileName != null || (proposal.extractedPitchDeckText != null && proposal.extractedPitchDeckText!.isNotEmpty))
+          Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.picture_as_pdf, color: Color(0xFF10B981), size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Grounded in Company Pitch Deck: ${proposal.pitchDeckFileName ?? "Uploaded Deck.pdf"}',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF065F46)),
+                      ),
+                      Text(
+                        '${(proposal.extractedPitchDeckText ?? "").length} characters of brand DNA and strategic offerings extracted with Flutter engine and synthesized into this proposal.',
+                        style: const TextStyle(fontSize: 11.5, color: ClinicSageColors.secondary),
+                      ),
+                    ],
+                  ),
+                ),
+                if (proposal.extractedPitchDeckText != null && proposal.extractedPitchDeckText!.isNotEmpty)
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF065F46),
+                      side: const BorderSide(color: Color(0xFF10B981)),
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: ClinicSageColors.surface,
+                          title: Row(
+                            children: [
+                              const Icon(Icons.description_outlined, color: Color(0xFF10B981), size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Extracted Pitch Deck Content — ${proposal.pitchDeckFileName ?? "Deck"}',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ),
+                            ],
+                          ),
+                          content: SizedBox(
+                            width: 650,
+                            height: 450,
+                            child: SingleChildScrollView(
+                              child: SelectableText(
+                                proposal.extractedPitchDeckText!,
+                                style: const TextStyle(fontSize: 12, height: 1.5, fontFamily: 'monospace'),
+                              ),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.visibility_outlined, size: 14),
+                    label: const Text('View Extracted Text', style: TextStyle(fontSize: 11)),
+                  ),
+              ],
+            ),
+          ),
+
         // Executive Summary Card
         _SectionContainer(
           title: 'Executive Summary',

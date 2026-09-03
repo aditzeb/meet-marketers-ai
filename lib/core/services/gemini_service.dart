@@ -278,6 +278,9 @@ Return a JSON object strictly matching this schema:
     required String industry,
     required String websiteUrl,
     Map<String, String>? socialUrls,
+    String? extractedPitchDeckText,
+    String? pitchDeckFileName,
+    String? pitchDeckStorageUrl,
     String? amId,
   }) async {
     final proposalId = 'prop-${DateTime.now().millisecondsSinceEpoch}';
@@ -285,11 +288,25 @@ Return a JSON object strictly matching this schema:
         ? socialUrls.entries.map((e) => '${e.key}: ${e.value}').join(', ')
         : 'None provided';
 
+    final hasPitchDeck = extractedPitchDeckText != null && extractedPitchDeckText.trim().isNotEmpty;
+    final pitchDeckContext = hasPitchDeck
+        ? '''
+COMPANY PITCH DECK & STRATEGIC FOUNDATION:
+The client provided their official pitch deck (${pitchDeckFileName ?? "Uploaded PDF"}).
+Extracted Content from Pitch Deck:
+"""
+${extractedPitchDeckText.length > 5000 ? '${extractedPitchDeckText.substring(0, 5000)}... [truncated]' : extractedPitchDeckText}
+"""
+CRITICAL REQUIREMENT: Synthesize this proposal directly using the strategic insights, core offerings, market pain points, and brand vision defined in this pitch deck! Tailor every section (SWOT, 4Ps, Competitors, Content Pillars, SEO) to align with their pitch deck.
+'''
+        : '';
+
     final prompt = '''
 You are an elite CMO and strategic growth partner at Meet Marketers AI.
 Generate a comprehensive 13-section "Digital & Content Direction Proposal" for lead "$leadCompanyName" in the "$industry" industry.
 Website: $websiteUrl
 Social Media Profiles: $socialText
+$pitchDeckContext
 
 Follow the exact structure and tone of high-ticket consulting proposals (similar to White Sails Yacht proposal).
 Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
@@ -401,6 +418,9 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
             'industry': industry,
             'websiteUrl': websiteUrl,
             'socialUrls': socialUrls ?? {},
+            'pitchDeckFileName': pitchDeckFileName,
+            'pitchDeckStorageUrl': pitchDeckStorageUrl,
+            'extractedPitchDeckText': extractedPitchDeckText,
             'status': ProposalStatus.readyForReview.value,
             'createdAt': DateTime.now().toIso8601String(),
             'updatedAt': DateTime.now().toIso8601String(),
@@ -418,6 +438,9 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
       industry: industry,
       websiteUrl: websiteUrl,
       socialUrls: socialUrls ?? {},
+      pitchDeckFileName: pitchDeckFileName,
+      pitchDeckStorageUrl: pitchDeckStorageUrl,
+      extractedPitchDeckText: extractedPitchDeckText,
     );
   }
 
@@ -428,7 +451,12 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     required String industry,
     required String websiteUrl,
     required Map<String, String> socialUrls,
+    String? pitchDeckFileName,
+    String? pitchDeckStorageUrl,
+    String? extractedPitchDeckText,
   }) {
+    final hasPitchDeck = extractedPitchDeckText != null && extractedPitchDeckText.trim().isNotEmpty;
+
     return ProposalModel(
       id: proposalId,
       amId: amId,
@@ -436,11 +464,15 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
       industry: industry,
       websiteUrl: websiteUrl,
       socialUrls: socialUrls,
+      pitchDeckFileName: pitchDeckFileName,
+      pitchDeckStorageUrl: pitchDeckStorageUrl,
+      extractedPitchDeckText: extractedPitchDeckText,
       status: ProposalStatus.readyForReview,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
-      executiveSummaryPosition:
-          '$leadCompanyName has established itself as one of the trusted providers in $industry, building strong credibility, customer satisfaction, and reliable service quality across diverse customer segments.',
+      executiveSummaryPosition: hasPitchDeck
+          ? 'Grounded in $leadCompanyName\'s company pitch deck (${pitchDeckFileName ?? "Uploaded PDF"}), the brand exhibits strong core positioning and market capability in $industry. The core strategic opportunity is translating this pitch deck narrative into high-converting digital authority, SEO discovery, and short-form video storytelling.'
+          : '$leadCompanyName has established itself as one of the trusted providers in $industry, building strong credibility, customer satisfaction, and reliable service quality across diverse customer segments.',
       executiveSummaryOpportunity:
           'While $leadCompanyName has built strong credibility, significant opportunity exists to expand organic search visibility, corporate authority, and video storytelling within an increasingly competitive digital landscape.',
       swot: SwotMatrix(
