@@ -106,6 +106,7 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
     String? pitchDeckFileName,
     Uint8List? pitchDeckBytes,
     String? extractedPitchDeckText,
+    String? companyLogoUrl,
   }) async {
     final hasPitchDeck = pitchDeckBytes != null && pitchDeckBytes.isNotEmpty;
 
@@ -170,6 +171,7 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
         extractedPitchDeckText: extractedPitchDeckText,
         pitchDeckFileName: pitchDeckFileName,
         pitchDeckStorageUrl: pitchDeckStorageUrl,
+        companyLogoUrl: companyLogoUrl,
         amId: _amId,
       );
     } finally {
@@ -286,6 +288,7 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
         extractedPitchDeckText: current.extractedPitchDeckText,
         pitchDeckFileName: current.pitchDeckFileName,
         pitchDeckStorageUrl: current.pitchDeckStorageUrl,
+        companyLogoUrl: current.companyLogoUrl,
         amId: _amId,
       );
 
@@ -296,6 +299,7 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
         updatedAt: DateTime.now(),
         contactName: current.contactName,
         contactEmail: current.contactEmail,
+        companyLogoUrl: current.companyLogoUrl,
       );
 
       await updateProposal(updated);
@@ -330,8 +334,19 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
     required String prompt,
     required String category,
     String? proposalId,
+    String? logoUrl,
+    String? companyName,
   }) async {
-    final rawImage = await GeminiService.instance.generateImage(prompt);
+    // If a company logo is provided, seamlessly weave it into the prompt and reference image input
+    String finalPrompt = prompt;
+    if (companyName != null && companyName.isNotEmpty && logoUrl != null && logoUrl.isNotEmpty) {
+      finalPrompt = '$prompt, seamlessly incorporating and blending the official brand logo of $companyName into the visual scene as an illuminated architectural insignia, luxury backdrop signage, discreet metallic embossement, or elegant brand mark harmoniously balanced with the lighting and aesthetic.';
+    }
+
+    final rawImage = await GeminiService.instance.generateImage(
+      finalPrompt,
+      referenceImageUrl: logoUrl,
+    );
     if (rawImage.isEmpty) {
       throw Exception('OpenRouter image generation returned an empty payload.');
     }

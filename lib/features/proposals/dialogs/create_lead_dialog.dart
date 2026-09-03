@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,6 +31,11 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
   Uint8List? _pitchDeckBytes;
   String? _extractedPitchDeckText;
   bool _isExtracting = false;
+
+  String? _logoFileName;
+  Uint8List? _logoBytes;
+  String? _logoDataUrl;
+
   bool _isSubmitting = false;
 
   @override
@@ -89,6 +95,47 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
     });
   }
 
+  Future<void> _pickLogo() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'webp', 'svg'],
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        final bytes = file.bytes;
+        if (bytes != null && bytes.isNotEmpty) {
+          final mime = file.name.endsWith('.png')
+              ? 'image/png'
+              : (file.name.endsWith('.webp')
+                  ? 'image/webp'
+                  : (file.name.endsWith('.svg') ? 'image/svg+xml' : 'image/jpeg'));
+          final dataUrl = 'data:$mime;base64,${base64Encode(bytes)}';
+          setState(() {
+            _logoFileName = file.name;
+            _logoBytes = bytes;
+            _logoDataUrl = dataUrl;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not read logo image: $e')),
+        );
+      }
+    }
+  }
+
+  void _removeLogo() {
+    setState(() {
+      _logoFileName = null;
+      _logoBytes = null;
+      _logoDataUrl = null;
+    });
+  }
+
   Future<void> _handleGenerate() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -109,6 +156,7 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
         pitchDeckFileName: _pitchDeckFileName,
         pitchDeckBytes: _pitchDeckBytes,
         extractedPitchDeckText: _extractedPitchDeckText,
+        companyLogoUrl: _logoDataUrl,
       );
 
       if (mounted) {
@@ -365,6 +413,116 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
                             onPressed: _removePitchDeck,
                             icon: const Icon(Icons.close, size: 18, color: ClinicSageColors.secondary),
                             tooltip: 'Remove Pitch Deck',
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+
+                  // ── Company / Brand Logo Upload ──────
+                  Text(
+                    'COMPANY LOGO — BRAND BLENDING IN AI VISUALS & PDF',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      letterSpacing: 0.5,
+                      fontWeight: FontWeight.w700,
+                      color: ClinicSageColors.secondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (_logoFileName == null)
+                    InkWell(
+                      onTap: _pickLogo,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: ClinicSageColors.neutral,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: ClinicSageColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.image_outlined, color: Color(0xFF10B981), size: 22),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Upload Company Logo (PNG, JPG, WEBP, SVG)',
+                                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                  ),
+                                  Text(
+                                    'AI blends logo into generated visuals, video posters & 13-page proposal PDF',
+                                    style: TextStyle(fontSize: 11.5, color: ClinicSageColors.secondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: _pickLogo,
+                              icon: const Icon(Icons.add_photo_alternate_outlined, size: 14),
+                              label: const Text('Select Logo', style: TextStyle(fontSize: 12)),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                side: const BorderSide(color: Color(0xFF10B981)),
+                                foregroundColor: const Color(0xFF10B981),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                      ),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              color: Colors.white,
+                              child: _logoBytes != null
+                                  ? Image.memory(_logoBytes!, fit: BoxFit.contain)
+                                  : const Icon(Icons.image, color: Color(0xFF10B981)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _logoFileName!,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF065F46)),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const Text(
+                                  '✓ Logo active for AI visual synthesis & PDF branding',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFF047857)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _removeLogo,
+                            icon: const Icon(Icons.close, size: 18, color: Color(0xFFDC2626)),
+                            tooltip: 'Remove Logo',
                           ),
                         ],
                       ),

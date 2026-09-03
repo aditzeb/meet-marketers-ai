@@ -102,15 +102,39 @@ class GeminiService {
   }
 
   /// Generate an AI image directly via text prompt using OpenRouter Image API
-  /// Uses ByteDance Seed: Seedream 5.0 Pro ($0.045/image) for commercial visual-production quality
-  Future<String> generateImage(String prompt, {String aspectRatio = '16:9'}) async {
+  /// Uses ByteDance Seed: Seedream 5.0 Pro ($0.045/image) for commercial visual-production quality.
+  /// Supports reference images (input_references) such as brand logos to blend into generated visuals.
+  Future<String> generateImage(
+    String prompt, {
+    String aspectRatio = '16:9',
+    String? referenceImageUrl,
+  }) async {
     final apiKey = _apiKey.isNotEmpty ? _apiKey : AppConfig.openRouterApiKey;
     if (apiKey.isEmpty) {
       throw Exception('OpenRouter API key is not configured.');
     }
 
-    try {
-      final resp = await http.post(
+    final hasReference = referenceImageUrl != null && referenceImageUrl.trim().isNotEmpty;
+
+    Future<http.Response> postImageReq({bool includeReference = true}) {
+      final Map<String, dynamic> body = {
+        'model': AppConfig.openRouterDefaultImageModel,
+        'prompt': prompt,
+        'aspect_ratio': aspectRatio,
+      };
+
+      if (includeReference && hasReference) {
+        body['input_references'] = [
+          {
+            'type': 'image_url',
+            'image_url': {
+              'url': referenceImageUrl.trim(),
+            },
+          }
+        ];
+      }
+
+      return http.post(
         Uri.parse('${AppConfig.openRouterBaseUrl}/images'),
         headers: {
           'Authorization': 'Bearer $apiKey',
@@ -118,12 +142,18 @@ class GeminiService {
           'HTTP-Referer': AppConfig.openRouterSiteUrl,
           'X-Title': AppConfig.openRouterSiteName,
         },
-        body: jsonEncode({
-          'model': AppConfig.openRouterDefaultImageModel,
-          'prompt': prompt,
-          'aspect_ratio': aspectRatio,
-        }),
+        body: jsonEncode(body),
       ).timeout(const Duration(seconds: 90));
+    }
+
+    try {
+      var resp = await postImageReq(includeReference: true);
+
+      // If reference image fails due to format/dimensions, gracefully retry with text prompt fallback
+      if (resp.statusCode != 200 && hasReference) {
+        debugPrint('OpenRouter reference image notice (${resp.statusCode}). Retrying with prompt-guided synthesis...');
+        resp = await postImageReq(includeReference: false);
+      }
 
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -463,6 +493,7 @@ Return a JSON object strictly matching this schema:
     String? extractedPitchDeckText,
     String? pitchDeckFileName,
     String? pitchDeckStorageUrl,
+    String? companyLogoUrl,
     String? amId,
     String? clientId,
   }) async {
@@ -479,12 +510,21 @@ Return a JSON object strictly matching this schema:
       pitchDeckFileName: pitchDeckFileName,
       pitchDeckStorageUrl: pitchDeckStorageUrl,
       extractedPitchDeckText: extractedPitchDeckText,
+      companyLogoUrl: companyLogoUrl,
     );
 
     // 2. Build domain-aware AI prompt for OpenRouter
     final socialText = (socialUrls != null && socialUrls.isNotEmpty)
         ? socialUrls.entries.map((e) => '${e.key}: ${e.value}').join(', ')
         : 'None provided';
+
+    final logoContext = (companyLogoUrl != null && companyLogoUrl.isNotEmpty)
+        ? '''
+OFFICIAL BRAND LOGO PROVIDED:
+The client has provided their official company logo.
+CRITICAL MANDATE: In the Visual Direction, Photography Framework, and Sample Reel Blueprint, explicitly instruct that the official brand logo of $leadCompanyName must be incorporated and blended into the visual assets—such as an illuminated architectural insignia, ambient backdrop neon signage, discreet luxury embossement on glassware/tableware, or high-end watermark naturally integrated with the scene's lighting.
+'''
+        : '';
 
     String? harnessContext;
     if (clientId != null && clientId.isNotEmpty) {
@@ -503,6 +543,7 @@ Extracted Content from Pitch Deck:
 """
 ${extractedPitchDeckText.length > 5000 ? '${extractedPitchDeckText.substring(0, 5000)}... [truncated]' : extractedPitchDeckText}
 """
+$logoContext
 CRITICAL REQUIREMENT: Synthesize this proposal directly using the strategic insights, core offerings, market pain points, and brand vision defined in this pitch deck! Tailor every section (SWOT, 4Ps, Competitors, Content Pillars, SEO) to align with their pitch deck.
 '''
         : '''
@@ -511,6 +552,7 @@ No pitch deck was uploaded. You are given:
 - Company Name: "$leadCompanyName"
 - Industry / Sector: "$industry"
 - Official Website: "$websiteUrl"
+$logoContext
 
 CRITICAL INFERENCE & LOCALIZATION MANDATE:
 1. Deeply analyze the company name ("$leadCompanyName"), industry ("$industry"), and website domain ("$websiteUrl").
@@ -631,6 +673,7 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
             'pitchDeckFileName': pitchDeckFileName,
             'pitchDeckStorageUrl': pitchDeckStorageUrl,
             'extractedPitchDeckText': extractedPitchDeckText,
+            'companyLogoUrl': companyLogoUrl ?? domainBase.companyLogoUrl,
             'status': ProposalStatus.readyForReview.value,
             'createdAt': DateTime.now().toIso8601String(),
             'updatedAt': DateTime.now().toIso8601String(),

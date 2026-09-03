@@ -121,6 +121,7 @@ class ProposalDomainEngine {
     String? pitchDeckFileName,
     String? pitchDeckStorageUrl,
     String? extractedPitchDeckText,
+    String? companyLogoUrl,
   }) {
     final category = detectCategory(
       leadCompanyName: leadCompanyName,
@@ -129,9 +130,10 @@ class ProposalDomainEngine {
       pitchDeckText: extractedPitchDeckText,
     );
 
+    final ProposalModel base;
     switch (category) {
       case ProposalDomainCategory.ventureAndInnovation:
-        return _synthesizeVentureAndInnovation(
+        base = _synthesizeVentureAndInnovation(
           proposalId: proposalId,
           amId: amId,
           leadCompanyName: leadCompanyName,
@@ -142,9 +144,10 @@ class ProposalDomainEngine {
           pitchDeckStorageUrl: pitchDeckStorageUrl,
           extractedPitchDeckText: extractedPitchDeckText,
         );
+        break;
 
       case ProposalDomainCategory.healthcareAndClinic:
-        return _synthesizeHealthcare(
+        base = _synthesizeHealthcare(
           proposalId: proposalId,
           amId: amId,
           leadCompanyName: leadCompanyName,
@@ -155,9 +158,10 @@ class ProposalDomainEngine {
           pitchDeckStorageUrl: pitchDeckStorageUrl,
           extractedPitchDeckText: extractedPitchDeckText,
         );
+        break;
 
       case ProposalDomainCategory.hospitalityFnbAndNightlife:
-        return _synthesizeHospitalityFnbProposal(
+        base = _synthesizeHospitalityFnbProposal(
           proposalId: proposalId,
           amId: amId,
           leadCompanyName: leadCompanyName,
@@ -168,9 +172,10 @@ class ProposalDomainEngine {
           pitchDeckStorageUrl: pitchDeckStorageUrl,
           extractedPitchDeckText: extractedPitchDeckText,
         );
+        break;
 
       case ProposalDomainCategory.luxuryAndHospitality:
-        return _synthesizeLuxuryHospitality(
+        base = _synthesizeLuxuryHospitality(
           proposalId: proposalId,
           amId: amId,
           leadCompanyName: leadCompanyName,
@@ -181,9 +186,10 @@ class ProposalDomainEngine {
           pitchDeckStorageUrl: pitchDeckStorageUrl,
           extractedPitchDeckText: extractedPitchDeckText,
         );
+        break;
 
       case ProposalDomainCategory.b2bTechAndSaaS:
-        return _synthesizeB2BTech(
+        base = _synthesizeB2BTech(
           proposalId: proposalId,
           amId: amId,
           leadCompanyName: leadCompanyName,
@@ -194,10 +200,11 @@ class ProposalDomainEngine {
           pitchDeckStorageUrl: pitchDeckStorageUrl,
           extractedPitchDeckText: extractedPitchDeckText,
         );
+        break;
 
       case ProposalDomainCategory.professionalServices:
       case ProposalDomainCategory.generalEnterprise:
-        return _synthesizeGeneralEnterprise(
+        base = _synthesizeGeneralEnterprise(
           proposalId: proposalId,
           amId: amId,
           leadCompanyName: leadCompanyName,
@@ -208,7 +215,12 @@ class ProposalDomainEngine {
           pitchDeckStorageUrl: pitchDeckStorageUrl,
           extractedPitchDeckText: extractedPitchDeckText,
         );
+        break;
     }
+
+    return (companyLogoUrl != null && companyLogoUrl.isNotEmpty)
+        ? base.copyWith(companyLogoUrl: companyLogoUrl)
+        : base;
   }
 
   // ───────────────────────────────────────────────────────────────────────────

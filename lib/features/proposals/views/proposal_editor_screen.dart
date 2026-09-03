@@ -393,6 +393,33 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
                   tooltip: 'Back to Proposals',
                 ),
                 const SizedBox(width: 8),
+                if (_proposal.companyLogoUrl != null && _proposal.companyLogoUrl!.trim().isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5)),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: _proposal.companyLogoUrl!.startsWith('data:image')
+                          ? Image.memory(
+                              base64Decode(_proposal.companyLogoUrl!.substring(_proposal.companyLogoUrl!.indexOf(',') + 1)),
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 16),
+                            )
+                          : Image.network(
+                              _proposal.companyLogoUrl!,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 16),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1213,6 +1240,8 @@ class _MediaPickerCard extends ConsumerStatefulWidget {
   final String? mediaUrl;
   final String promptHint;
   final String proposalId;
+  final String? logoUrl;
+  final String? companyName;
   final ValueChanged<String> onMediaUrlChanged;
 
   const _MediaPickerCard({
@@ -1220,6 +1249,8 @@ class _MediaPickerCard extends ConsumerStatefulWidget {
     required this.mediaUrl,
     required this.promptHint,
     required this.proposalId,
+    this.logoUrl,
+    this.companyName,
     required this.onMediaUrlChanged,
   });
 
@@ -1260,13 +1291,15 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
         prompt: widget.promptHint,
         category: widget.title,
         proposalId: widget.proposalId,
+        logoUrl: widget.logoUrl,
+        companyName: widget.companyName,
       );
       if (mounted) {
         _urlCtrl.text = url;
         widget.onMediaUrlChanged(url);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✨ OpenRouter AI visual synthesized for ${widget.title}'),
+            content: Text('✨ OpenRouter AI visual synthesized for ${widget.title} (with brand blending)'),
             backgroundColor: ClinicSageColors.tertiary,
           ),
         );
@@ -1343,27 +1376,33 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
 
   Widget _buildImagePreview(String rawUrl) {
     final trimmed = rawUrl.trim();
+    Widget imageWidget;
+
     if (trimmed.startsWith('data:image')) {
       final commaIdx = trimmed.indexOf(',');
       if (commaIdx != -1) {
         try {
           final bytes = base64Decode(trimmed.substring(commaIdx + 1));
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              height: 220,
-              width: double.infinity,
-              color: const Color(0xFF0F172A),
-              child: Image.memory(
-                bytes,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _errorPlaceholder('Base64 image decode error'),
-              ),
-            ),
+          imageWidget = Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _errorPlaceholder('Base64 image decode error'),
           );
-        } catch (_) {}
+        } catch (_) {
+          imageWidget = _errorPlaceholder('Invalid base64 image encoding');
+        }
+      } else {
+        imageWidget = _errorPlaceholder('Malformed data URI');
       }
+    } else {
+      imageWidget = Image.network(
+        trimmed,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _errorPlaceholder('Asset failed to load from: $trimmed'),
+      );
     }
+
+    final hasLogo = widget.logoUrl != null && widget.logoUrl!.trim().isNotEmpty;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
@@ -1371,10 +1410,50 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
         height: 220,
         width: double.infinity,
         color: const Color(0xFF0F172A),
-        child: Image.network(
-          trimmed,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _errorPlaceholder('Asset failed to load from: $trimmed'),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            imageWidget,
+            if (hasLogo)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.75),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.white.withOpacity(0.25)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          color: Colors.white,
+                          child: widget.logoUrl!.startsWith('data:image')
+                              ? Image.memory(
+                                  base64Decode(widget.logoUrl!.substring(widget.logoUrl!.indexOf(',') + 1)),
+                                  fit: BoxFit.contain,
+                                )
+                              : Image.network(widget.logoUrl!, fit: BoxFit.contain),
+                        ),
+                      ),
+                      if (widget.companyName != null && widget.companyName!.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          widget.companyName!,
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -1421,6 +1500,8 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
   @override
   Widget build(BuildContext context) {
     final hasUrl = _urlCtrl.text.isNotEmpty;
+    final hasLogo = widget.logoUrl != null && widget.logoUrl!.trim().isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1450,7 +1531,10 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
           ),
           const SizedBox(height: 10),
           // Action Buttons: AI vs Upload
-          Row(
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -1462,7 +1546,6 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
                 icon: const Icon(Icons.auto_awesome, size: 14),
                 label: const Text('Generate with AI', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
               ),
-              const SizedBox(width: 10),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: ClinicSageColors.primary,
@@ -1473,6 +1556,26 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
                 icon: const Icon(Icons.upload_file, size: 14),
                 label: const Text('Upload by Self', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
               ),
+              if (hasLogo)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.verified, size: 13, color: Color(0xFF10B981)),
+                      const SizedBox(width: 5),
+                      const Text(
+                        'Logo Blending Active',
+                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 10),
@@ -1502,6 +1605,151 @@ class _MediaPickerCardState extends ConsumerState<_MediaPickerCard> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Company Brand Logo Card for Visual Blending & PDF Branding
+// ─────────────────────────────────────────────────────────────────────────────
+class _CompanyLogoCard extends StatelessWidget {
+  final String? logoUrl;
+  final String companyName;
+  final ValueChanged<String?> onLogoChanged;
+
+  const _CompanyLogoCard({
+    required this.logoUrl,
+    required this.companyName,
+    required this.onLogoChanged,
+  });
+
+  Future<void> _pickNewLogo(BuildContext context) async {
+    try {
+      final res = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'webp', 'svg'],
+        withData: true,
+      );
+      if (res != null && res.files.isNotEmpty) {
+        final f = res.files.first;
+        final bytes = f.bytes;
+        if (bytes != null && bytes.isNotEmpty) {
+          final mime = f.name.endsWith('.png')
+              ? 'image/png'
+              : (f.name.endsWith('.webp')
+                  ? 'image/webp'
+                  : (f.name.endsWith('.svg') ? 'image/svg+xml' : 'image/jpeg'));
+          final dataUrl = 'data:$mime;base64,${base64Encode(bytes)}';
+          onLogoChanged(dataUrl);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('✓ Brand logo updated for $companyName!'),
+                backgroundColor: ClinicSageColors.tertiary,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not read logo: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasLogo = logoUrl != null && logoUrl!.trim().isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: hasLogo ? const Color(0xFFF0FDF4) : ClinicSageColors.neutral,
+        borderRadius: BorderRadius.circular(ClinicSageRadius.md),
+        border: Border.all(
+          color: hasLogo ? const Color(0xFF86EFAC) : ClinicSageColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: hasLogo ? const Color(0xFF86EFAC) : ClinicSageColors.border),
+            ),
+            padding: const EdgeInsets.all(4),
+            child: hasLogo
+                ? (logoUrl!.startsWith('data:image')
+                    ? Image.memory(
+                        base64Decode(logoUrl!.substring(logoUrl!.indexOf(',') + 1)),
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 20),
+                      )
+                    : Image.network(
+                        logoUrl!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey, size: 20),
+                      ))
+                : const Icon(Icons.add_photo_alternate_outlined, color: ClinicSageColors.secondary, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      hasLogo ? 'Official Brand Logo Active' : 'No Brand Logo Attached',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: hasLogo ? const Color(0xFF166534) : ClinicSageColors.primary,
+                      ),
+                    ),
+                    if (hasLogo) ...[
+                      const SizedBox(width: 6),
+                      const Icon(Icons.verified, size: 14, color: Color(0xFF10B981)),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hasLogo
+                      ? 'AI weaves this logo into visual prompts, diffusion references & watermarks your 13-page PDF.'
+                      : 'Upload $companyName\'s logo so AI can weave it into image prompts, reference blending, and watermark the exported PDF.',
+                  style: TextStyle(fontSize: 11, color: hasLogo ? const Color(0xFF15803D) : ClinicSageColors.secondary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: () => _pickNewLogo(context),
+            icon: Icon(hasLogo ? Icons.change_circle_outlined : Icons.upload_outlined, size: 14),
+            label: Text(hasLogo ? 'Change Logo' : 'Upload Logo', style: const TextStyle(fontSize: 11)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: hasLogo ? const Color(0xFF166534) : ClinicSageColors.primary,
+              side: BorderSide(color: hasLogo ? const Color(0xFF166534) : ClinicSageColors.border),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            ),
+          ),
+          if (hasLogo) ...[
+            const SizedBox(width: 6),
+            IconButton(
+              onPressed: () => onLogoChanged(null),
+              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+              tooltip: 'Remove Logo',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TAB 3: Creative Direction, Visual Guidelines & Content Framework
 // ─────────────────────────────────────────────────────────────────────────────
 class _Tab3CreativeDirection extends StatelessWidget {
@@ -1520,6 +1768,13 @@ class _Tab3CreativeDirection extends StatelessWidget {
           title: '1. Visual Direction & Aesthetic Framework',
           subtitle: 'Core creative direction, visual keywords, and hero media asset (Page 8 of PDF)',
           children: [
+            // Company Brand Logo Management
+            _CompanyLogoCard(
+              logoUrl: proposal.companyLogoUrl,
+              companyName: proposal.leadCompanyName,
+              onLogoChanged: (newLogoUrl) => onChanged(proposal.copyWith(companyLogoUrl: newLogoUrl)),
+            ),
+            const SizedBox(height: 14),
             _EditableField(
               label: 'Creative Direction Narrative',
               value: proposal.visualGuidelineNotes,
@@ -1541,6 +1796,8 @@ class _Tab3CreativeDirection extends StatelessWidget {
               mediaUrl: proposal.visualDirectionImageUrl,
               promptHint: 'Cinematic professional visual for ${proposal.leadCompanyName} operating in ${proposal.industry}, high resolution, natural lighting',
               proposalId: proposal.id,
+              logoUrl: proposal.companyLogoUrl,
+              companyName: proposal.leadCompanyName,
               onMediaUrlChanged: (url) => onChanged(proposal.copyWith(visualDirectionImageUrl: url)),
             ),
           ],
@@ -1812,6 +2069,8 @@ class _Tab3CreativeDirection extends StatelessWidget {
               mediaUrl: proposal.sampleReelMediaUrl,
               promptHint: 'Vertical video poster for ${proposal.leadCompanyName} with headline ${proposal.sampleReelHeadline}, high resolution',
               proposalId: proposal.id,
+              logoUrl: proposal.companyLogoUrl,
+              companyName: proposal.leadCompanyName,
               onMediaUrlChanged: (url) => onChanged(proposal.copyWith(sampleReelMediaUrl: url)),
             ),
           ],

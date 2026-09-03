@@ -64,6 +64,7 @@ class ProposalPdfService {
     // Asynchronously load user uploaded / AI generated asset images
     final reelImageBytes = await _fetchImageBytes(proposal.sampleReelMediaUrl);
     final visualDirectionImageBytes = await _fetchImageBytes(proposal.visualDirectionImageUrl);
+    final companyLogoBytes = await _fetchImageBytes(proposal.companyLogoUrl);
     final post1ImageBytes = proposal.socialPosts.isNotEmpty
         ? await _fetchImageBytes(proposal.socialPosts[0]['imageUrl'] as String?)
         : null;
@@ -260,6 +261,16 @@ class ProposalPdfService {
       // Client Metadata Card
       const metaR = ui.Rect.fromLTWH(contentX, 215, contentWidth, 75);
       drawPill(g, metaR, bgColor: PdfColor(14, 23, 28), borderColor: cardBorder, borderWidth: 0.8);
+
+      if (companyLogoBytes != null) {
+        try {
+          const logoW = 56.0;
+          const logoH = 46.0;
+          final logoRect = ui.Rect.fromLTWH(metaR.right - logoW - 16, metaR.top + 14, logoW, logoH);
+          drawPill(g, ui.Rect.fromLTWH(logoRect.left - 4, logoRect.top - 4, logoW + 8, logoH + 8), bgColor: PdfColor(255, 255, 255));
+          g.drawImage(PdfBitmap(companyLogoBytes), logoRect);
+        } catch (_) {}
+      }
 
       g.drawString(
         'PREPARED EXCLUSIVELY FOR:',
@@ -1099,6 +1110,13 @@ class ProposalPdfService {
         try {
           final imgRect = ui.Rect.fromLTWH(contentX + 10, box12Top + 8, colW - 20, 68);
           g.drawImage(PdfBitmap(visualDirectionImageBytes), imgRect);
+          if (companyLogoBytes != null) {
+            const logoW = 28.0;
+            const logoH = 18.0;
+            final logoRect = ui.Rect.fromLTWH(imgRect.right - logoW - 6, imgRect.top + 6, logoW, logoH);
+            drawPill(g, ui.Rect.fromLTWH(logoRect.left - 2, logoRect.top - 2, logoW + 4, logoH + 4), bgColor: PdfColor(0, 0, 0, 190), borderColor: PdfColor(255, 255, 255, 120), borderWidth: 0.5);
+            g.drawImage(PdfBitmap(companyLogoBytes), logoRect);
+          }
           b1ContentY = box12Top + 82;
         } catch (_) {}
       }
@@ -1310,6 +1328,16 @@ class ProposalPdfService {
         try {
           // Render uploaded or AI-generated image directly into the 9:16 phone mockup!
           g.drawImage(PdfBitmap(reelImageBytes), innerPhoneRect);
+
+          // Blend company logo watermark at the top of the vertical reel
+          if (companyLogoBytes != null) {
+            const logoW = 32.0;
+            const logoH = 20.0;
+            final logoX = phoneX + (phoneW - logoW) / 2.0;
+            const logoY = phoneY + 16.0;
+            drawPill(g, ui.Rect.fromLTWH(logoX - 3, logoY - 2, logoW + 6, logoH + 4), bgColor: PdfColor(0, 0, 0, 190), borderColor: PdfColor(255, 255, 255, 120), borderWidth: 0.5);
+            g.drawImage(PdfBitmap(companyLogoBytes), ui.Rect.fromLTWH(logoX, logoY, logoW, logoH));
+          }
 
           // Subtle dark vignette gradient overlay at bottom so overlay text is 100% legible
           g.drawRectangle(

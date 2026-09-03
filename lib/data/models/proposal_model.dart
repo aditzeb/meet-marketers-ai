@@ -295,6 +295,7 @@ class ProposalModel {
   final String seoAssessmentText;
   final String seoAuditLink;
   final String? visualDirectionImageUrl;
+  final String? companyLogoUrl;
 
   const ProposalModel({
     required this.id,
@@ -315,6 +316,7 @@ class ProposalModel {
     this.pitchDeckFileName,
     this.pitchDeckStorageUrl,
     this.extractedPitchDeckText,
+    this.companyLogoUrl,
     this.executiveSummaryPosition = '',
     this.executiveSummaryOpportunity = '',
     this.swot = const SwotMatrix(),
@@ -493,6 +495,7 @@ class ProposalModel {
     'seoAssessmentText': seoAssessmentText,
     'seoAuditLink': seoAuditLink,
     'visualDirectionImageUrl': visualDirectionImageUrl,
+    'companyLogoUrl': companyLogoUrl,
   };
 
   factory ProposalModel.fromJson(String id, Map<String, dynamic> json) {
@@ -653,6 +656,7 @@ class ProposalModel {
       seoAssessmentText: json['seoAssessmentText'] as String? ?? 'Based on our review, we recommend prioritising high-intent service landing pages and technical on-page SEO quick wins in Phase 1 to capture qualified organic search and AI-assisted discovery.',
       seoAuditLink: json['seoAuditLink'] as String? ?? 'https://meet-marketers.com/seo-audit',
       visualDirectionImageUrl: json['visualDirectionImageUrl'] as String?,
+      companyLogoUrl: json['companyLogoUrl'] as String?,
     );
   }
 
@@ -675,6 +679,7 @@ class ProposalModel {
     String? pitchDeckFileName,
     String? pitchDeckStorageUrl,
     String? extractedPitchDeckText,
+    String? companyLogoUrl,
     String? executiveSummaryPosition,
     String? executiveSummaryOpportunity,
     SwotMatrix? swot,
@@ -738,6 +743,7 @@ class ProposalModel {
       pitchDeckFileName: pitchDeckFileName ?? this.pitchDeckFileName,
       pitchDeckStorageUrl: pitchDeckStorageUrl ?? this.pitchDeckStorageUrl,
       extractedPitchDeckText: extractedPitchDeckText ?? this.extractedPitchDeckText,
+      companyLogoUrl: companyLogoUrl ?? this.companyLogoUrl,
       executiveSummaryPosition: executiveSummaryPosition ?? this.executiveSummaryPosition,
       executiveSummaryOpportunity: executiveSummaryOpportunity ?? this.executiveSummaryOpportunity,
       swot: swot ?? this.swot,
