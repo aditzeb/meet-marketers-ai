@@ -1071,4 +1071,157 @@ class ProposalDomainEngine {
       finalThoughtsRecommendation: 'We recommend initiating Phase 1 immediately: Launching high-converting service landing pages and educational video storytelling, followed by automated multi-channel thought leadership to scale qualified leads.',
     );
   }
+
+  /// Generates or resolves domain-grounded perceptual map axes and quadrant positioning
+  PerceptualMapData resolvePerceptualMapData(ProposalModel proposal) {
+    final cat = detectCategory(
+      leadCompanyName: proposal.leadCompanyName,
+      industry: proposal.industry,
+      websiteUrl: proposal.websiteUrl,
+      pitchDeckText: proposal.extractedPitchDeckText,
+    );
+
+    final competitors = proposal.competitorUsps.where((c) => !c.isLeadBrand).toList();
+    final leadBrand = proposal.leadCompanyName.toUpperCase();
+
+    // 1. Venture & Corporate Innovation (e.g. Meet Ventures)
+    if (cat == ProposalDomainCategory.ventureAndInnovation) {
+      final yAxis = proposal.perceptualMapYAxis.isNotEmpty
+          ? proposal.perceptualMapYAxis
+          : 'Cross-Border Ecosystem Depth';
+      final xAxis = proposal.perceptualMapXAxis.isNotEmpty
+          ? proposal.perceptualMapXAxis
+          : 'Venture & Co-Innovation Scope';
+
+      return PerceptualMapData(
+        yAxisLabel: yAxis,
+        xAxisLabel: xAxis,
+        topRightBrand: leadBrand,
+        topRightDesc: 'Pan-Asian cross-border venture building, corporate co-innovation, and \$105B investor syndication across 10 markets.',
+        topLeftBrand: competitors.isNotEmpty ? competitors[0].brandName.toUpperCase() : 'GLOBAL BATCH ACCELERATORS',
+        topLeftDesc: competitors.isNotEmpty ? competitors[0].primaryUsp : 'Standardized global batch curriculum with rigid corporate partner memberships.',
+        bottomLeftBrand: competitors.length > 1 ? competitors[1].brandName.toUpperCase() : 'LOCAL DEMO DAY ORGANIZERS',
+        bottomLeftDesc: competitors.length > 1 ? competitors[1].primaryUsp : 'Ad-hoc event showcases and pitch days without long-term venture infrastructure.',
+        bottomRightBrand: competitors.length > 2 ? competitors[2].brandName.toUpperCase() : 'GENERALIST CONSULTANCIES',
+        bottomRightDesc: competitors.length > 2 ? competitors[2].primaryUsp : 'Broad corporate advisory lacking venture builder agility and startup dealflow.',
+      );
+    }
+
+    // 2. Healthcare & Medical Clinics
+    if (cat == ProposalDomainCategory.healthcareAndClinic) {
+      final yAxis = proposal.perceptualMapYAxis.isNotEmpty
+          ? proposal.perceptualMapYAxis
+          : 'Clinical Precision & Specialist Authority';
+      final xAxis = proposal.perceptualMapXAxis.isNotEmpty
+          ? proposal.perceptualMapXAxis
+          : 'Patient Care Continuum Scope';
+
+      return PerceptualMapData(
+        yAxisLabel: yAxis,
+        xAxisLabel: xAxis,
+        topRightBrand: leadBrand,
+        topRightDesc: 'High-touch personalized medical excellence with integrated multidisciplinary care pathways.',
+        topLeftBrand: competitors.isNotEmpty ? competitors[0].brandName.toUpperCase() : 'SINGLE-SPECIALTY CLINICS',
+        topLeftDesc: competitors.isNotEmpty ? competitors[0].primaryUsp : 'Deep clinical focus in one niche with limited holistic care scope.',
+        bottomLeftBrand: competitors.length > 1 ? competitors[1].brandName.toUpperCase() : 'TRANSACTIONAL WALK-IN CLINICS',
+        bottomLeftDesc: competitors.length > 1 ? competitors[1].primaryUsp : 'Acute symptomatic treatment without ongoing preventative continuity.',
+        bottomRightBrand: competitors.length > 2 ? competitors[2].brandName.toUpperCase() : 'GENERAL INSTITUTIONAL HOSPITALS',
+        bottomRightDesc: competitors.length > 2 ? competitors[2].primaryUsp : 'Broad facilities with high wait times and standardized patient pathways.',
+      );
+    }
+
+    // 3. Luxury & Hospitality (e.g. Yacht Charters)
+    if (cat == ProposalDomainCategory.luxuryAndHospitality) {
+      final yAxis = proposal.perceptualMapYAxis.isNotEmpty
+          ? proposal.perceptualMapYAxis
+          : 'Bespoke Luxury Experience Perception';
+      final xAxis = proposal.perceptualMapXAxis.isNotEmpty
+          ? proposal.perceptualMapXAxis
+          : 'Charter Fleet & Itinerary Scope';
+
+      return PerceptualMapData(
+        yAxisLabel: yAxis,
+        xAxisLabel: xAxis,
+        topRightBrand: leadBrand,
+        topRightDesc: 'Premium tailored hospitality with diverse curated charter itineraries and luxury vessel fleet.',
+        topLeftBrand: competitors.isNotEmpty ? competitors[0].brandName.toUpperCase() : 'BOUTIQUE PRIVATE CHARTERS',
+        topLeftDesc: competitors.isNotEmpty ? competitors[0].primaryUsp : 'High-end exclusivity but limited fleet capacity and availability.',
+        bottomLeftBrand: competitors.length > 1 ? competitors[1].brandName.toUpperCase() : 'BUDGET BOAT RENTALS',
+        bottomLeftDesc: competitors.length > 1 ? competitors[1].primaryUsp : 'Basic bareboat transport with standard generic options.',
+        bottomRightBrand: competitors.length > 2 ? competitors[2].brandName.toUpperCase() : 'COMMERCIAL TOUR OPERATORS',
+        bottomRightDesc: competitors.length > 2 ? competitors[2].primaryUsp : 'High-volume mass operations with standardized excursion pricing.',
+      );
+    }
+
+    // 4. B2B Tech & SaaS
+    if (cat == ProposalDomainCategory.b2bTechAndSaaS) {
+      final yAxis = proposal.perceptualMapYAxis.isNotEmpty
+          ? proposal.perceptualMapYAxis
+          : 'Proprietary AI & Technology Depth';
+      final xAxis = proposal.perceptualMapXAxis.isNotEmpty
+          ? proposal.perceptualMapXAxis
+          : 'Enterprise Workflow & Platform Breadth';
+
+      return PerceptualMapData(
+        yAxisLabel: yAxis,
+        xAxisLabel: xAxis,
+        topRightBrand: leadBrand,
+        topRightDesc: 'End-to-end proprietary intelligence with scalable custom enterprise integration.',
+        topLeftBrand: competitors.isNotEmpty ? competitors[0].brandName.toUpperCase() : 'NICHE POINT SOLUTIONS',
+        topLeftDesc: competitors.isNotEmpty ? competitors[0].primaryUsp : 'Specialized single-feature focus with isolated operational workflows.',
+        bottomLeftBrand: competitors.length > 1 ? competitors[1].brandName.toUpperCase() : 'COMMODITY TOOLS',
+        bottomLeftDesc: competitors.length > 1 ? competitors[1].primaryUsp : 'Basic utilities with high manual friction and limited adaptability.',
+        bottomRightBrand: competitors.length > 2 ? competitors[2].brandName.toUpperCase() : 'LEGACY ENTERPRISE SUITES',
+        bottomRightDesc: competitors.length > 2 ? competitors[2].primaryUsp : 'Broad software coverage burdened by complex implementations.',
+      );
+    }
+
+    // 5. Default General Enterprise / Professional Services
+    final yAxis = proposal.perceptualMapYAxis.isNotEmpty
+        ? proposal.perceptualMapYAxis
+        : 'Strategic Authority & Bespoke Outcomes';
+    final xAxis = proposal.perceptualMapXAxis.isNotEmpty
+        ? proposal.perceptualMapXAxis
+        : 'Full-Cycle Service Breadth & Scalability';
+
+    return PerceptualMapData(
+      yAxisLabel: yAxis,
+      xAxisLabel: xAxis,
+      topRightBrand: leadBrand,
+      topRightDesc: 'High-touch strategic partnership combined with scalable cross-functional execution.',
+      topLeftBrand: competitors.isNotEmpty ? competitors[0].brandName.toUpperCase() : 'SOLO BOUTIQUE SPECIALISTS',
+      topLeftDesc: competitors.isNotEmpty ? competitors[0].primaryUsp : 'Deep niche expertise but constrained delivery bandwidth.',
+      bottomLeftBrand: competitors.length > 1 ? competitors[1].brandName.toUpperCase() : 'COMMODITY FREELANCE POOLS',
+      bottomLeftDesc: competitors.length > 1 ? competitors[1].primaryUsp : 'Variable output quality with no strategic ownership.',
+      bottomRightBrand: competitors.length > 2 ? competitors[2].brandName.toUpperCase() : 'MASS TEMPLATE AGENCIES',
+      bottomRightDesc: competitors.length > 2 ? competitors[2].primaryUsp : 'High volume production with generic, one-size-fits-all strategies.',
+    );
+  }
+}
+
+/// Structured perceptual map data container for rendering coordinate axes & brands
+class PerceptualMapData {
+  final String yAxisLabel;
+  final String xAxisLabel;
+  final String topRightBrand;
+  final String topRightDesc;
+  final String topLeftBrand;
+  final String topLeftDesc;
+  final String bottomLeftBrand;
+  final String bottomLeftDesc;
+  final String bottomRightBrand;
+  final String bottomRightDesc;
+
+  const PerceptualMapData({
+    required this.yAxisLabel,
+    required this.xAxisLabel,
+    required this.topRightBrand,
+    required this.topRightDesc,
+    required this.topLeftBrand,
+    required this.topLeftDesc,
+    required this.bottomLeftBrand,
+    required this.bottomLeftDesc,
+    required this.bottomRightBrand,
+    required this.bottomRightDesc,
+  });
 }

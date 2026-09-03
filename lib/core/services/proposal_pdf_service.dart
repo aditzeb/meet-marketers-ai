@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../../data/models/proposal_model.dart';
+import 'proposal_domain_engine.dart';
 import 'web_download_helper.dart';
 
 /// Service to generate and export professional 13-section proposals
@@ -784,19 +785,21 @@ class ProposalPdfService {
 
       final axisPen = PdfPen(textWhite, width: 1.2);
 
-      // Top Y-Axis Label (Placed clearly above the top arrow)
+      final mapData = ProposalDomainEngine.instance.resolvePerceptualMapData(proposal);
+
+      // Top Y-Axis Label
       g.drawString(
         'HIGH',
         h3Font,
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, 110, 160, 14),
+        bounds: const ui.Rect.fromLTWH(graphCenterX - 110, 106, 220, 14),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
       g.drawString(
-        'Premium Experience Perception',
+        mapData.yAxisLabel,
         captionFont,
-        brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, 124, 160, 14),
+        brush: PdfSolidBrush(accentLime),
+        bounds: const ui.Rect.fromLTWH(graphCenterX - 120, 120, 240, 14),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
@@ -809,19 +812,19 @@ class ProposalPdfService {
       g.drawLine(axisPen, ui.Offset(graphCenterX - 5, graphCenterY + axisLen - 8), ui.Offset(graphCenterX, graphCenterY + axisLen));
       g.drawLine(axisPen, ui.Offset(graphCenterX + 5, graphCenterY + axisLen - 8), ui.Offset(graphCenterX, graphCenterY + axisLen));
 
-      // Bottom Y-Axis Label (Placed clearly below the bottom arrow)
+      // Bottom Y-Axis Label
       g.drawString(
         'LOW',
         h3Font,
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, 406, 160, 14),
+        bounds: const ui.Rect.fromLTWH(graphCenterX - 110, 406, 220, 14),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
       g.drawString(
-        'Premium Experience Perception',
+        mapData.yAxisLabel,
         captionFont,
-        brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX - 80, 420, 160, 14),
+        brush: PdfSolidBrush(textMuted),
+        bounds: const ui.Rect.fromLTWH(graphCenterX - 120, 420, 240, 14),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
@@ -836,75 +839,75 @@ class ProposalPdfService {
 
       // Horizontal Axis Labels
       g.drawString(
-        'LOW\nService Breadth',
+        'LOW\n${mapData.xAxisLabel}',
         captionFont,
-        brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX - axisLen - 75, graphCenterY - 12, 70, 24),
+        brush: PdfSolidBrush(textMuted),
+        bounds: const ui.Rect.fromLTWH(graphCenterX - axisLen - 95, graphCenterY - 14, 90, 28),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
       g.drawString(
-        'HIGH\nService Breadth',
+        'HIGH\n${mapData.xAxisLabel}',
         captionFont,
-        brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX + axisLen + 6, graphCenterY - 12, 70, 24),
+        brush: PdfSolidBrush(accentLime),
+        bounds: const ui.Rect.fromLTWH(graphCenterX + axisLen + 6, graphCenterY - 14, 90, 28),
         format: PdfStringFormat(alignment: PdfTextAlignment.center),
       );
 
-      // Plotted Brands in 4 Quadrants with ample space
-      // Quadrant 1 (Top Left): Lead Brand
+      // Plotted Brands in 4 Quadrants
+      // Quadrant 1 (Top Right): THE WINNING QUADRANT (HIGH Y, HIGH X) -> LEAD BRAND!
       g.drawString(
-        proposal.leadCompanyName.toUpperCase(),
+        mapData.topRightBrand,
         bodyBold,
         brush: PdfSolidBrush(accentLime),
-        bounds: const ui.Rect.fromLTWH(contentX + 15, graphCenterY - 85, 150, 16),
+        bounds: const ui.Rect.fromLTWH(graphCenterX + 35, graphCenterY - 95, 160, 16),
       );
       g.drawString(
-        'Strong balance of premium experiences with wide range of offerings for diverse clients.',
+        mapData.topRightDesc,
         captionFont,
         brush: PdfSolidBrush(textOffWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 15, graphCenterY - 68, 140, 36),
+        bounds: const ui.Rect.fromLTWH(graphCenterX + 35, graphCenterY - 78, 155, 48),
       );
 
-      // Quadrant 2 (Top Right): Competitor 1
+      // Quadrant 2 (Top Left): (HIGH Y, LOW X) -> Niche / Specialized
       g.drawString(
-        'CATEGORY PEER A',
+        mapData.topLeftBrand,
         bodyBold,
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX + 45, graphCenterY - 85, 150, 16),
+        bounds: const ui.Rect.fromLTWH(contentX + 10, graphCenterY - 95, 150, 16),
       );
       g.drawString(
-        'Niche luxury focus with limited accessibility.',
+        mapData.topLeftDesc,
         captionFont,
         brush: PdfSolidBrush(textMuted),
-        bounds: const ui.Rect.fromLTWH(graphCenterX + 45, graphCenterY - 68, 130, 24),
+        bounds: const ui.Rect.fromLTWH(contentX + 10, graphCenterY - 78, 145, 48),
       );
 
-      // Quadrant 3 (Bottom Left): Competitor 2
+      // Quadrant 3 (Bottom Left): (LOW Y, LOW X) -> Ad-Hoc / Basic
       g.drawString(
-        'CATEGORY PEER B',
+        mapData.bottomLeftBrand,
         bodyBold,
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(contentX + 15, graphCenterY + 45, 150, 16),
+        bounds: const ui.Rect.fromLTWH(contentX + 10, graphCenterY + 45, 150, 16),
       );
       g.drawString(
-        'Event-focused with standard generic options.',
+        mapData.bottomLeftDesc,
         captionFont,
         brush: PdfSolidBrush(textMuted),
-        bounds: const ui.Rect.fromLTWH(contentX + 15, graphCenterY + 62, 140, 24),
+        bounds: const ui.Rect.fromLTWH(contentX + 10, graphCenterY + 62, 145, 48),
       );
 
-      // Quadrant 4 (Bottom Right): Competitor 3
+      // Quadrant 4 (Bottom Right): (LOW Y, HIGH X) -> Mass / Generalist
       g.drawString(
-        'MASS OPERATOR C',
+        mapData.bottomRightBrand,
         bodyBold,
         brush: PdfSolidBrush(textWhite),
-        bounds: const ui.Rect.fromLTWH(graphCenterX + 45, graphCenterY + 45, 150, 16),
+        bounds: const ui.Rect.fromLTWH(graphCenterX + 35, graphCenterY + 45, 160, 16),
       );
       g.drawString(
-        'High volume operations with discount pricing.',
+        mapData.bottomRightDesc,
         captionFont,
         brush: PdfSolidBrush(textMuted),
-        bounds: const ui.Rect.fromLTWH(graphCenterX + 45, graphCenterY + 62, 130, 24),
+        bounds: const ui.Rect.fromLTWH(graphCenterX + 35, graphCenterY + 62, 155, 48),
       );
 
       // 4. Bottom Insight Card (Starts safely at y = 475)

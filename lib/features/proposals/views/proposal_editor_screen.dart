@@ -1067,90 +1067,134 @@ class _Tab2MarketPositioning extends StatelessWidget {
           subtitle: 'Coordinate cross positioning framework and strategic insight (Page 5 of PDF)',
           children: [
             // Visual Coordinate Map Preview Box
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '${proposal.leadCompanyName.toUpperCase()} MARKET POSITIONING',
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: ClinicSageColors.primary, letterSpacing: 1),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text('HIGH: Premium Experience Perception', style: TextStyle(fontSize: 11, color: Color(0xFF15803D), fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Text('LOW\nBreadth', textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, color: ClinicSageColors.secondary)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Container(
-                          height: 95,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Stack(
-                            children: [
-                              Center(child: Container(height: 1, color: const Color(0xFFE2E8F0))),
-                              Center(child: Container(width: 1, color: const Color(0xFFE2E8F0))),
-                              Positioned(
-                                top: 8,
-                                left: 12,
-                                child: Text(
-                                  '• ${proposal.leadCompanyName}',
-                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5, color: Color(0xFF15803D)),
+            Builder(builder: (context) {
+              final mapData = ProposalDomainEngine.instance.resolvePerceptualMapData(proposal);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '${proposal.leadCompanyName.toUpperCase()} MARKET POSITIONING',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: ClinicSageColors.primary, letterSpacing: 1),
+                    ),
+                    const SizedBox(height: 12),
+                    Text('HIGH: ${mapData.yAxisLabel}', style: const TextStyle(fontSize: 11, color: Color(0xFF15803D), fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 80,
+                          child: Text('LOW\n${mapData.xAxisLabel}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: ClinicSageColors.secondary)),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            height: 110,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: const Color(0xFFCBD5E1), width: 1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Stack(
+                              children: [
+                                Center(child: Container(height: 1, color: const Color(0xFFE2E8F0))),
+                                Center(child: Container(width: 1, color: const Color(0xFFE2E8F0))),
+                                // Quadrant 1 (Top-Right): LEAD BRAND (High Y, High X)
+                                Positioned(
+                                  top: 10,
+                                  right: 12,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(4)),
+                                    child: Text(
+                                      '★ ${mapData.topRightBrand}',
+                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Color(0xFF15803D)),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              const Positioned(
-                                top: 8,
-                                right: 12,
-                                child: Text('• Luxury Peers', style: TextStyle(fontSize: 11, color: ClinicSageColors.secondary)),
-                              ),
-                              const Positioned(
-                                bottom: 8,
-                                left: 12,
-                                child: Text('• Generic Peers', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-                              ),
-                              const Positioned(
-                                bottom: 8,
-                                right: 12,
-                                child: Text('• Mass Operators', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-                              ),
-                            ],
+                                // Quadrant 2 (Top-Left): Niche / High Y, Low X
+                                Positioned(
+                                  top: 10,
+                                  left: 12,
+                                  child: Text('• ${mapData.topLeftBrand}', style: const TextStyle(fontSize: 10.5, color: ClinicSageColors.secondary)),
+                                ),
+                                // Quadrant 3 (Bottom-Left): Low Y, Low X
+                                Positioned(
+                                  bottom: 10,
+                                  left: 12,
+                                  child: Text('• ${mapData.bottomLeftBrand}', style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8))),
+                                ),
+                                // Quadrant 4 (Bottom-Right): Low Y, High X
+                                Positioned(
+                                  bottom: 10,
+                                  right: 12,
+                                  child: Text('• ${mapData.bottomRightBrand}', style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8))),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('HIGH\nBreadth', textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, color: ClinicSageColors.secondary)),
-                    ],
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 80,
+                          child: Text('HIGH\n${mapData.xAxisLabel}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: Color(0xFF15803D), fontWeight: FontWeight.w700)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text('LOW: ${mapData.yAxisLabel}', style: const TextStyle(fontSize: 11, color: ClinicSageColors.secondary)),
+                  ],
+                ),
+              );
+            }),
+            Row(
+              children: [
+                Expanded(
+                  child: _EditableField(
+                    label: 'Vertical (Y-Axis) Attribute',
+                    value: proposal.perceptualMapYAxis.isNotEmpty
+                        ? proposal.perceptualMapYAxis
+                        : ProposalDomainEngine.instance.resolvePerceptualMapData(proposal).yAxisLabel,
+                    onChanged: (v) => onChanged(proposal.copyWith(perceptualMapYAxis: v)),
                   ),
-                  const SizedBox(height: 6),
-                  const Text('LOW: Premium Experience Perception', style: TextStyle(fontSize: 11, color: ClinicSageColors.secondary)),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _EditableField(
+                    label: 'Horizontal (X-Axis) Attribute',
+                    value: proposal.perceptualMapXAxis.isNotEmpty
+                        ? proposal.perceptualMapXAxis
+                        : ProposalDomainEngine.instance.resolvePerceptualMapData(proposal).xAxisLabel,
+                    onChanged: (v) => onChanged(proposal.copyWith(perceptualMapXAxis: v)),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 14),
             _EditableField(
               label: 'Positioning Narrative',
               value: proposal.perceptualMapNarrative,
+              maxLines: 3,
               onChanged: (v) => onChanged(proposal.copyWith(perceptualMapNarrative: v)),
             ),
             const SizedBox(height: 14),
             _EditableField(
               label: 'Key Strategic Insight',
               value: proposal.perceptualMapInsight,
+              maxLines: 2,
               onChanged: (v) => onChanged(proposal.copyWith(perceptualMapInsight: v)),
             ),
             const SizedBox(height: 14),
             _EditableField(
               label: 'Core Market Opportunity',
               value: proposal.perceptualMapOpportunity,
+              maxLines: 2,
               onChanged: (v) => onChanged(proposal.copyWith(perceptualMapOpportunity: v)),
             ),
           ],

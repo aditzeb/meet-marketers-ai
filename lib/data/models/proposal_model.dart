@@ -259,6 +259,8 @@ class ProposalModel {
   final String perceptualMapNarrative;
   final String perceptualMapInsight;
   final String perceptualMapOpportunity;
+  final String perceptualMapYAxis;
+  final String perceptualMapXAxis;
   final List<ContentPillar> creativePillars;
   final String visualGuidelineNotes;
   final List<String> brandPaletteHex;
@@ -322,6 +324,8 @@ class ProposalModel {
     this.perceptualMapNarrative = '',
     this.perceptualMapInsight = '',
     this.perceptualMapOpportunity = '',
+    this.perceptualMapYAxis = '',
+    this.perceptualMapXAxis = '',
     this.creativePillars = const [],
     this.visualGuidelineNotes = '',
     this.brandPaletteHex = const ['#10B981', '#064E3B', '#8B5CF6', '#1E293B', '#F8FAFC'],
@@ -455,6 +459,8 @@ class ProposalModel {
     'perceptualMapNarrative': perceptualMapNarrative,
     'perceptualMapInsight': perceptualMapInsight,
     'perceptualMapOpportunity': perceptualMapOpportunity,
+    'perceptualMapYAxis': perceptualMapYAxis,
+    'perceptualMapXAxis': perceptualMapXAxis,
     'creativePillars': creativePillars.map((p) => p.toJson()).toList(),
     'visualGuidelineNotes': visualGuidelineNotes,
     'brandPaletteHex': brandPaletteHex,
@@ -531,6 +537,8 @@ class ProposalModel {
       perceptualMapNarrative: json['perceptualMapNarrative'] as String? ?? '',
       perceptualMapInsight: json['perceptualMapInsight'] as String? ?? '',
       perceptualMapOpportunity: json['perceptualMapOpportunity'] as String? ?? '',
+      perceptualMapYAxis: json['perceptualMapYAxis'] as String? ?? '',
+      perceptualMapXAxis: json['perceptualMapXAxis'] as String? ?? '',
       creativePillars: (json['creativePillars'] as List?)
               ?.map((p) => ContentPillar.fromJson(Map<String, dynamic>.from(p as Map)))
               .toList() ??
@@ -676,6 +684,8 @@ class ProposalModel {
     String? perceptualMapNarrative,
     String? perceptualMapInsight,
     String? perceptualMapOpportunity,
+    String? perceptualMapYAxis,
+    String? perceptualMapXAxis,
     List<ContentPillar>? creativePillars,
     String? visualGuidelineNotes,
     List<String>? brandPaletteHex,
@@ -737,6 +747,8 @@ class ProposalModel {
       perceptualMapNarrative: perceptualMapNarrative ?? this.perceptualMapNarrative,
       perceptualMapInsight: perceptualMapInsight ?? this.perceptualMapInsight,
       perceptualMapOpportunity: perceptualMapOpportunity ?? this.perceptualMapOpportunity,
+      perceptualMapYAxis: perceptualMapYAxis ?? this.perceptualMapYAxis,
+      perceptualMapXAxis: perceptualMapXAxis ?? this.perceptualMapXAxis,
       creativePillars: creativePillars ?? this.creativePillars,
       visualGuidelineNotes: visualGuidelineNotes ?? this.visualGuidelineNotes,
       brandPaletteHex: brandPaletteHex ?? this.brandPaletteHex,
