@@ -1027,7 +1027,7 @@ class _GenerateCTA extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Inputs will be vectorized and orchestrated via Gemini AI to create campaign-ready assets.',
+                  'Inputs will be vectorized and orchestrated via OpenRouter AI to create campaign-ready assets.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: Colors.white.withOpacity(0.65),
                     fontSize: 12,

@@ -200,7 +200,7 @@ class _CreateLeadDialogState extends ConsumerState<CreateLeadDialog> {
                               child: Text(
                                 proposalState.generationStage.isNotEmpty
                                     ? proposalState.generationStage
-                                    : 'Generating Strategic Proposal with Gemini AI...',
+                                    : 'Generating Strategic Proposal with OpenRouter AI...',
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                               ),
                             ),

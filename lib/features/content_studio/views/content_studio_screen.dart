@@ -138,7 +138,7 @@ String getEmptyStateText(ContentType type) {
   switch (type) {
     case ContentType.introDeck:
     case ContentType.salesPitchDeck:
-      return 'Click "Generate" to generate slide deck structure, visual slide cards, presenter notes, and speaker scripts using Gemini AI.';
+      return 'Click "Generate" to generate slide deck structure, visual slide cards, presenter notes, and speaker scripts using OpenRouter AI.';
     case ContentType.explainerVideos:
     case ContentType.testimonialVideos:
       return 'Click "Generate" to create scene-by-scene video storyboards, timed voiceover scripts, shot directions, and video previews.';
@@ -400,7 +400,7 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
     if (!mounted) return;
     setState(() {
       _currentItemProgress = 0.40;
-      _currentStageText = 'Gemini 2.5 Flash formulating strategic ${_selectedType.label} copy...';
+      _currentStageText = 'OpenRouter Auto formulating strategic ${_selectedType.label} copy...';
     });
 
     final text = await GeminiService.instance.generateContent(
@@ -479,7 +479,7 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
       if (!mounted) return;
       setState(() {
         _currentItemProgress = 0.45;
-        _currentStageText = 'Item ${i + 1} of 11: Gemini 2.5 Flash generating ${t.label}...';
+        _currentStageText = 'Item ${i + 1} of 11: OpenRouter Auto generating ${t.label}...';
       });
 
       final text = await GeminiService.instance.generateContent(
@@ -1840,7 +1840,7 @@ class _GeneratingAnimation extends StatelessWidget {
       ),
       (
         step: 2,
-        title: 'Gemini 2.5 Flash Copy Synthesis',
+        title: 'OpenRouter Autonomous Copy Synthesis',
         subtitle: 'Formulating high-converting marketing framework tailored to client industry',
         isDone: progress >= 0.70,
         isActive: progress >= 0.35 && progress < 0.70,

@@ -219,7 +219,7 @@ class _StrategyHubScreenState extends ConsumerState<StrategyHubScreen> with Sing
     setState(() {
       _strategyProgress = 0.45;
       _strategyCurrentStep = 2;
-      _strategyStage = 'Gemini 2.5 Flash formulating 4-quadrant SWOT Matrix...';
+      _strategyStage = 'OpenRouter Auto formulating 4-quadrant SWOT Matrix...';
     });
 
     final strategy = await GeminiService.instance.generateStrategy(
@@ -272,7 +272,7 @@ class _StrategyHubScreenState extends ConsumerState<StrategyHubScreen> with Sing
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✨ Strategy matrix generated with Gemini AI & saved to Firestore!')),
+      const SnackBar(content: Text('✨ Strategy matrix generated with OpenRouter AI & saved to Firestore!')),
     );
   }
 

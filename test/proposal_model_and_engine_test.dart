@@ -105,8 +105,8 @@ void main() {
     });
   });
 
-  group('Gemini Proposal Synthesis & PDF Export Tests', () {
-    test('GeminiService generates complete proposal structure', () async {
+  group('OpenRouter & AI Proposal Synthesis & PDF Export Tests', () {
+    test('OpenRouter & GeminiService generates complete proposal structure with dynamic routing', () async {
       final proposal = await GeminiService.instance.generateProposal(
         leadCompanyName: 'Alpha Clinic Singapore',
         industry: 'Aesthetic Healthcare',

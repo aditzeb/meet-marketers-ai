@@ -134,8 +134,8 @@ class ProposalNotifier extends StateNotifier<ProposalState> {
     state = state.copyWith(
       generationProgress: 0.35,
       generationStage: hasPitchDeck
-          ? 'Gemini 2.5 Flash aligning pitch deck insights with SWOT & 4Ps...'
-          : 'Gemini 2.5 Flash formulating SWOT, 4Ps & PEST matrices...',
+          ? 'OpenRouter Auto aligning pitch deck insights with SWOT & 4Ps...'
+          : 'OpenRouter Auto formulating SWOT, 4Ps & PEST matrices...',
     );
 
     // Dynamic progress ticker to show active processing

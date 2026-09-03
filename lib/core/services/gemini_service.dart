@@ -1,29 +1,36 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:http/http.dart' as http;
-import '../../firebase_options.dart';
 import '../config/app_config.dart';
 import '../../data/models/content_deliverable_model.dart';
 import '../../data/models/strategy_deliverable_model.dart';
 import '../../data/models/proposal_model.dart';
 import 'proposal_domain_engine.dart';
 
-/// Gemini Service — Orchestrates AI Marketing Deliverables, Photos, Videos & Captions for Clients
+/// Task types for OpenRouter autonomous routing and capability detection
+enum OpenRouterTaskType {
+  generalMarketing,
+  strategicProposal,
+  multimodalVision,
+  codingRefactor,
+  highComplexityReasoning,
+  fastMicrocopy,
+}
+
+/// Type alias for OpenRouterService
+typedef OpenRouterService = GeminiService;
+
+/// Core AI Service — Orchestrates Autonomous OpenRouter MCP / API Marketing Deliverables, Strategy & Proposals
 class GeminiService {
   static final GeminiService instance = GeminiService._internal();
   GeminiService._internal();
 
   static const String firebaseProjectId = 'meet-marketers-ai';
 
-  /// Active Gemini Text Generation Models
-  static const List<String> candidateModels = [
-    'gemini-1.5-flash',
-    'gemini-1.5-pro',
-    'gemini-2.0-flash-exp',
-  ];
+  /// OpenRouter Autonomous Model Selection Mode
+  static const String defaultModel = AppConfig.openRouterDefaultModel;
 
-  String _apiKey = AppConfig.geminiApiKey;
+  String _apiKey = AppConfig.openRouterApiKey;
 
   void setApiKey(String key) {
     if (key.isNotEmpty) {
@@ -157,12 +164,15 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
     );
 
     try {
-      final responseText = await _callGemini35Flash(prompt);
+      final responseText = await _callOpenRouterAutonomous(
+        prompt: prompt,
+        taskType: OpenRouterTaskType.generalMarketing,
+      );
       if (responseText != null && responseText.trim().isNotEmpty) {
         return cleanMarkdownText(responseText);
       }
     } catch (e) {
-      debugPrint('Gemini API call warning: $e');
+      debugPrint('OpenRouter API call warning: $e');
     }
 
     return _getFallbackContent(type, clientName);
@@ -214,7 +224,10 @@ Return a JSON object strictly matching this schema:
 ''';
 
     try {
-      final text = await _callGemini35Flash(prompt);
+      final text = await _callOpenRouterAutonomous(
+        prompt: prompt,
+        taskType: OpenRouterTaskType.highComplexityReasoning,
+      );
       if (text != null) {
         final cleanJson = text.replaceAll('```json', '').replaceAll('```', '').trim();
         final jsonMap = jsonDecode(cleanJson) as Map<String, dynamic>;
@@ -403,7 +416,10 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
 ''';
 
     try {
-      final raw = await _callGemini35Flash(prompt);
+      final raw = await _callOpenRouterAutonomous(
+        prompt: prompt,
+        taskType: OpenRouterTaskType.strategicProposal,
+      );
       if (raw != null && raw.isNotEmpty) {
         final cleaned = cleanMarkdownText(raw);
         final startIdx = cleaned.indexOf('{');
@@ -435,68 +451,98 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
         }
       }
     } catch (e) {
-      debugPrint('Gemini generateProposal error, using domain base: $e');
+      debugPrint('OpenRouter generateProposal error, using domain base: $e');
     }
 
     return domainBase;
   }
 
-  Future<String?> _callGemini35Flash(String prompt) async {
-    final keysToTry = <String>{_apiKey, AppConfig.geminiApiKey, DefaultFirebaseOptions.web.apiKey}
-        .where((k) => k.isNotEmpty)
-        .toList();
+  /// Core OpenRouter Autonomous Request Engine
+  /// Routes tasks dynamically through OpenRouter auto-router (openrouter/auto)
+  /// with autonomous capability detection (multimodal, high-complexity, microcopy).
+  Future<String?> _callOpenRouterAutonomous({
+    required String prompt,
+    OpenRouterTaskType taskType = OpenRouterTaskType.generalMarketing,
+    String? systemPrompt,
+    List<String>? mediaUrls,
+    double temperature = 0.7,
+  }) async {
+    final apiKey = _apiKey.isNotEmpty ? _apiKey : AppConfig.openRouterApiKey;
+    if (apiKey.isEmpty) {
+      debugPrint('OpenRouter API key missing');
+      return null;
+    }
 
-    for (final modelName in candidateModels) {
-      for (final key in keysToTry) {
-        try {
-          final model = GenerativeModel(model: modelName, apiKey: key);
-          final response = await model
-              .generateContent([Content.text(prompt)])
-              .timeout(const Duration(seconds: 4));
-          if (response.text != null && response.text!.isNotEmpty) {
-            return response.text;
-          }
-        } catch (e) {
-          debugPrint('GenerativeModel SDK error for $modelName: $e');
-        }
+    final endpoint = Uri.parse('${AppConfig.openRouterBaseUrl}/chat/completions');
 
-        try {
-          final url = Uri.parse(
-            'https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$key',
-          );
-          final resp = await http.post(
-            url,
-            headers: {
-              'Content-Type': 'application/json',
-              'x-goog-api-key': key,
-            },
-            body: jsonEncode({
-              'contents': [
-                {
-                  'parts': [
-                    {'text': prompt}
-                  ]
-                }
-              ]
-            }),
-          ).timeout(const Duration(seconds: 4));
+    final messages = <Map<String, dynamic>>[];
+    if (systemPrompt != null && systemPrompt.trim().isNotEmpty) {
+      messages.add({
+        'role': 'system',
+        'content': systemPrompt.trim(),
+      });
+    }
 
-          if (resp.statusCode == 200) {
-            final data = jsonDecode(resp.body);
-            final candidates = data['candidates'] as List?;
-            if (candidates != null && candidates.isNotEmpty) {
-              final parts = candidates[0]['content']['parts'] as List?;
-              if (parts != null && parts.isNotEmpty) {
-                return parts[0]['text'] as String?;
-              }
-            }
-          } else {
-            debugPrint('REST call failed for $modelName status: ${resp.statusCode}');
-          }
-        } catch (e) {
-          debugPrint('REST call exception for $modelName: $e');
+    // Dynamic Multimodal Payload if mediaUrls provided
+    if (mediaUrls != null && mediaUrls.isNotEmpty) {
+      final contentList = <Map<String, dynamic>>[
+        {'type': 'text', 'text': prompt},
+      ];
+      for (final url in mediaUrls) {
+        if (url.trim().isNotEmpty) {
+          contentList.add({
+            'type': 'image_url',
+            'image_url': {'url': url.trim()},
+          });
         }
       }
+      messages.add({
+        'role': 'user',
+        'content': contentList,
+      });
+    } else {
+      messages.add({
+        'role': 'user',
+        'content': prompt,
+      });
+    }
+
+    // Autonomous model selection: OpenRouter dynamic router
+    final payload = {
+      'model': AppConfig.openRouterDefaultModel, // 'openrouter/auto'
+      'messages': messages,
+      'temperature': temperature,
+    };
+
+    try {
+      final resp = await http.post(
+        endpoint,
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+          'HTTP-Referer': AppConfig.openRouterSiteUrl,
+          'X-Title': AppConfig.openRouterSiteName,
+        },
+        body: jsonEncode(payload),
+      ).timeout(const Duration(seconds: 15));
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final choices = data['choices'] as List?;
+        if (choices != null && choices.isNotEmpty) {
+          final message = choices[0]['message'] as Map<String, dynamic>?;
+          if (message != null) {
+            final content = message['content'];
+            if (content is String && content.trim().isNotEmpty) {
+              return content;
+            }
+          }
+        }
+      } else {
+        debugPrint('OpenRouter API error ${resp.statusCode}: ${resp.body}');
+      }
+    } catch (e) {
+      debugPrint('OpenRouter API exception: $e');
     }
 
     return null;
