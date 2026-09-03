@@ -24,6 +24,7 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
   late ProposalModel _proposal;
   bool _isLoaded = false;
   bool _isSaving = false;
+  bool _isExporting = false;
 
   @override
   void initState() {
@@ -423,14 +424,38 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   ),
-                  onPressed: () async {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Compiling 13-page luxury proposal PDF...')),
-                    );
-                    await ProposalPdfService.instance.exportAndDownloadPdf(_proposal);
+                  onPressed: _isExporting ? null : () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    setState(() => _isExporting = true);
+                    try {
+                      // 1. Auto-save all current edits to Firestore
+                      await ref.read(proposalProvider.notifier).updateProposal(_proposal);
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('⚡ Edits saved! Compiling updated 13-page luxury proposal PDF with your latest content...')),
+                        );
+                      }
+                      // 2. Export and trigger browser download with latest proposal model
+                      await ProposalPdfService.instance.exportAndDownloadPdf(_proposal);
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('✅ 13-page PDF downloaded with all your latest edits & visuals!')),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('Error generating PDF: $e'), backgroundColor: Colors.red.shade700),
+                        );
+                      }
+                    } finally {
+                      if (mounted) setState(() => _isExporting = false);
+                    }
                   },
-                  icon: const Icon(Icons.picture_as_pdf, size: 15, color: Color(0xFFA3E635)),
-                  label: const Text('Export PDF', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  icon: _isExporting
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFA3E635)))
+                      : const Icon(Icons.picture_as_pdf, size: 15, color: Color(0xFFA3E635)),
+                  label: Text(_isExporting ? 'Exporting...' : 'Export PDF', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 ),
                 const SizedBox(width: 8),
 
