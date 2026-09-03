@@ -52,13 +52,28 @@ class ProposalPdfService {
     List<int>? bgImageBytes;
     try {
       final data = await rootBundle.load('assets/images/proposal_bg.png');
-      bgImageBytes = data.buffer.asUint8List();
+      final bytes = data.buffer.asUint8List();
+      // Validate PNG signature: first 8 bytes must be 137 80 78 71 13 10 26 10
+      if (bytes.length > 8 &&
+          bytes[0] == 137 && bytes[1] == 80 && bytes[2] == 78 && bytes[3] == 71) {
+        bgImageBytes = bytes;
+      }
     } catch (_) {}
 
     List<int>? logoBytes;
     try {
       final data = await rootBundle.load('assets/logos/meet_marketers_pdf_logo.png');
-      logoBytes = data.buffer.asUint8List();
+      final bytes = data.buffer.asUint8List();
+      // Validate PNG/JPEG signature before passing to PdfBitmap to avoid "Invalid array length" crash
+      final isPng = bytes.length > 8 &&
+          bytes[0] == 137 && bytes[1] == 80 && bytes[2] == 78 && bytes[3] == 71;
+      final isJpeg = bytes.length > 3 &&
+          bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
+      if (isPng || isJpeg) {
+        logoBytes = bytes;
+      } else {
+        debugPrint('ProposalPdfService: meet_marketers_pdf_logo.png is not a valid PNG/JPEG — skipping logo.');
+      }
     } catch (_) {}
 
     // Asynchronously load user uploaded / AI generated asset images
@@ -99,10 +114,18 @@ class ProposalPdfService {
       final g = page.graphics;
 
       if (bgImageBytes != null) {
-        g.drawImage(
-          PdfBitmap(bgImageBytes),
-          const ui.Rect.fromLTWH(0, 0, pageWidth, pageHeight),
-        );
+        try {
+          g.drawImage(
+            PdfBitmap(bgImageBytes),
+            const ui.Rect.fromLTWH(0, 0, pageWidth, pageHeight),
+          );
+        } catch (_) {
+          // Fallback to flat dark if bg asset is corrupt
+          g.drawRectangle(
+            brush: PdfSolidBrush(bgDark),
+            bounds: const ui.Rect.fromLTWH(0, 0, pageWidth, pageHeight),
+          );
+        }
       } else {
         // Flat dark base fallback with NO harsh discs
         g.drawRectangle(
@@ -124,11 +147,15 @@ class ProposalPdfService {
     // ── Helper: Draw Meet Marketers Brand Logo on Cover ──────────
     void drawMeetMarketersLogo(PdfGraphics g, double x, double y) {
       if (logoBytes != null) {
-        // Draw the real MM transparent logo
-        g.drawImage(
-          PdfBitmap(logoBytes),
-          ui.Rect.fromLTWH(x, y - 2, 28, 22),
-        );
+        try {
+          // Draw the real MM transparent logo
+          g.drawImage(
+            PdfBitmap(logoBytes),
+            ui.Rect.fromLTWH(x, y - 2, 28, 22),
+          );
+        } catch (_) {
+          // Logo asset is invalid — skip image, still draw text fallback below
+        }
         g.drawString(
           'MEET',
           PdfStandardFont(PdfFontFamily.helvetica, 12, style: PdfFontStyle.bold),
