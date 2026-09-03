@@ -65,7 +65,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final clientId = state.pathParameters['clientId']!;
               return _buildPage(
                 state: state,
-                child: ClientInputsScreen(clientId: clientId),
+                child: ClientInputsScreen(
+                  key: ValueKey('inputs_$clientId'),
+                  clientId: clientId,
+                ),
               );
             },
           ),
@@ -78,7 +81,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final clientId = state.pathParameters['clientId']!;
               return _buildPage(
                 state: state,
-                child: ContentStudioScreen(clientId: clientId),
+                child: ContentStudioScreen(
+                  key: ValueKey('content_$clientId'),
+                  clientId: clientId,
+                ),
               );
             },
           ),
@@ -91,7 +97,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final clientId = state.pathParameters['clientId']!;
               return _buildPage(
                 state: state,
-                child: StrategyHubScreen(clientId: clientId),
+                child: StrategyHubScreen(
+                  key: ValueKey('strategy_$clientId'),
+                  clientId: clientId,
+                ),
               );
             },
           ),
@@ -104,7 +113,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final clientId = state.pathParameters['clientId']!;
               return _buildPage(
                 state: state,
-                child: ReviewScreen(clientId: clientId),
+                child: ReviewScreen(
+                  key: ValueKey('review_$clientId'),
+                  clientId: clientId,
+                ),
               );
             },
           ),

@@ -55,19 +55,16 @@ class GeminiService {
     required ContentType type,
     required String clientName,
     required String industry,
+    String? extractedPdfContent,
   }) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final seed = timestamp % 100000;
 
-    final imagePrompt = 'Hyper-realistic Imagen 3 commercial photography for $clientName operating in $industry industry, modern executive aesthetic, 8k resolution, cinematic studio lighting';
+    // AI Dynamic Prompt for Imagen / Flux synthesis
+    final imagePrompt = 'Modern commercial 8k photography for $clientName operating in $industry, cutting-edge corporate aesthetic, cinematic studio lighting, photorealistic high detail';
 
-    final unsplashImages = [
-      'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80',
-      'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=1200&q=80',
-    ];
-    final photoUrl = unsplashImages[seed % unsplashImages.length];
+    // AI generated image via Pollinations Flux engine with client-specific seed and prompt
+    final photoUrl = 'https://image.pollinations.ai/prompt/${Uri.encodeComponent(imagePrompt)}?width=1280&height=720&model=flux&seed=$seed&nologo=true';
 
     final sampleVideoUrls = [
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
@@ -79,26 +76,26 @@ class GeminiService {
     final scenes = [
       VideoScene(
         sceneNumber: 1,
-        timecode: '0:00 - 0:05',
-        visualDescription: 'Extreme close-up on $clientName $industry solution interface.',
-        voiceoverScript: 'How is $clientName transforming customer outcomes in $industry?',
-        caption: 'Unlocking strategic advantage for $clientName.',
-        cameraAngle: 'Slow push-in macro shot',
+        timecode: '0:00 - 0:08',
+        visualDescription: 'Cinematic wide shot introducing $clientName operating in the $industry landscape.',
+        voiceoverScript: 'Meet $clientName — setting new benchmarks in $industry excellence.',
+        caption: 'Elevating standards with $clientName.',
+        cameraAngle: 'Slow dynamic push-in macro shot',
       ),
       VideoScene(
         sceneNumber: 2,
-        timecode: '0:05 - 0:15',
-        visualDescription: 'Split screen showing traditional $industry hurdles vs automated $clientName performance.',
-        voiceoverScript: 'Accelerate your growth pipeline with proven market positioning.',
-        caption: 'High converting execution tailored for $clientName.',
-        cameraAngle: 'Whip pan right',
+        timecode: '0:08 - 0:20',
+        visualDescription: 'Split screen showcasing traditional pain points vs $clientName proprietary solutions.',
+        voiceoverScript: 'Streamline client workflows and maximize strategic market outcomes.',
+        caption: 'Accelerated execution engineered for $clientName.',
+        cameraAngle: 'Smooth orbital pan right',
       ),
       VideoScene(
         sceneNumber: 3,
-        timecode: '0:15 - 0:30',
-        visualDescription: '$clientName leadership reviewing key performance metrics.',
-        voiceoverScript: 'Partner with $clientName today for guaranteed execution.',
-        caption: 'Proven industry benchmarks.',
+        timecode: '0:20 - 0:30',
+        visualDescription: 'Executive presentation screen highlighting growth metrics and final call to action.',
+        voiceoverScript: 'Discover how $clientName is leading the next evolution of $industry.',
+        caption: 'Scale your vision with $clientName.',
         cameraAngle: 'Medium tracking shot at eye level',
       ),
     ];
@@ -135,6 +132,7 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
     List<String>? targetRoleModels,
     List<String>? referenceImages,
     List<String>? referenceDocuments,
+    String? extractedPdfContent,
   }) async {
     final history = clientId != null ? HiveCacheService.instance.getVettedHistory(clientId) : <String>[];
 
@@ -148,6 +146,7 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
       targetRoleModels: targetRoleModels,
       referenceImages: referenceImages,
       referenceDocuments: referenceDocuments,
+      extractedPdfContent: extractedPdfContent,
       vettedHistory: history,
     );
 
@@ -168,11 +167,17 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
     required String clientId,
     required String clientName,
     required String industry,
+    String? extractedPdfContent,
   }) async {
+    final pdfContext = (extractedPdfContent != null && extractedPdfContent.isNotEmpty)
+        ? 'Ingested Pitch Deck & Strategy Content:\n${extractedPdfContent.length > 3000 ? extractedPdfContent.substring(0, 3000) : extractedPdfContent}\n\n'
+        : '';
+
     final prompt = '''
 You are an expert strategic advisor generating a comprehensive marketing strategy EXCLUSIVELY FOR CLIENT "$clientName" (Industry: "$industry").
 DO NOT talk about Meet Marketers AI or agency software. Focus 100% on "$clientName".
 
+$pdfContext
 Return a JSON object strictly matching this schema:
 {
   "swot": {
@@ -338,6 +343,7 @@ Return a JSON object strictly matching this schema:
     List<String>? targetRoleModels,
     List<String>? referenceImages,
     List<String>? referenceDocuments,
+    String? extractedPdfContent,
     List<String>? vettedHistory,
   }) {
     final Map<String, String> qLabels = {
@@ -368,6 +374,9 @@ Return a JSON object strictly matching this schema:
     final docsText = (referenceDocuments != null && referenceDocuments.isNotEmpty)
         ? '- Reference Brand Guidelines & Word/PDF Docs: ${referenceDocuments.join(', ')}\n'
         : '';
+    final pdfText = (extractedPdfContent != null && extractedPdfContent.isNotEmpty)
+        ? '\nIngested Pitch Deck & PDF Assets (Extracted by Flutter Engine):\n${extractedPdfContent.length > 3500 ? extractedPdfContent.substring(0, 3500) : extractedPdfContent}\n'
+        : '';
     final historyText = (vettedHistory != null && vettedHistory.isNotEmpty)
         ? '\nApproved Historical Benchmarks (Emulate Brand Voice & Preference):\n${vettedHistory.take(5).map((h) => '--- Approved Benchmark ---\n$h').join('\n')}\n'
         : '';
@@ -382,7 +391,7 @@ STRICT MANDATE & SCOPING RULES:
 
 Ingested Discovery Intake Information for "$clientName":
 $qText
-$compText$roleText$imagesText$docsText
+$compText$roleText$imagesText$docsText$pdfText
 $historyText
 
 Task: Generate a clean, conversion-driven ${type.label} tailored specifically for "$clientName".

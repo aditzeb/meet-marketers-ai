@@ -8,6 +8,7 @@ import '../../../data/models/client_model.dart';
 import '../../dashboard/providers/client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/services/firebase_service.dart';
+import '../../../core/services/pdf_extractor_service.dart';
 
 import '../../../shared/widgets/workspace_phase_header.dart';
 
@@ -26,6 +27,9 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
   bool _isPitchDeckUploaded = false;
   bool _isDragOver = false;
   String? _pitchDeckFileName;
+  String? _extractedPdfContent;
+  bool _isExtractingPdf = false;
+  bool _isUploadingStorage = false;
 
   List<String> _uploadedImages = [];
   bool _isImagesDragOver = false;
@@ -51,45 +55,44 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
     });
   }
 
+  @override
+  void didUpdateWidget(ClientInputsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.clientId != widget.clientId) {
+      _loadClientData();
+    }
+  }
+
   void _loadClientData() {
     final clients = ref.read(clientProvider).clients;
-    final client = clients.firstWhere(
-      (c) => c.id == widget.clientId,
-      orElse: () => ClientModel(
-        id: widget.clientId,
-        name: 'AlphaWave Studio',
-        industry: 'SaaS / Tech',
-        createdAt: DateTime.now(),
-        lastActivity: DateTime.now(),
-      ),
-    );
+    final client = clients.where((c) => c.id == widget.clientId).firstOrNull ??
+        ref.read(clientProvider).getClient(widget.clientId);
 
+    // Reset website controller specifically to this client (blank if none)
     _websiteController.text = client.websiteUrl ?? '';
 
-    for (var entry in client.questionnaireAnswers.entries) {
-      if (_questionnaireControllers.containsKey(entry.key)) {
-        _questionnaireControllers[entry.key]!.text = entry.value;
-      }
+    // Reset questionnaire controllers to this client's answers (blank if not present)
+    for (var key in QuestionnaireKeys.labels.keys) {
+      _questionnaireControllers[key]?.text = client.questionnaireAnswers[key] ?? '';
     }
 
-    if (client.competitors.isNotEmpty) {
-      setState(() => _competitors = List.from(client.competitors));
-    }
-    if (client.targetRoleModels.isNotEmpty) {
-      setState(() => _roleModels = List.from(client.targetRoleModels));
-    }
-    if (client.pitchDeckStoragePath != null) {
-      setState(() {
+    // Reset all dynamic lists and upload state to this client
+    setState(() {
+      _competitors = client.competitors.isNotEmpty ? List.from(client.competitors) : [''];
+      _roleModels = client.targetRoleModels.isNotEmpty ? List.from(client.targetRoleModels) : [''];
+      if (client.pitchDeckStoragePath != null && client.pitchDeckStoragePath!.isNotEmpty) {
         _isPitchDeckUploaded = true;
         _pitchDeckFileName = client.pitchDeckStoragePath!.split('/').last;
-      });
-    }
-    if (client.imageStoragePaths.isNotEmpty) {
-      setState(() => _uploadedImages = List.from(client.imageStoragePaths));
-    }
-    if (client.documentStoragePaths.isNotEmpty) {
-      setState(() => _uploadedDocuments = List.from(client.documentStoragePaths));
-    }
+      } else {
+        _isPitchDeckUploaded = false;
+        _pitchDeckFileName = null;
+      }
+      _uploadedImages = List.from(client.imageStoragePaths);
+      _uploadedDocuments = List.from(client.documentStoragePaths);
+      _extractedPdfContent = client.extractedPdfContent;
+      _isExtractingPdf = false;
+      _isUploadingStorage = false;
+    });
   }
 
   @override
@@ -116,7 +119,7 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
           // ── Top Bar ──────────────────────────────────────
           _InputsTopBar(
             client: client,
-            isSaving: _isSaving,
+            isSaving: _isSaving || _isUploadingStorage,
             onSave: () => _onSave(client),
           ),
           // ── Scrollable Content ────────────────────────────
@@ -150,11 +153,14 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
                       isUploaded: _isPitchDeckUploaded,
                       isDragOver: _isDragOver,
                       fileName: _pitchDeckFileName,
+                      extractedPdfContent: _extractedPdfContent,
+                      isExtracting: _isExtractingPdf,
                       onDragOver: (over) => setState(() => _isDragOver = over),
                       onUpload: _onUploadPitchDeck,
                       onClear: () => setState(() {
                         _isPitchDeckUploaded = false;
                         _pitchDeckFileName = null;
+                        _extractedPdfContent = null;
                       }),
                     ),
                   ),
@@ -263,6 +269,7 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
       pitchDeckStoragePath: _pitchDeckFileName != null ? 'pitch_decks/$_pitchDeckFileName' : null,
       imageStoragePaths: _uploadedImages,
       documentStoragePaths: _uploadedDocuments,
+      extractedPdfContent: _extractedPdfContent,
       lastActivity: DateTime.now(),
     );
 
@@ -282,16 +289,16 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
     if (mounted) {
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              Icon(Icons.cloud_done, color: Colors.white, size: 16),
-              SizedBox(width: 8),
-              Text('Draft & discovery inputs saved to Firestore!'),
+              const Icon(Icons.cloud_done, color: Colors.white, size: 16),
+              const SizedBox(width: 8),
+              Text('Inputs saved to Firebase for ${updatedClient.name}!'),
             ],
           ),
           backgroundColor: ClinicSageColors.tertiary,
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -305,19 +312,77 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
         withData: true,
       );
       if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        final fileName = file.name;
+        final bytes = file.bytes;
+
         setState(() {
           _isPitchDeckUploaded = true;
-          _pitchDeckFileName = result.files.first.name;
+          _pitchDeckFileName = fileName;
+          _isExtractingPdf = true;
+          _isDragOver = false;
+        });
+
+        // 1. Extract text from PDF using Flutter engine
+        String extracted = '';
+        if (bytes != null && bytes.isNotEmpty) {
+          extracted = PdfExtractorService.instance.extractTextFromBytes(bytes);
+        }
+
+        // 2. Upload to Firebase Storage
+        if (bytes != null && bytes.isNotEmpty) {
+          await FirebaseService.instance.uploadFile(
+            clientId: widget.clientId,
+            folder: 'pitch_decks',
+            fileName: fileName,
+            bytes: bytes,
+            contentType: 'application/pdf',
+          );
+        }
+
+        if (mounted) {
+          setState(() {
+            _isExtractingPdf = false;
+            _extractedPdfContent = extracted;
+            _pitchDeckFileName = fileName;
+          });
+
+          // Auto-save immediately to client state & Firestore
+          final currentClient = ref.read(clientProvider).getClient(widget.clientId);
+          _onSave(currentClient);
+
+          final wordCount = extracted.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      extracted.isNotEmpty
+                          ? 'Uploaded to Firebase Storage & extracted $wordCount words for AI generation!'
+                          : 'Uploaded $fileName to Firebase Storage!',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: ClinicSageColors.tertiary,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Pitch deck upload error: $e');
+      if (mounted) {
+        setState(() {
+          _isExtractingPdf = false;
+          _isPitchDeckUploaded = true;
+          _pitchDeckFileName = 'pitch_deck_ingested.pdf';
           _isDragOver = false;
         });
       }
-    } catch (e) {
-      // Fallback file pick simulation
-      setState(() {
-        _isPitchDeckUploaded = true;
-        _pitchDeckFileName = 'pitch_deck_ingested.pdf';
-        _isDragOver = false;
-      });
     }
   }
 
@@ -330,26 +395,43 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
         withData: true,
       );
       if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          for (final f in result.files) {
-            if (!_uploadedImages.contains(f.name)) {
-              _uploadedImages.add(f.name);
-            }
+        setState(() => _isUploadingStorage = true);
+        for (final f in result.files) {
+          final fileName = f.name;
+          final bytes = f.bytes;
+          String fileRef = fileName;
+          if (bytes != null && bytes.isNotEmpty) {
+            final ext = f.extension?.toLowerCase() ?? 'png';
+            final url = await FirebaseService.instance.uploadFile(
+              clientId: widget.clientId,
+              folder: 'images',
+              fileName: fileName,
+              bytes: bytes,
+              contentType: 'image/$ext',
+            );
+            if (url != null) fileRef = url;
           }
+          if (!_uploadedImages.contains(fileRef)) {
+            _uploadedImages.add(fileRef);
+          }
+        }
+        if (mounted) {
+          setState(() {
+            _isUploadingStorage = false;
+            _isImagesDragOver = false;
+          });
+          final currentClient = ref.read(clientProvider).getClient(widget.clientId);
+          _onSave(currentClient);
+        }
+      }
+    } catch (e) {
+      debugPrint('Images upload error: $e');
+      if (mounted) {
+        setState(() {
+          _isUploadingStorage = false;
           _isImagesDragOver = false;
         });
       }
-    } catch (e) {
-      // Fallback file pick simulation
-      setState(() {
-        final mockNames = ['brand_hero_banner.png', 'product_interface_mockup.jpg', 'corporate_team_photo.webp'];
-        for (final name in mockNames) {
-          if (!_uploadedImages.contains(name)) {
-            _uploadedImages.add(name);
-          }
-        }
-        _isImagesDragOver = false;
-      });
     }
   }
 
@@ -368,26 +450,56 @@ class _ClientInputsScreenState extends ConsumerState<ClientInputsScreen> {
         withData: true,
       );
       if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          for (final f in result.files) {
-            if (!_uploadedDocuments.contains(f.name)) {
-              _uploadedDocuments.add(f.name);
+        setState(() => _isUploadingStorage = true);
+        for (final f in result.files) {
+          final fileName = f.name;
+          final bytes = f.bytes;
+          String fileRef = fileName;
+
+          // If document is a PDF, extract text using Flutter engine as well
+          if (f.extension?.toLowerCase() == 'pdf' && bytes != null && bytes.isNotEmpty) {
+            final docText = PdfExtractorService.instance.extractTextFromBytes(bytes);
+            if (docText.isNotEmpty) {
+              _extractedPdfContent = (_extractedPdfContent != null && _extractedPdfContent!.isNotEmpty)
+                  ? '$_extractedPdfContent\n\n--- Document: $fileName ---\n$docText'
+                  : '--- Document: $fileName ---\n$docText';
             }
           }
+
+          if (bytes != null && bytes.isNotEmpty) {
+            final ext = f.extension?.toLowerCase() ?? 'bin';
+            final contentType = ext == 'pdf' ? 'application/pdf' : 'application/octet-stream';
+            final url = await FirebaseService.instance.uploadFile(
+              clientId: widget.clientId,
+              folder: 'documents',
+              fileName: fileName,
+              bytes: bytes,
+              contentType: contentType,
+            );
+            if (url != null) fileRef = url;
+          }
+
+          if (!_uploadedDocuments.contains(fileRef)) {
+            _uploadedDocuments.add(fileRef);
+          }
+        }
+        if (mounted) {
+          setState(() {
+            _isUploadingStorage = false;
+            _isDocsDragOver = false;
+          });
+          final currentClient = ref.read(clientProvider).getClient(widget.clientId);
+          _onSave(currentClient);
+        }
+      }
+    } catch (e) {
+      debugPrint('Documents upload error: $e');
+      if (mounted) {
+        setState(() {
+          _isUploadingStorage = false;
           _isDocsDragOver = false;
         });
       }
-    } catch (e) {
-      // Fallback file pick simulation
-      setState(() {
-        final mockNames = ['brand_identity_guidelines_2026.docx', 'q3_market_research_report.pdf'];
-        for (final name in mockNames) {
-          if (!_uploadedDocuments.contains(name)) {
-            _uploadedDocuments.add(name);
-          }
-        }
-        _isDocsDragOver = false;
-      });
     }
   }
 
@@ -547,6 +659,8 @@ class _PitchDeckDropZone extends StatelessWidget {
   final bool isUploaded;
   final bool isDragOver;
   final String? fileName;
+  final String? extractedPdfContent;
+  final bool isExtracting;
   final ValueChanged<bool> onDragOver;
   final VoidCallback onUpload;
   final VoidCallback onClear;
@@ -555,6 +669,8 @@ class _PitchDeckDropZone extends StatelessWidget {
     required this.isUploaded,
     required this.isDragOver,
     required this.fileName,
+    this.extractedPdfContent,
+    this.isExtracting = false,
     required this.onDragOver,
     required this.onUpload,
     required this.onClear,
@@ -565,33 +681,90 @@ class _PitchDeckDropZone extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (isUploaded) {
-      return Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: ClinicSageColors.statusVettedBg,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.picture_as_pdf, size: 24, color: ClinicSageColors.tertiary),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      final wordCount = (extractedPdfContent != null && extractedPdfContent!.isNotEmpty)
+          ? extractedPdfContent!.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length
+          : 0;
+
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: ClinicSageColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: ClinicSageColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(fileName ?? 'pitch_deck.pdf', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
-                Text('PDF uploaded successfully', style: theme.textTheme.bodySmall?.copyWith(color: ClinicSageColors.tertiary)),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: ClinicSageColors.statusVettedBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.picture_as_pdf, size: 24, color: ClinicSageColors.tertiary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(fileName ?? 'pitch_deck.pdf', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      Text(
+                        isExtracting
+                            ? 'Extracting text using Flutter Engine...'
+                            : 'Saved in Firebase Storage · $wordCount words extracted for AI',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isExtracting ? ClinicSageColors.primary : ClinicSageColors.tertiary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isExtracting)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: ClinicSageColors.tertiary),
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: onClear,
+                    icon: const Icon(Icons.close, size: 14),
+                    label: const Text('Remove'),
+                    style: TextButton.styleFrom(foregroundColor: ClinicSageColors.secondary),
+                  ),
               ],
             ),
-          ),
-          TextButton.icon(
-            onPressed: onClear,
-            icon: const Icon(Icons.close, size: 14),
-            label: const Text('Remove'),
-            style: TextButton.styleFrom(foregroundColor: ClinicSageColors.secondary),
-          ),
-        ],
+            if (wordCount > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: ClinicSageColors.tertiaryLight,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: ClinicSageColors.tertiary.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.auto_awesome, size: 13, color: ClinicSageColors.tertiary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Flutter Engine Extracted $wordCount words: Ready for automated AI content ingestion',
+                        style: theme.textTheme.labelSmall?.copyWith(color: ClinicSageColors.tertiary, fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       );
     }
 

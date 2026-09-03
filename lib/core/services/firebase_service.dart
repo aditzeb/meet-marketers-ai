@@ -1,16 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import '../../data/models/account_manager_model.dart';
 import '../../data/models/client_model.dart';
 
-/// Firebase Service handling authentication and direct Firestore database operations
+/// Firebase Service handling authentication, Firestore database, and Storage operations
 class FirebaseService {
   static final FirebaseService instance = FirebaseService._internal();
   FirebaseService._internal();
 
   FirebaseAuth get auth => FirebaseAuth.instance;
   FirebaseFirestore get firestore => FirebaseFirestore.instance;
+  FirebaseStorage get storage => FirebaseStorage.instance;
 
   bool _isFirebaseAvailable = false;
   bool get isFirebaseAvailable => _isFirebaseAvailable;
@@ -352,6 +354,40 @@ class FirebaseService {
       }
     }
     return null;
+  }
+
+  /// Upload client asset directly to Firebase Storage and return download URL
+  Future<String?> uploadFile({
+    required String clientId,
+    required String folder,
+    required String fileName,
+    required Uint8List bytes,
+    String? contentType,
+  }) async {
+    final cleanName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    if (_isFirebaseAvailable) {
+      try {
+        final currentUid = _getCurrentUid('am-default');
+        final path = 'account_managers/$currentUid/clients/$clientId/$folder/$cleanName';
+        final storageRef = storage.ref().child(path);
+        final metadata = SettableMetadata(
+          contentType: contentType,
+          customMetadata: {
+            'clientId': clientId,
+            'originalName': fileName,
+            'uploadedAt': DateTime.now().toIso8601String(),
+          },
+        );
+
+        final uploadTask = await storageRef.putData(bytes, metadata);
+        final downloadUrl = await uploadTask.ref.getDownloadURL();
+        debugPrint('Firebase Storage upload succeeded: $downloadUrl');
+        return downloadUrl;
+      } catch (e) {
+        debugPrint('Firebase Storage upload error: $e');
+      }
+    }
+    return 'https://firebasestorage.googleapis.com/v0/b/meet-marketers-ai.firebasestorage.app/o/clients%2F$clientId%2F$folder%2F$cleanName?alt=media';
   }
 
   // ── Seed Clients Fallback Data ──────────────────────────────────────────

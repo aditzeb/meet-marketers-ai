@@ -174,6 +174,7 @@ class _StrategyHubScreenState extends ConsumerState<StrategyHubScreen> with Sing
       clientId: client.id,
       clientName: client.name,
       industry: client.industry,
+      extractedPdfContent: client.extractedPdfContent,
     );
     if (!mounted) return;
     setState(() {

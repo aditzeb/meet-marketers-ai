@@ -14,6 +14,7 @@ class ClientModel extends Equatable {
   final String? pitchDeckStoragePath;
   final List<String> imageStoragePaths;
   final List<String> documentStoragePaths;
+  final String? extractedPdfContent;
   final ClientStatus status;
   final DateTime createdAt;
   final DateTime lastActivity;
@@ -30,6 +31,7 @@ class ClientModel extends Equatable {
     this.pitchDeckStoragePath,
     this.imageStoragePaths = const [],
     this.documentStoragePaths = const [],
+    this.extractedPdfContent,
     this.status = ClientStatus.active,
     required this.createdAt,
     required this.lastActivity,
@@ -54,6 +56,7 @@ class ClientModel extends Equatable {
       documentStoragePaths: List<String>.from(
         json['documentStoragePaths'] as List? ?? json['referenceDocuments'] as List? ?? [],
       ),
+      extractedPdfContent: json['extractedPdfContent'] as String?,
       status: ClientStatus.fromString(json['status'] as String? ?? 'active'),
       createdAt: _parseTimestamp(json['createdAt']),
       lastActivity: _parseTimestamp(json['lastActivity']),
@@ -72,6 +75,7 @@ class ClientModel extends Equatable {
       'pitchDeckStoragePath': pitchDeckStoragePath,
       'imageStoragePaths': imageStoragePaths,
       'documentStoragePaths': documentStoragePaths,
+      'extractedPdfContent': extractedPdfContent,
       'status': status.value,
       'createdAt': createdAt.toIso8601String(),
       'lastActivity': lastActivity.toIso8601String(),
@@ -89,6 +93,7 @@ class ClientModel extends Equatable {
     String? pitchDeckStoragePath,
     List<String>? imageStoragePaths,
     List<String>? documentStoragePaths,
+    String? extractedPdfContent,
     ClientStatus? status,
     DateTime? lastActivity,
   }) {
@@ -104,6 +109,7 @@ class ClientModel extends Equatable {
       pitchDeckStoragePath: pitchDeckStoragePath ?? this.pitchDeckStoragePath,
       imageStoragePaths: imageStoragePaths ?? this.imageStoragePaths,
       documentStoragePaths: documentStoragePaths ?? this.documentStoragePaths,
+      extractedPdfContent: extractedPdfContent ?? this.extractedPdfContent,
       status: status ?? this.status,
       createdAt: createdAt,
       lastActivity: lastActivity ?? this.lastActivity,
@@ -123,7 +129,7 @@ class ClientModel extends Equatable {
   @override
   List<Object?> get props => [
     id, name, industry, websiteUrl, logoUrl, questionnaireAnswers,
-    competitors, targetRoleModels, pitchDeckStoragePath, imageStoragePaths, documentStoragePaths, status, createdAt, lastActivity,
+    competitors, targetRoleModels, pitchDeckStoragePath, imageStoragePaths, documentStoragePaths, extractedPdfContent, status, createdAt, lastActivity,
   ];
 }
 

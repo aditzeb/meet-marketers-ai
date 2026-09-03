@@ -1,9 +1,11 @@
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meet_marketers_ai/data/models/client_model.dart';
 import 'package:meet_marketers_ai/data/models/content_deliverable_model.dart';
 import 'package:meet_marketers_ai/data/models/strategy_deliverable_model.dart';
 import 'package:meet_marketers_ai/features/dashboard/providers/client_provider.dart';
 import 'package:meet_marketers_ai/core/services/gemini_service.dart';
+import 'package:meet_marketers_ai/core/services/pdf_extractor_service.dart';
 import 'package:meet_marketers_ai/features/content_studio/views/content_studio_screen.dart';
 
 void main() {
@@ -177,6 +179,31 @@ void main() {
       expect(fromJson.swot.strengths, contains('Strength 1'));
       expect(fromJson.seoKeywords.first.keyword, equals('saas platform'));
       expect(fromJson.seoKeywords.first.searchVolume, equals(12000));
+    });
+
+    test('ClientModel serializes and deserializes extractedPdfContent', () {
+      final now = DateTime.now();
+      final client = ClientModel(
+        id: 'c-pdf-1',
+        name: 'OmniAI',
+        industry: 'Fintech',
+        extractedPdfContent: 'Executive Summary: OmniAI leads autonomous payments.',
+        createdAt: now,
+        lastActivity: now,
+      );
+
+      final json = client.toJson();
+      expect(json['extractedPdfContent'], contains('OmniAI leads autonomous payments'));
+
+      final fromJson = ClientModel.fromJson('c-pdf-1', json);
+      expect(fromJson.extractedPdfContent, contains('OmniAI leads autonomous payments'));
+    });
+  });
+
+  group('PDF Extraction Engine Tests', () {
+    test('PdfExtractorService handles empty bytes gracefully', () {
+      final text = PdfExtractorService.instance.extractTextFromBytes(Uint8List(0));
+      expect(text, isEmpty);
     });
   });
 }

@@ -199,6 +199,14 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
     _restoreDrafts();
   }
 
+  @override
+  void didUpdateWidget(ContentStudioScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.clientId != widget.clientId) {
+      _restoreDrafts();
+    }
+  }
+
   void _restoreDrafts() {
     for (final t in ContentType.values) {
       final key = 'draft_${widget.clientId}_${t.value}';
@@ -332,12 +340,14 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
       targetRoleModels: client.targetRoleModels,
       referenceImages: client.imageStoragePaths,
       referenceDocuments: client.documentStoragePaths,
+      extractedPdfContent: client.extractedPdfContent,
     );
 
     final media = await GeminiService.instance.generateMediaAsset(
       type: _selectedType,
       clientName: client.name,
       industry: client.industry,
+      extractedPdfContent: client.extractedPdfContent,
     );
 
     if (!mounted) return;
@@ -363,11 +373,13 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
         targetRoleModels: client.targetRoleModels,
         referenceImages: client.imageStoragePaths,
         referenceDocuments: client.documentStoragePaths,
+        extractedPdfContent: client.extractedPdfContent,
       );
       final media = await GeminiService.instance.generateMediaAsset(
         type: t,
         clientName: client.name,
         industry: client.industry,
+        extractedPdfContent: client.extractedPdfContent,
       );
       if (!mounted) return;
       setState(() {
