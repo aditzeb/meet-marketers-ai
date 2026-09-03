@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/services/proposal_pdf_service.dart';
+import '../../../core/services/proposal_domain_engine.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/proposal_model.dart';
 import '../providers/proposal_provider.dart';
@@ -345,11 +346,17 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
 
   bool _isLegacyGeneralContent(ProposalModel p) {
     if (p.industry.toLowerCase().contains('yacht')) return false;
-    final allText = '${p.executiveSummaryPosition} ${p.swot.strengths.join(' ')} ${p.swot.opportunities.join(' ')} ${p.marketingMix4Ps.productCurrent}'.toLowerCase();
+    final socialText = p.socialPosts.map((s) => s.values.join(' ')).join(' ');
+    final allText = '${p.executiveSummaryPosition} ${p.swot.strengths.join(' ')} ${p.swot.opportunities.join(' ')} ${p.marketingMix4Ps.productCurrent} $socialText'.toLowerCase();
     return allText.contains('retreats and team bonding') ||
         allText.contains('booming experiential economy') ||
         allText.contains('diverse service packages and high visual appeal') ||
         allText.contains('competitor alpha') ||
+        allText.contains('hotel ballroom') ||
+        allText.contains('private charter') ||
+        allText.contains('private yacht') ||
+        allText.contains('whitesails') ||
+        allText.contains('charter') ||
         allText.contains('yacht');
   }
 
@@ -1673,8 +1680,57 @@ class _Tab4CopywritingAndSeo extends StatelessWidget {
         // 1. 3 Multi-Angle Social Media Post Concepts (Page 10 of PDF)
         _SectionContainer(
           title: '1. Sample Social Media Copywriting & Graphic Mockups',
-          subtitle: '3 high-converting post angles: Corporate Offsite, Milestone Birthday, and Client Story (Page 10 of PDF)',
+          subtitle: '3 high-converting post angles tailored to ${proposal.leadCompanyName} and ${proposal.industry} (Page 10 of PDF)',
           children: [
+            if (!proposal.industry.toLowerCase().contains('yacht') &&
+                proposal.socialPosts.any((p) => p.values.any((v) => v.toString().toLowerCase().contains('ballroom') || v.toString().toLowerCase().contains('charter') || v.toString().toLowerCase().contains('whitesails'))))
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFF59E0B)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.auto_awesome, color: Color(0xFFD97706), size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Legacy placeholder post copy detected. Reload domain-tailored posts for ${proposal.leadCompanyName}?',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD97706),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      ),
+                      onPressed: () {
+                        final domainBase = ProposalDomainEngine.instance.synthesizeProposal(
+                          proposalId: proposal.id,
+                          amId: proposal.amId,
+                          leadCompanyName: proposal.leadCompanyName,
+                          industry: proposal.industry,
+                          websiteUrl: proposal.websiteUrl,
+                          socialUrls: proposal.socialUrls,
+                          pitchDeckFileName: proposal.pitchDeckFileName,
+                          pitchDeckStorageUrl: proposal.pitchDeckStorageUrl,
+                          extractedPitchDeckText: proposal.extractedPitchDeckText,
+                        );
+                        onChanged(proposal.copyWith(socialPosts: domainBase.socialPosts));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Updated 3 social posts for ${proposal.leadCompanyName}!')),
+                        );
+                      },
+                      child: const Text('Reload Posts', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+
             ...proposal.socialPosts.asMap().entries.map((entry) {
               final pIdx = entry.key;
               final p = entry.value;
@@ -1723,7 +1779,7 @@ class _Tab4CopywritingAndSeo extends StatelessWidget {
                           child: TextFormField(
                             initialValue: p['badge'] as String? ?? '',
                             style: const TextStyle(fontSize: 12),
-                            decoration: const InputDecoration(labelText: 'Price / Proof Badge (e.g. FROM \$849)', isDense: true),
+                            decoration: const InputDecoration(labelText: 'Proof / Metric Badge (e.g. 10 MARKETS · 130+ VCs)', isDense: true),
                             onChanged: (val) {
                               final list = List<Map<String, dynamic>>.from(proposal.socialPosts);
                               list[pIdx] = {...p, 'badge': val};
