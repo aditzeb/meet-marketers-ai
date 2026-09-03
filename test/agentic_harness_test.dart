@@ -1,9 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meet_marketers_ai/data/models/client_agentic_harness_model.dart';
-import 'package:meet_marketers_ai/data/models/client_model.dart';
 import 'package:meet_marketers_ai/core/services/client_agentic_harness_service.dart';
-import 'package:meet_marketers_ai/core/services/gemini_service.dart';
-import 'package:meet_marketers_ai/data/models/content_deliverable_model.dart';
 
 void main() {
   group('ClientAgenticHarnessModel Tests', () {

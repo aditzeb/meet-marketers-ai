@@ -491,7 +491,21 @@ ${extractedPitchDeckText.length > 5000 ? '${extractedPitchDeckText.substring(0, 
 """
 CRITICAL REQUIREMENT: Synthesize this proposal directly using the strategic insights, core offerings, market pain points, and brand vision defined in this pitch deck! Tailor every section (SWOT, 4Ps, Competitors, Content Pillars, SEO) to align with their pitch deck.
 '''
-        : '';
+        : '''
+COMPANY PROFILE INFERENCE MANDATE:
+No pitch deck was uploaded. You are given:
+- Company Name: "$leadCompanyName"
+- Industry / Sector: "$industry"
+- Official Website: "$websiteUrl"
+
+CRITICAL INFERENCE & LOCALIZATION MANDATE:
+1. Deeply analyze the company name ("$leadCompanyName"), industry ("$industry"), and website domain ("$websiteUrl").
+2. Infer the exact geographic market from the domain and brand name (e.g. .sg / .com.sg -> Singapore; .my -> Malaysia; .id -> Indonesia; .ae -> Dubai/UAE; .co.uk -> UK; .au -> Australia; .com -> Singapore or international hub).
+3. Ground the strategy entirely in this business's actual core offerings (e.g., if a Rooftop Bar & Lounge: craft cocktails, skyline sunset views, nightlife, dining, and private corporate/social events).
+4. REAL DIRECT COMPETITORS MANDATE: You MUST provide 3 to 4 REAL, WELL-KNOWN, ACTUAL direct competitors operating in the exact same city and category (e.g., for Moon Rooftop Bar Singapore: CÉ LA VI Singapore, Level33, Smoke & Mirrors, 1-Altitude Coast, Lantern).
+   STRICT PROHIBITION: NEVER use generic placeholders like "Competitor Alpha", "Top Category Competitor", "Boutique Specialized Firm", or "Digital Challenger Brand"! Every brandName must be an actual, recognizable real-world venue or business.
+5. PERCEPTUAL MAP AXES MANDATE: Formulate two distinct, domain-specific axes tailored specifically to their sector (e.g., for rooftop bar/hospitality: Vertical Y-Axis = "Skyline Ambience & Panoramic View", Horizontal X-Axis = "Culinary & Craft Cocktail Exclusivity"). NEVER use corporate consulting terms like "Strategic Authority" or "Service Breadth" for hospitality, dining, or consumer venues.
+''';
 
     final prompt = '''
 You are an elite Chief Marketing Officer and strategic growth partner at Meet Marketers AI.
@@ -503,8 +517,8 @@ ${harnessContext ?? ''}
 
 STRICT REQUIREMENTS:
 1. Ground the strategy entirely in this business's actual offerings, target clients, and sector dynamics ($industry).
-2. DO NOT output generic placeholders like "Competitor Alpha", "Competitor Beta", or "Competitor Gamma". You MUST provide REAL, well-known direct competitors or industry peers in their actual geographic market or sector.
-3. DO NOT output unrelated content like yachts, cruises, or generic celebrations unless that is the company's real business.
+2. REAL COMPETITORS: Provide 3 to 4 REAL, named direct competitors in their actual geographic market. Zero placeholders.
+3. DOMAIN-AUTHENTIC PERCEPTUAL MAP: Create two bespoke, domain-accurate axes for the perceptual map.
 4. Provide authoritative, consulting-grade analysis suitable for presentation to enterprise C-suite stakeholders.
 
 Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
@@ -518,18 +532,18 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     "threats": ["string", "string", "string", "string"]
   },
   "marketingMix4Ps": {
-    "productCurrent": "Actual current offerings and client deliverables.",
+    "productCurrent": "Actual current offerings and deliverables tailored to their sector.",
     "productOpportunity": "Outcome-driven packaging and high-value differentiation.",
     "priceCurrent": "Actual pricing structure in their industry.",
     "priceOpportunity": "Value-based positioning anchored on outcomes.",
-    "placeCurrent": "Actual distribution and client inquiry channels.",
+    "placeCurrent": "Actual distribution and client booking/inquiry channels.",
     "placeOpportunity": "Omni-channel discoverability and inbound pipelines.",
     "promotionCurrent": "Current promotional footprint.",
     "promotionOpportunity": "Educational video masterclasses, customer transformation proof, and thought leadership."
   },
   "pestAnalysis": {
     "political": ["Regulatory and governance standards in their field", "Compliance requirements"],
-    "economic": ["Macroeconomic capital and client expenditure trends in their sector", "Market funding dynamics"],
+    "economic": ["Macroeconomic capital and consumer/client expenditure trends in their sector", "Market spending dynamics"],
     "social": ["Client priorities and changing buyer psychology in their industry", "Demand shifts"],
     "technological": ["Enterprise AI and technological transformation in their domain", "Search and workflow shifts"]
   },
@@ -539,7 +553,9 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     {"brandName": "Real Competitor 2", "primaryUsp": "Their positioning in the sector", "isLeadBrand": false},
     {"brandName": "Real Competitor 3", "primaryUsp": "Their positioning in the sector", "isLeadBrand": false}
   ],
-  "perceptualMapNarrative": "2-3 sentences analyzing $leadCompanyName's position against actual peers.",
+  "perceptualMapYAxis": "Bespoke Vertical Y-Axis Attribute (e.g. Skyline Ambience & Panoramic View)",
+  "perceptualMapXAxis": "Bespoke Horizontal X-Axis Attribute (e.g. Culinary & Craft Cocktail Exclusivity)",
+  "perceptualMapNarrative": "2-3 sentences analyzing $leadCompanyName's position against actual named peers.",
   "perceptualMapInsight": "Core strategic realization about buyer psychology in their sector.",
   "perceptualMapOpportunity": "Definitive strategic action to capture category leadership.",
   "creativePillars": [
@@ -563,7 +579,7 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
   "sampleSocialCaptionCta": "Social post CTA",
   "sampleSocialHashtags": ["#Tag1", "#Tag2", "#Tag3"],
   "seoAudit": {
-    "healthScore": 72,
+    "healthScore": 75,
     "summaryText": "SEO summary for their domain",
     "highPriority": ["Priority 1", "Priority 2", "Priority 3"],
     "mediumPriority": ["Medium 1", "Medium 2"],
@@ -716,7 +732,15 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
           'X-Title': AppConfig.openRouterSiteName,
         },
         body: jsonEncode(payload),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(
+        switch (taskType) {
+          OpenRouterTaskType.strategicProposal => const Duration(seconds: 90),
+          OpenRouterTaskType.highComplexityReasoning => const Duration(seconds: 60),
+          OpenRouterTaskType.generalMarketing => const Duration(seconds: 45),
+          OpenRouterTaskType.fastMicrocopy => const Duration(seconds: 20),
+          _ => const Duration(seconds: 45),
+        },
+      );
 
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -724,7 +748,10 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
         if (choices != null && choices.isNotEmpty) {
           final message = choices[0]['message'] as Map<String, dynamic>?;
           if (message != null) {
-            final content = message['content'];
+            var content = message['content'];
+            if ((content == null || (content is String && content.trim().isEmpty)) && message['reasoning'] != null) {
+              content = message['reasoning'];
+            }
             if (content is String && content.trim().isNotEmpty) {
               return content;
             }

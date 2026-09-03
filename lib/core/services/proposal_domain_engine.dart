@@ -5,6 +5,7 @@ import '../../data/models/strategy_deliverable_model.dart';
 enum ProposalDomainCategory {
   ventureAndInnovation, // VC, Accelerator, Startup, Investment, Corporate Innovation, Angel Syndicate
   healthcareAndClinic,  // Clinic, Medical, Dental, Aesthetics, Health, Hospital
+  hospitalityFnbAndNightlife, // Rooftop Bar, Lounge, Restaurant, Nightlife, F&B, Events Management, Dining
   luxuryAndHospitality,  // Yacht Charter, Cruise, Resort, Travel, Fine Dining, Leisure
   b2bTechAndSaaS,       // Software, Cloud, AI Agents, Enterprise IT, SaaS, Platform
   professionalServices, // Consulting, Legal, Agency, Accounting, Executive Search
@@ -53,6 +54,23 @@ class ProposalDomainEngine {
         combined.contains('treatment') ||
         combined.contains('aesthetic')) {
       return ProposalDomainCategory.healthcareAndClinic;
+    }
+
+    // 3. Hospitality, F&B, Rooftop Bars, Dining & Nightlife
+    if (combined.contains('hospitality') ||
+        combined.contains('f&b') ||
+        combined.contains('food') ||
+        combined.contains('beverage') ||
+        combined.contains('bar') ||
+        combined.contains('lounge') ||
+        combined.contains('rooftop') ||
+        combined.contains('restaurant') ||
+        combined.contains('dining') ||
+        combined.contains('cocktail') ||
+        combined.contains('nightlife') ||
+        combined.contains('events management') ||
+        combined.contains('catering')) {
+      return ProposalDomainCategory.hospitalityFnbAndNightlife;
     }
 
     // 3. Luxury & Hospitality (Yachts, Resorts, Cruises)
@@ -127,6 +145,19 @@ class ProposalDomainEngine {
 
       case ProposalDomainCategory.healthcareAndClinic:
         return _synthesizeHealthcare(
+          proposalId: proposalId,
+          amId: amId,
+          leadCompanyName: leadCompanyName,
+          industry: industry,
+          websiteUrl: websiteUrl,
+          socialUrls: socialUrls ?? {},
+          pitchDeckFileName: pitchDeckFileName,
+          pitchDeckStorageUrl: pitchDeckStorageUrl,
+          extractedPitchDeckText: extractedPitchDeckText,
+        );
+
+      case ProposalDomainCategory.hospitalityFnbAndNightlife:
+        return _synthesizeHospitalityFnbProposal(
           proposalId: proposalId,
           amId: amId,
           leadCompanyName: leadCompanyName,
@@ -660,7 +691,185 @@ class ProposalDomainEngine {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // 3. LUXURY & HOSPITALITY (Yachts, Charters, Luxury Resorts)
+  // 3. HOSPITALITY, F&B, ROOFTOP BARS & NIGHTLIFE
+  // ───────────────────────────────────────────────────────────────────────────
+  ProposalModel _synthesizeHospitalityFnbProposal({
+    required String proposalId,
+    required String amId,
+    required String leadCompanyName,
+    required String industry,
+    required String websiteUrl,
+    required Map<String, String> socialUrls,
+    String? pitchDeckFileName,
+    String? pitchDeckStorageUrl,
+    String? extractedPitchDeckText,
+  }) {
+    final ind = industry.isNotEmpty ? industry : 'Hospitality, F&B & Nightlife';
+
+    return ProposalModel(
+      id: proposalId,
+      amId: amId,
+      leadCompanyName: leadCompanyName,
+      industry: ind,
+      websiteUrl: websiteUrl,
+      socialUrls: socialUrls,
+      pitchDeckFileName: pitchDeckFileName,
+      pitchDeckStorageUrl: pitchDeckStorageUrl,
+      extractedPitchDeckText: extractedPitchDeckText,
+      status: ProposalStatus.readyForReview,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      executiveSummaryPosition:
+          '$leadCompanyName operates as a distinguished rooftop dining, craft mixology, and nightlife destination in Singapore, creating elevated sensory experiences, scenic sunset gatherings, and exclusive corporate private buyouts.',
+      executiveSummaryOpportunity:
+          'While $leadCompanyName enjoys strong patron goodwill, significant revenue upside remains in capturing corporate private event buyouts, affluent weekend dining patrons, and high-spending international tourists through cinematic vertical video, influencer cocktail tastings, and high-intent local nightlife SEO.',
+      swot: const SwotMatrix(
+        strengths: [
+          'Panoramic rooftop skyline views creating an inherently viral visual atmosphere',
+          'Curated craft cocktail program and artisanal culinary dining pairings',
+          'Versatile dual-concept layout catering to sunset dining and high-energy midnight nightlife',
+          'Prime positioning for private corporate events, product launches, and celebratory buyouts',
+        ],
+        weaknesses: [
+          'Weekday patron volume fluctuates compared to peak weekend Friday/Saturday demand',
+          'Dependence on walk-in traffic over predictable pre-paid digital reservations',
+          'Brand story and mixology credentials under-amplified across digital and short-form video channels',
+          'Limited corporate event package visibility on public website inquiry funnels',
+        ],
+        opportunities: [
+          'Capturing high-ticket MNC corporate buyouts, networking mixers, and year-end celebrations',
+          'Dominating short-form TikTok and Instagram Reels with golden hour sunset transitions and cocktail aesthetics',
+          'Establishing strategic concierge partnerships with luxury downtown Singapore hotels',
+          'Dominating high-intent search queries ("Best Rooftop Bars Singapore", "Singapore Private Event Venues")',
+        ],
+        threats: [
+          'Intense competition within Singapore’s dense luxury rooftop bar and nightlife ecosystem',
+          'Inclement tropical weather and open-air rooftop rain disruptions',
+          'Rising beverage import duties and operational staff costs across the F&B sector',
+          'Shifting consumer nightlife spending habits favoring intimate speakeasies and micro-venues',
+        ],
+      ),
+      marketingMix4Ps: const MarketingMix4Ps(
+        productCurrent: 'Artisanal craft cocktails, curated wine & spirits portfolio, shared gourmet tapas, and panoramic rooftop lounge seating.',
+        productOpportunity: 'Package signature guest experiences: "Golden Hour Sunset Tasting Flight", "Private Rooftop Corporate Reception", and "Chef & Bartender Pairing Sessions".',
+        priceCurrent: 'Competitive premium cocktail pricing (\$24–\$32 per drink) and VIP bottle service tiers.',
+        priceOpportunity: 'Introduce tiered corporate event minimum spends, private booth packages with welcome champagne, and off-peak weekday sundown specials.',
+        placeCurrent: 'Walk-ins, online table reservation forms, WhatsApp concierge line, and private event email inquiries.',
+        placeOpportunity: 'Deploy integrated reservation widgets (Chope, SevenRooms, Instagram Booking) with automated calendar confirmations and instant corporate buyout decks.',
+        promotionCurrent: 'Social media event announcements, DJ guest lineups, and customer tag reposts.',
+        promotionOpportunity: 'Deploy cinematic vertical video ads targeted at downtown CBD professionals, expat communities, and luxury lifestyle visitors.',
+      ),
+      pestAnalysis: const PestAnalysis(
+        political: [
+          'Singapore Liquor Control Board licensing hours and entertainment noise regulation compliance',
+          'Strict F&B food hygiene, fire safety, and outdoor rooftop occupancy standards',
+          'Singapore Tourism Board initiatives promoting Singapore as a premier global nightlife and dining capital',
+        ],
+        economic: [
+          'Strong corporate entertainment budgets across finance, tech, and multinational hubs in Singapore',
+          'High discretionary leisure and dining expenditure among affluent local residents and business travelers',
+          'Supply chain cost management across imported spirits, vintage wines, and premium fresh ingredients',
+        ],
+        social: [
+          'High consumer demand for "Instagrammable" and aesthetically stunning dining backdrops',
+          'Growing preference for premium craft mixology, low-ABV artisanal aperitifs, and experiential dining over generic clubs',
+          'Rising popularity of golden hour sunset gatherings and private company social mixers',
+        ],
+        technological: [
+          'TikTok and Instagram algorithms driving viral discovery for visually stunning rooftop venues',
+          'Automated reservation management systems (SevenRooms, Chope) maximizing table turn efficiency',
+          'AI-powered digital search engines (Google SGE, Perplexity) delivering direct venue recommendations for "rooftop bar Singapore"',
+        ],
+      ),
+      competitorUsps: [
+        CompetitorUsp(brandName: leadCompanyName, primaryUsp: 'Premier rooftop skyline destination blending bespoke craft mixology, intimate dining, and high-energy nightlife.', isLeadBrand: true),
+        const CompetitorUsp(brandName: 'CÉ LA VI Singapore', primaryUsp: 'Iconic Marina Bay Sands rooftop venue with high-profile international club and luxury party positioning.', isLeadBrand: false),
+        const CompetitorUsp(brandName: 'Level33', primaryUsp: 'World’s highest urban microbrewery featuring craft beers and panoramic Marina Bay views.', isLeadBrand: false),
+        const CompetitorUsp(brandName: 'Smoke & Mirrors', primaryUsp: 'Art-inspired National Gallery cocktail bar with sophisticated mixology and unobstructed Padang skyline vistas.', isLeadBrand: false),
+      ],
+      perceptualMapYAxis: 'Skyline Ambience & Panoramic View',
+      perceptualMapXAxis: 'Culinary & Craft Cocktail Exclusivity',
+      perceptualMapNarrative: '$leadCompanyName occupies the premier high-vibe quadrant in Singapore, offering breathtaking skyline vistas paired with artisanal cocktail craft, outperforming mass al-fresco tourist bars and rigid fine dining rooms.',
+      perceptualMapInsight: 'Discerning nightlife and dining patrons do not choose rooftop venues merely for alcohol—they purchase the emotional prestige of an unmatched skyline view, exquisite mixology, and memorable celebration ambiance.',
+      perceptualMapOpportunity: 'Position $leadCompanyName as Singapore’s premier sunset-to-midnight rooftop sanctuary for both corporate buyouts and discerning weekend lifestyle tastemakers.',
+      creativePillars: [
+        const ContentPillar(title: 'Golden Hour & Skyline Aesthetics', objective: 'Capture immediate emotional desire with cinematic sunset views over the Singapore skyline.', contentStyle: ['Cinematic drone transitions', 'Sunset golden hour reels', 'Guest golden hour portraits'], exampleTopics: ['Catching Golden Hour at Moon', 'The Best Sunset View in Town', 'From Day to Night: Our Skyline Transformation']),
+        const ContentPillar(title: 'Behind the Shaker (Mixology Craft)', objective: 'Highlight artisanal cocktail craftsmanship and signature ingredients.', contentStyle: ['Bartender speed pours', 'Cocktail recipe breakdowns', 'Ice-carving ASMR'], exampleTopics: ['Crafting Our Signature Infusion', 'The Secret to the Perfect Smoked Old Fashioned', 'Meet Our Lead Mixologist']),
+        const ContentPillar(title: 'Chef & Culinary Pairings', objective: 'Position the food menu as a primary culinary draw rather than secondary bar bites.', contentStyle: ['Sizzling kitchen reels', 'Tapas plating carousels', 'Pairing guides'], exampleTopics: ['3 Dishes That Perfectly Pair with Our Cocktails', 'A Look Inside the Kitchen', 'Fresh Ingredients We Sourced Today']),
+        const ContentPillar(title: 'VIP & Corporate Buyouts', objective: 'Attract corporate event planners and private celebration bookings.', contentStyle: ['Venue tour carousels', 'Past event recaps', 'Setup time-lapses'], exampleTopics: ['Hosting Your Next Corporate Mixer with Us', 'Why MNCs Choose Our Rooftop for Buyouts', 'Custom Event Layouts & Menus']),
+        const ContentPillar(title: 'Nightlife Energy & Weekend Vibes', objective: 'Drive late-night table reservations with high-energy crowd moments.', contentStyle: ['DJ set highlights', 'Crowd reaction reels', 'Weekend vibe teasers'], exampleTopics: ['Friday Nights at Moon', 'This Weekend’s DJ Lineup', 'When the Lights Dim & the Beats Drop']),
+      ],
+      visualGuidelineNotes: 'Moody, luxurious, and atmospheric aesthetic. Deep nocturnal tones accented with warm champagne gold lighting, neon cursive reflections, and vibrant sunset gradients.',
+      brandPaletteHex: const ['#1A102F', '#D4AF37', '#2D1B4E', '#FDFBF7', '#FFFFFF'],
+      visualKeywords: const ['Atmospheric', 'Luxurious', 'Panoramic', 'Sensory', 'Vibrant'],
+      focusMoreOn: const ['Real guests enjoying golden hour and nighttime ambience', 'Artisanal cocktails caught in warm bar backlighting', 'Sweeping panoramic skyline perspectives', 'Energetic weekend DJ and lounge atmosphere'],
+      focusLessOn: const ['Sterile empty room photos with no people', 'Cheesy generic stock drink photos', 'Overexposed daytime direct flash photography', 'Overly loud chaotic party clips that dilute luxury appeal'],
+      photographyQuote: "Patrons don't just order cocktails. They purchase the skyline view, the atmosphere, and the feeling of celebrating life at the top.",
+      typographySampleHeadline: "ELEVATE YOUR NIGHT. TASTE THE SKYLINE.",
+      brandToneOfVoice: const [
+        {'trait': 'SOPHISTICATED', 'desc': 'Cultivated, worldly, and delivering luxury hospitality with polished grace.'},
+        {'trait': 'VIBRANT', 'desc': 'Exciting, pulsating with city energy, and inviting celebration.'},
+        {'trait': 'SENSORY', 'desc': 'Evocative descriptions of flavor, aroma, music, and panoramic sights.'},
+        {'trait': 'HOSPITABLE', 'desc': 'Warm, attentive, and making every guest feel like a valued VIP.'},
+      ],
+      brandColorDetails: const {
+        'primary': {'name': 'Midnight Violet', 'hex': '#1A102F'},
+        'secondary': {'name': 'Champagne Gold', 'hex': '#D4AF37'},
+        'accent': {'name': 'Imperial Plum', 'hex': '#2D1B4E'},
+      },
+      contentFrameworkWeeks: const [
+        {'week': 'WEEK 1', 'experienceStories': 'Golden Hour Reel: Singapore Skyline Sunset', 'educational': 'The Story Behind Our Signature Cocktail', 'corporate': 'Corporate Event Buyout Packages Overview', 'testimonials': 'Customer Review (Atmosphere & Service)', 'promotional': 'Reserve Your Sunset Table This Weekend', 'contentExamples': '• Skyline sunset transition reel\n• Mixologist spotlight\n• Corporate event carousel\n• Google review overlay\n• Reservation link in bio'},
+        {'week': 'WEEK 2', 'experienceStories': 'Weekend Nightlife Vibe: DJ Set & Midnight Energy', 'educational': 'Behind the Scenes: House-Made Syrups & Infusions', 'corporate': 'Private Celebration & Birthday Showcase', 'testimonials': 'Customer Review (Cocktail Quality)', 'promotional': 'Weekday Sundown Aperitif Hours', 'contentExamples': '• Friday night crowd reel\n• Infusion process video\n• Birthday setup photos\n• Review quote\n• Happy hour booking link'},
+        {'week': 'WEEK 3', 'experienceStories': 'Chef Special: Signature Tapas & Cocktail Pairing', 'educational': 'How We Craft Crystal-Clear Diamond Ice', 'corporate': 'MNC Networking Event Setup Time-Lapse', 'testimonials': 'Customer Review (Corporate Buyout Feedback)', 'promotional': 'Limited VIP Tables for This Saturday', 'contentExamples': '• Pairing showcase reel\n• Ice carving video\n• Time-lapse venue tour\n• Event testimonial\n• VIP table link'},
+        {'week': 'WEEK 4', 'experienceStories': 'Monthly Recap: Best Moments Under the Stars', 'educational': 'Top 3 Cocktails to Try on Your First Visit', 'corporate': 'Year-End & Holiday Private Booking Inquiries', 'testimonials': 'Customer Review (Overall Experience)', 'promotional': 'Book Ahead for Next Month’s Key Dates', 'contentExamples': '• Monthly highlights reel\n• Cocktail guide carousel\n• Holiday booking teaser\n• Customer story\n• Calendar reservation link'},
+      ],
+      sampleReelHeadline: 'Taste the Skyline',
+      sampleReelTopic: 'Why This Rooftop Sunset View is Singapore’s Best-Kept Secret',
+      sampleReelHook: 'Looking for the ultimate golden hour view in Singapore without the massive tourist crowds? Watch this.',
+      sampleReelVisualScenes: 'Scene 1: Drone shot panning from Singapore skyline into the rooftop terrace at 6:45 PM.\nScene 2: Bartender shaking a vibrant sunset-colored cocktail with ice smoke rising.\nScene 3: Clinking glasses against the glowing city skyline as twilight deepens.\nScene 4: Logo reveal with reservation prompt and table booking link in bio.',
+      sampleReelCta: 'Sunset tables fill up fast. Tap the link in bio to secure your table at $leadCompanyName this week.',
+      sampleReelLink: websiteUrl,
+      sampleBlogTitle: 'The Ultimate Guide to Singapore’s Best Rooftop Experiences: Cocktails, Sunsets, and Skyline Dining',
+      sampleBlogStorytellingIntro: 'Singapore’s skyline is one of the most iconic architectural vistas in the world. But experiencing it from above—with a crafted cocktail in hand and the evening breeze—transforms a night out into an unforgettable sensory occasion.',
+      sampleBlogPreview: 'From golden hour aperitifs to late-night DJ sets under the stars, discover why $leadCompanyName has become the premier rooftop sanctuary for discerning cocktail enthusiasts and private celebrations...',
+      sampleSocialCaptionHook: 'The best seat in the city is waiting for you above the skyline. 🍸✨',
+      sampleSocialCaptionBody: 'Golden hour transitions seamlessly into nocturnal energy at $leadCompanyName. Join us tonight for handcrafted cocktails, panoramic city views, and curated beats.\n\nWhether it’s a romantic date night or an exclusive team celebration, our team is ready to welcome you.',
+      sampleSocialCaptionCta: '📍 Reserve your table online or direct message us for private event buyouts.',
+      sampleSocialHashtags: const ['#SingaporeRooftop', '#MoonRooftop', '#SingaporeNightlife', '#SingaporeCocktails', '#SingaporeDining'],
+      socialPosts: const [
+        {'title': 'Golden Hour', 'headline': 'WHERE THE SKYLINE MEETS PERFECTION.', 'body': 'Catch the city’s golden hour from our panoramic rooftop terrace.\n\nCraft mixology, curated beats, and unforgettable views.\n\nReservations open for tonight.', 'badge': 'ROOFTOP SUNSET', 'hashtags': ['#SingaporeRooftop', '#SunsetLounge', '#SkylineViews'], 'imageUrl': ''},
+        {'title': 'Artisanal Mixology', 'headline': 'CRAFTED WITH PRECISION. SERVED WITH FLAIR.', 'body': 'Every cocktail tells a story of balance, fresh botanicals, and bespoke spirits.\n\nDiscover our seasonal menu tonight.\n\nBook your table via link in bio.', 'badge': 'SIGNATURE COCKTAILS', 'hashtags': ['#CraftCocktails', '#SingaporeMixology', '#BarCulture'], 'imageUrl': ''},
+        {'title': 'Private Events', 'headline': 'HOST YOUR NEXT EVENT AT THE TOP.', 'body': 'From corporate networking to milestone celebrations, our rooftop terrace offers bespoke catering and full buyout options.\n\nInquire with our events team today.', 'badge': 'PRIVATE BUYOUTS', 'hashtags': ['#CorporateEvents', '#SingaporeVenues', '#PrivateDining'], 'imageUrl': ''},
+      ],
+      seoAudit: const SeoAuditSummary(
+        healthScore: 74,
+        summaryText: 'Strong domain relevance for local hospitality searches, but high-intent keywords like "best rooftop bar Singapore", "Singapore skyline cocktail lounge", and "corporate private event venue Singapore" need dedicated landing page optimization and Google Business Profile management.',
+        highPriority: [
+          'Google Business Profile optimization (high-res photo uploads, menu links, and review response automation)',
+          'Dedicated Private Corporate Events & Venue Buyout landing page with instant PDF brochure download',
+          'Local Schema.org BarOrPub and Restaurant entity structured data markup',
+          'Menu page optimization with fast mobile loading and Open Graph preview cards',
+        ],
+        mediumPriority: [
+          'Event calendar and guest DJ lineup page with Schema.Event markup',
+          'Integration with luxury hotel concierge booking portals',
+          'Instagram Reels and TikTok video embeds on homepage for social proof',
+        ],
+        longTermOpportunities: [
+          'AI search engine optimization (Perplexity and Google AI Overviews for "where to drink rooftop Singapore")',
+          'Partnership features on Singapore Tatler Dining, Honeycombers, and TimeOut Singapore',
+          'VIP membership and loyalty program integration for regular corporate clients',
+        ],
+      ),
+      seoAssessmentText: 'Optimizing local search signals and Google Maps ranking will immediately drive high-intent walk-ins and weekend table reservations, while dedicated corporate buyout landing pages will scale high-ticket private event inquiries.',
+      seoAuditLink: 'https://meet-marketers.com/seo-audit',
+      finalThoughtsSummary: '$leadCompanyName possesses the ultimate competitive advantage in hospitality: a premier skyline location and passion for craft mixology. Our proposed digital and content strategy amplifies this natural appeal into consistent weekday reservations and lucrative corporate buyouts.',
+      finalThoughtsRecommendation: 'We recommend immediate activation of Phase 1: Launching high-impact sunset video reels on Instagram and TikTok, alongside a high-converting Private Events landing page to capture upcoming corporate booking demand.',
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. LUXURY & HOSPITALITY (Yachts, Charters, Luxury Resorts)
   // ───────────────────────────────────────────────────────────────────────────
   ProposalModel _synthesizeLuxuryHospitality({
     required String proposalId,
@@ -1002,9 +1211,9 @@ class ProposalDomainEngine {
       ),
       competitorUsps: [
         CompetitorUsp(brandName: leadCompanyName, primaryUsp: 'Premier tailored solutions, verified service reliability, and customer-first execution excellence', isLeadBrand: true),
-        CompetitorUsp(brandName: 'Top Category Competitor', primaryUsp: 'Large-scale national provider with high brand awareness and standardized offerings', isLeadBrand: false),
-        CompetitorUsp(brandName: 'Boutique Specialized Firm', primaryUsp: 'Niche offering focused on narrow high-ticket customer segments', isLeadBrand: false),
-        CompetitorUsp(brandName: 'Digital Challenger Brand', primaryUsp: 'Aggressive online promotional campaigns with low-cost entry pricing', isLeadBrand: false),
+        CompetitorUsp(brandName: 'Established Market Leader', primaryUsp: 'Large-scale national provider with high brand awareness and standardized offerings', isLeadBrand: false),
+        CompetitorUsp(brandName: 'Specialized Niche Provider', primaryUsp: 'Niche offering focused on narrow high-ticket customer segments', isLeadBrand: false),
+        CompetitorUsp(brandName: 'Digital Challenger Platform', primaryUsp: 'Aggressive online promotional campaigns with low-cost entry pricing', isLeadBrand: false),
       ],
       perceptualMapNarrative: '$leadCompanyName bridges specialized service excellence with broad customer accessibility, outperforming both rigid mass operators and narrow boutique providers.',
       perceptualMapInsight: 'Customers do not choose service providers based on superficial marketing slogans—they purchase the emotional certainty and proven competence of trusted experts.',
@@ -1130,7 +1339,30 @@ class ProposalDomainEngine {
       );
     }
 
-    // 3. Luxury & Hospitality (e.g. Yacht Charters)
+    // 3. Hospitality, F&B, Rooftop Bars & Nightlife
+    if (cat == ProposalDomainCategory.hospitalityFnbAndNightlife) {
+      final yAxis = proposal.perceptualMapYAxis.isNotEmpty
+          ? proposal.perceptualMapYAxis
+          : 'Skyline Ambience & Panoramic View';
+      final xAxis = proposal.perceptualMapXAxis.isNotEmpty
+          ? proposal.perceptualMapXAxis
+          : 'Culinary & Craft Cocktail Exclusivity';
+
+      return PerceptualMapData(
+        yAxisLabel: yAxis,
+        xAxisLabel: xAxis,
+        topRightBrand: leadBrand,
+        topRightDesc: 'Panoramic skyline viewing, bespoke cocktail mixology, and high-energy rooftop ambience.',
+        topLeftBrand: competitors.isNotEmpty ? competitors[0].brandName.toUpperCase() : 'CÉ LA VI SINGAPORE',
+        topLeftDesc: competitors.isNotEmpty ? competitors[0].primaryUsp : 'Iconic Marina Bay Sands skybar with high-end club party positioning.',
+        bottomLeftBrand: competitors.length > 1 ? competitors[1].brandName.toUpperCase() : '1-ALTITUDE COAST',
+        bottomLeftDesc: competitors.length > 1 ? competitors[1].primaryUsp : 'Al-fresco resort party venue focused on casual weekend tourism.',
+        bottomRightBrand: competitors.length > 2 ? competitors[2].brandName.toUpperCase() : 'SMOKE & MIRRORS',
+        bottomRightDesc: competitors.length > 2 ? competitors[2].primaryUsp : 'Art-inspired National Gallery craft cocktail lounge with quiet skyline vistas.',
+      );
+    }
+
+    // 4. Luxury & Hospitality (e.g. Yacht Charters)
     if (cat == ProposalDomainCategory.luxuryAndHospitality) {
       final yAxis = proposal.perceptualMapYAxis.isNotEmpty
           ? proposal.perceptualMapYAxis
