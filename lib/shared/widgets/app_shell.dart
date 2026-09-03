@@ -181,13 +181,19 @@ class _ExpandedSidebar extends StatelessWidget {
           ),
         ),
 
-        // ── Dashboard Link ────────────────────────────────
+        // ── Navigation Links ─────────────────────────────
         const SizedBox(height: 8),
         _SidebarNavItem(
           icon: Icons.grid_view_rounded,
           label: 'Dashboard',
-          isSelected: activeClientId == null,
+          isSelected: activeClientId == null && !GoRouterState.of(context).uri.toString().startsWith('/proposals'),
           onTap: () => GoRouter.of(context).go(AppRoutes.dashboard),
+        ),
+        _SidebarNavItem(
+          icon: Icons.description_outlined,
+          label: 'Proposals & Leads',
+          isSelected: GoRouterState.of(context).uri.toString().startsWith('/proposals'),
+          onTap: () => GoRouter.of(context).go(AppRoutes.proposals),
         ),
 
         const SizedBox(height: 12),
@@ -720,6 +726,21 @@ class _CollapsedSidebar extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: const Icon(Icons.grid_view_rounded, size: 18, color: ClinicSageColors.secondary),
+              ),
+            ),
+          ),
+        ),
+        Tooltip(
+          message: 'Proposals & Leads',
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
+              onTap: () => GoRouter.of(context).go(AppRoutes.proposals),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: const Icon(Icons.description_outlined, size: 18, color: ClinicSageColors.secondary),
               ),
             ),
           ),

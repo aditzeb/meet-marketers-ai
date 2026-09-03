@@ -21,3 +21,14 @@ void downloadWebFile(String url, String fileName) {
     debugPrint('Launch URL exception: $e');
   }
 }
+
+void downloadWebBytes(List<int> bytes, String fileName) {
+  if (kIsWeb) {
+    try {
+      triggerBrowserDownloadBytes(bytes, fileName);
+      return;
+    } catch (e) {
+      debugPrint('Web download bytes exception: $e');
+    }
+  }
+}

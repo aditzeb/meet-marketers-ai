@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import '../../data/models/account_manager_model.dart';
 import '../../data/models/client_model.dart';
+import '../../data/models/proposal_model.dart';
 
 /// Firebase Service handling authentication, Firestore database, and Storage operations
 class FirebaseService {
@@ -404,5 +405,125 @@ class FirebaseService {
       }
     }
     return 'https://firebasestorage.googleapis.com/v0/b/meet-marketers-ai.firebasestorage.app/o/clients%2F$clientId%2F$folder%2F$cleanName?alt=media';
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Proposal Engine & Lead Management Methods (Online Firestore)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /// Fetch all Proposals for an Account Manager
+  Future<List<ProposalModel>> getProposals(String amId) async {
+    final currentUid = _getCurrentUid(amId);
+    if (_isFirebaseAvailable) {
+      try {
+        final snap = await firestore
+            .collection('account_managers')
+            .doc(currentUid)
+            .collection('proposals')
+            .orderBy('createdAt', descending: true)
+            .get();
+
+        return snap.docs
+            .map((doc) => ProposalModel.fromJson(doc.id, doc.data()))
+            .toList();
+      } catch (e) {
+        debugPrint('Firestore getProposals error: $e');
+      }
+    }
+    return [];
+  }
+
+  /// Fetch a single Proposal by ID
+  Future<ProposalModel?> getProposal(String amId, String proposalId) async {
+    final currentUid = _getCurrentUid(amId);
+    if (_isFirebaseAvailable) {
+      try {
+        final doc = await firestore
+            .collection('account_managers')
+            .doc(currentUid)
+            .collection('proposals')
+            .doc(proposalId)
+            .get();
+
+        if (doc.exists && doc.data() != null) {
+          return ProposalModel.fromJson(doc.id, doc.data()!);
+        }
+      } catch (e) {
+        debugPrint('Firestore getProposal error: $e');
+      }
+    }
+    return null;
+  }
+
+  /// Save or Update Proposal in Firestore
+  Future<void> saveProposal(String amId, ProposalModel proposal) async {
+    final currentUid = _getCurrentUid(amId);
+    if (_isFirebaseAvailable) {
+      try {
+        await firestore
+            .collection('account_managers')
+            .doc(currentUid)
+            .collection('proposals')
+            .doc(proposal.id)
+            .set(proposal.toJson(), SetOptions(merge: true));
+
+        // Also update root proposals collection for centralized reporting
+        await firestore
+            .collection('proposals')
+            .doc(proposal.id)
+            .set({...proposal.toJson(), 'ownerUid': currentUid}, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore saveProposal error: $e');
+      }
+    }
+  }
+
+  /// Delete a Proposal from Firestore
+  Future<void> deleteProposal(String amId, String proposalId) async {
+    final currentUid = _getCurrentUid(amId);
+    if (_isFirebaseAvailable) {
+      try {
+        await firestore
+            .collection('account_managers')
+            .doc(currentUid)
+            .collection('proposals')
+            .doc(proposalId)
+            .delete();
+
+        await firestore.collection('proposals').doc(proposalId).delete();
+      } catch (e) {
+        debugPrint('Firestore deleteProposal error: $e');
+      }
+    }
+  }
+
+  /// Convert a winning Proposal into a Client Workspace in Firestore
+  Future<ClientModel> convertProposalToClient({
+    required String amId,
+    required ProposalModel proposal,
+  }) async {
+    final currentUid = _getCurrentUid(amId);
+
+    // 1. Create client in Firestore
+    final newClient = await createClient(
+      currentUid,
+      proposal.leadCompanyName,
+      proposal.industry,
+      websiteUrl: proposal.websiteUrl,
+    );
+
+    // 2. Save proposal deliverable in client's deliverables folder
+    await saveDeliverable(currentUid, newClient.id, 'proposal', proposal.toJson());
+
+    // 3. Mark proposal as converted in Firestore
+    final updatedProposal = proposal.copyWith(
+      status: ProposalStatus.converted,
+      convertedAt: DateTime.now(),
+      convertedClientId: newClient.id,
+      updatedAt: DateTime.now(),
+    );
+    await saveProposal(currentUid, updatedProposal);
+
+    return newClient;
   }
 }

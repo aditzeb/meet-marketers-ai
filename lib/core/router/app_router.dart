@@ -7,6 +7,8 @@ import '../../features/client_inputs/views/client_inputs_screen.dart';
 import '../../features/content_studio/views/content_studio_screen.dart';
 import '../../features/strategy_hub/views/strategy_hub_screen.dart';
 import '../../features/review/views/review_screen.dart';
+import '../../features/proposals/views/proposals_screen.dart';
+import '../../features/proposals/views/proposal_editor_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 
 // Route name constants
@@ -17,11 +19,14 @@ abstract class AppRoutes {
   static const String clientContent = '/client/:clientId/content';
   static const String clientStrategy = '/client/:clientId/strategy';
   static const String clientReview = '/client/:clientId/review';
+  static const String proposals = '/proposals';
+  static const String proposalDetail = '/proposals/:proposalId';
 
   static String clientInputsPath(String clientId) => '/client/$clientId/inputs';
   static String clientContentPath(String clientId) => '/client/$clientId/content';
   static String clientStrategyPath(String clientId) => '/client/$clientId/strategy';
   static String clientReviewPath(String clientId) => '/client/$clientId/review';
+  static String proposalDetailPath(String id) => '/proposals/$id';
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -55,6 +60,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               state: state,
               child: const DashboardScreen(),
             ),
+          ),
+
+          // Proposals & Lead Acquisition
+          GoRoute(
+            path: AppRoutes.proposals,
+            name: 'proposals',
+            pageBuilder: (context, state) => _buildPage(
+              state: state,
+              child: const ProposalsScreen(),
+            ),
+          ),
+
+          // Proposal Detail & 13-Section Editor
+          GoRoute(
+            path: AppRoutes.proposalDetail,
+            name: 'proposal-detail',
+            pageBuilder: (context, state) {
+              final proposalId = state.pathParameters['proposalId']!;
+              return _buildPage(
+                state: state,
+                child: ProposalEditorScreen(
+                  key: ValueKey('proposal_$proposalId'),
+                  proposalId: proposalId,
+                ),
+              );
+            },
           ),
 
           // Client Inputs Ingestion — Phase 1

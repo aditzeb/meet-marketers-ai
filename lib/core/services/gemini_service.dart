@@ -6,6 +6,7 @@ import '../../firebase_options.dart';
 import '../config/app_config.dart';
 import '../../data/models/content_deliverable_model.dart';
 import '../../data/models/strategy_deliverable_model.dart';
+import '../../data/models/proposal_model.dart';
 
 /// Gemini Service — Orchestrates AI Marketing Deliverables, Photos, Videos & Captions for Clients
 class GeminiService {
@@ -268,6 +269,308 @@ Return a JSON object strictly matching this schema:
       ],
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
+    );
+  }
+
+  /// Generates a comprehensive 13-section Strategic Proposal matching ProposalSample.pdf
+  Future<ProposalModel> generateProposal({
+    required String leadCompanyName,
+    required String industry,
+    required String websiteUrl,
+    Map<String, String>? socialUrls,
+    String? amId,
+  }) async {
+    final proposalId = 'prop-${DateTime.now().millisecondsSinceEpoch}';
+    final socialText = (socialUrls != null && socialUrls.isNotEmpty)
+        ? socialUrls.entries.map((e) => '${e.key}: ${e.value}').join(', ')
+        : 'None provided';
+
+    final prompt = '''
+You are an elite CMO and strategic growth partner at Meet Marketers AI.
+Generate a comprehensive 13-section "Digital & Content Direction Proposal" for lead "$leadCompanyName" in the "$industry" industry.
+Website: $websiteUrl
+Social Media Profiles: $socialText
+
+Follow the exact structure and tone of high-ticket consulting proposals (similar to White Sails Yacht proposal).
+Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
+{
+  "executiveSummaryPosition": "2-3 sentences on $leadCompanyName's current market position, trust, and service offerings.",
+  "executiveSummaryOpportunity": "2-3 sentences on the growth opportunity, digital visibility, authority, and differentiation.",
+  "swot": {
+    "strengths": ["string", "string", "string", "string"],
+    "weaknesses": ["string", "string", "string", "string"],
+    "opportunities": ["string", "string", "string", "string"],
+    "threats": ["string", "string", "string", "string"]
+  },
+  "marketingMix4Ps": {
+    "productCurrent": "Current offerings and service packages.",
+    "productOpportunity": "Outcome-driven positioning and experience differentiation.",
+    "priceCurrent": "Current pricing positioning within $industry.",
+    "priceOpportunity": "Compete on trust, safety, and value rather than price discounts.",
+    "placeCurrent": "Current channels: website, social, search.",
+    "placeOpportunity": "Omni-channel discoverability, corporate partnerships, and SEO authority.",
+    "promotionCurrent": "Current promotional activities and highlights.",
+    "promotionOpportunity": "Educational reels, customer journey storytelling, and authority guides."
+  },
+  "pestAnalysis": {
+    "political": ["Regulatory and tourism governance standards", "Safety and compliance standards"],
+    "economic": ["Experience economy acceleration", "Corporate event and B2B spending trends"],
+    "social": ["Consumers prioritizing experiential moments", "Team bonding and milestone celebration demand"],
+    "technological": ["AI search & entity discovery", "Short-form video dominance"]
+  },
+  "competitorUsps": [
+    {"brandName": "$leadCompanyName", "primaryUsp": "Premier tailored experience, verified quality, customer trust", "isLeadBrand": true},
+    {"brandName": "Competitor Alpha", "primaryUsp": "High volume discount pricing", "isLeadBrand": false},
+    {"brandName": "Competitor Beta", "primaryUsp": "Boutique ultra-niche selection", "isLeadBrand": false},
+    {"brandName": "Competitor Gamma", "primaryUsp": "Generic event packages with standard inclusions", "isLeadBrand": false}
+  ],
+  "perceptualMapNarrative": "2-3 sentences placing $leadCompanyName between premium experience and versatile service offerings.",
+  "perceptualMapInsight": "Core strategic realization about buyer psychology in $industry.",
+  "perceptualMapOpportunity": "Definitive action to capture market leadership.",
+  "creativePillars": [
+    {
+      "title": "Experience & Celebration Stories",
+      "objective": "Showcase memorable moments and create emotional connections.",
+      "contentStyle": ["Event recap reels", "Celebration highlights", "Customer storytelling"],
+      "exampleTopics": ["A Celebration They'll Talk About For Years", "Behind This Surprise Milestone", "Celebrating Differently"]
+    },
+    {
+      "title": "Expert Domain Education",
+      "objective": "Position $leadCompanyName as the trusted authority while eliminating buyer hesitation.",
+      "contentStyle": ["Educational reels", "Saveable checklists", "Comparison carousels"],
+      "exampleTopics": ["First Time Booking? Here Is What To Expect", "3 Mistakes To Avoid When Planning", "Weather Contingency & Preparation"]
+    },
+    {
+      "title": "Corporate & Executive Experiences",
+      "objective": "Capture high-ticket B2B bookings, executive retreats, and corporate rewards.",
+      "contentStyle": ["Corporate recap videos", "Team bonding stories", "Executive interviews"],
+      "exampleTopics": ["Your Team Doesn't Need Another Hotel Ballroom", "Why Companies Choose Curated Offsites"]
+    },
+    {
+      "title": "Lifestyle & Aspiration",
+      "objective": "Inspire wanderlust and premium aspiration.",
+      "contentStyle": ["Cinematic drone shots", "Atmospheric B-roll", "Weekend reset series"],
+      "exampleTopics": ["The Perspective Most People Never See", "Weekend Reset In Style"]
+    },
+    {
+      "title": "Customer Proof & Transformation",
+      "objective": "Build unshakeable social proof through authentic customer experiences.",
+      "contentStyle": ["Review overlays", "Customer journey recaps", "BTS coordination"],
+      "exampleTopics": ["Why They Chose $leadCompanyName", "From Initial Consultation To Seamless Execution"]
+    }
+  ],
+  "visualGuidelineNotes": "Guidelines on color harmony, natural lighting, clean typography, and cinematic pacing.",
+  "brandPaletteHex": ["#10B981", "#064E3B", "#8B5CF6", "#1E293B", "#F8FAFC"],
+  "sampleReelTopic": "Behind This Surprise Milestone Celebration with $leadCompanyName",
+  "sampleReelHook": "Most people think planning an extraordinary celebration takes months of stress. Watch what happened when they chose something different.",
+  "sampleReelVisualScenes": "Scene 1: Golden hour glow with guests arriving.\nScene 2: Close-up of personalized decor and toast.\nScene 3: Unfiltered joyous reaction of the guest of honor.\nScene 4: Crew attending to every detail seamlessly.",
+  "sampleReelCta": "Save this for your next milestone celebration or tap the link in bio to book with $leadCompanyName.",
+  "sampleBlogTitle": "How to Plan an Unforgettable Milestone Celebration in Singapore (Without the Usual Stress)",
+  "sampleBlogStorytellingIntro": "Rather than relying on promotional messaging, our content approach focuses on storytelling and customer-centric narratives that help audiences visualize the experience before booking.",
+  "sampleBlogPreview": "When planning a major celebration, most organizers are forced to choose between crowded public restaurants or sterile hotel ballrooms. But true luxury is about privacy, personalized attention, and memories that last long after the evening ends...",
+  "sampleSocialCaptionHook": "The best celebrations are the ones where you don't have to worry about a single detail. ✨",
+  "sampleSocialCaptionBody": "Whether it is a milestone 30th birthday, an intimate anniversary, or an executive retreat, your moments deserve more than routine routines. Step into curated luxury where everything is taken care of from start to finish.",
+  "sampleSocialCaptionCta": "💬 Drop a comment or send us a DM to check date availability for your upcoming date.",
+  "sampleSocialHashtags": ["#$industry", "#Celebrations", "#LuxuryExperiences", "#MeetMarketers"],
+  "seoAudit": {
+    "healthScore": 68,
+    "summaryText": "$leadCompanyName has built a solid digital foundation with responsive pages and active branding. Several high-impact technical, on-page, and entity search opportunities remain to scale organic leads.",
+    "highPriority": ["Occasion-specific landing pages", "Schema.org structured review markup", "H1 & Meta Title optimization", "Core Web Vitals speed acceleration"],
+    "mediumPriority": ["Detail page schema optimization", "Open Graph social preview cards", "Author and authority publisher tags"],
+    "longTermOpportunities": ["AI search engine discoverability (AIO & Perplexity)", "Educational content hub", "Corporate dedicated portal"]
+  },
+  "finalThoughtsSummary": "$leadCompanyName already possesses the core qualities customers seek: outstanding service, proven credibility, and trusted execution. Our proposed direction bridges the gap between great service and dominant digital authority through cohesive content, SEO, and storytelling.",
+  "finalThoughtsRecommendation": "We recommend prioritizing Phase 1: High-impact technical SEO quick wins and short-form video storytelling to generate immediate visibility and leads, followed by long-form authority articles and automated omni-channel publishing."
+}
+''';
+
+    try {
+      final raw = await _callGemini35Flash(prompt);
+      if (raw != null && raw.isNotEmpty) {
+        final cleaned = cleanMarkdownText(raw);
+        final startIdx = cleaned.indexOf('{');
+        final endIdx = cleaned.lastIndexOf('}');
+        if (startIdx != -1 && endIdx > startIdx) {
+          final jsonSub = cleaned.substring(startIdx, endIdx + 1);
+          final map = jsonDecode(jsonSub) as Map<String, dynamic>;
+          return ProposalModel.fromJson(proposalId, {
+            ...map,
+            'id': proposalId,
+            'amId': amId ?? 'am-default',
+            'leadCompanyName': leadCompanyName,
+            'industry': industry,
+            'websiteUrl': websiteUrl,
+            'socialUrls': socialUrls ?? {},
+            'status': ProposalStatus.readyForReview.value,
+            'createdAt': DateTime.now().toIso8601String(),
+            'updatedAt': DateTime.now().toIso8601String(),
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Gemini generateProposal error, using rich fallback: $e');
+    }
+
+    return _getFallbackProposal(
+      proposalId: proposalId,
+      amId: amId ?? 'am-default',
+      leadCompanyName: leadCompanyName,
+      industry: industry,
+      websiteUrl: websiteUrl,
+      socialUrls: socialUrls ?? {},
+    );
+  }
+
+  ProposalModel _getFallbackProposal({
+    required String proposalId,
+    required String amId,
+    required String leadCompanyName,
+    required String industry,
+    required String websiteUrl,
+    required Map<String, String> socialUrls,
+  }) {
+    return ProposalModel(
+      id: proposalId,
+      amId: amId,
+      leadCompanyName: leadCompanyName,
+      industry: industry,
+      websiteUrl: websiteUrl,
+      socialUrls: socialUrls,
+      status: ProposalStatus.readyForReview,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      executiveSummaryPosition:
+          '$leadCompanyName has established itself as one of the trusted providers in $industry, building strong credibility, customer satisfaction, and reliable service quality across diverse customer segments.',
+      executiveSummaryOpportunity:
+          'While $leadCompanyName has built strong credibility, significant opportunity exists to expand organic search visibility, corporate authority, and video storytelling within an increasingly competitive digital landscape.',
+      swot: SwotMatrix(
+        strengths: [
+          'Established reputation and positive customer sentiment',
+          'Diverse service packages and high visual appeal',
+          'Reliable execution and experienced customer service',
+          'Strong word-of-mouth referral base',
+        ],
+        weaknesses: [
+          'Limited brand differentiation from generic competitors',
+          'Content frequently mirrors industry peers without distinct point of view',
+          'Low proportion of authority and educational content',
+          'High-value corporate segment not strongly communicated',
+        ],
+        opportunities: [
+          'Expanding corporate retreats and team bonding packages',
+          'Capitalizing on the booming experiential economy',
+          'Short-form vertical video and creator collaborations',
+          'Capturing high-intent AI search and Google organic search',
+        ],
+        threats: [
+          'Increasing digital advertising customer acquisition costs',
+          'Price-based competition from mass-market operators',
+          'Seasonality and external scheduling factors',
+          'Rising consumer demand for hyper-personalized digital experiences',
+        ],
+      ),
+      marketingMix4Ps: MarketingMix4Ps(
+        productCurrent: 'Core $industry services, celebration packages, private bookings, and custom event offerings.',
+        productOpportunity: 'Strengthen differentiation by communicating outcomes (memorable connections, stress-free execution) rather than just technical inclusions.',
+        priceCurrent: 'Mid-to-premium pricing supported by service quality, experienced team, and customer trust.',
+        priceOpportunity: 'Continue competing on experience value, safety, and reliability rather than commoditized discounting.',
+        placeCurrent: 'Website, Instagram, LinkedIn, Google Business profile, and direct inquiry channels.',
+        placeOpportunity: 'Improve organic discoverability, corporate B2B channels, and strategic co-marketing partnerships.',
+        promotionCurrent: 'Event highlights, customer celebration recaps, promotional announcements, and customer reviews.',
+        promotionOpportunity: 'Expand into educational authority reels, customer journey transformation stories, and deep-dive destination guides.',
+      ),
+      pestAnalysis: const PestAnalysis(
+        political: ['Industry governance and tourism recovery standards', 'Safety compliance and certified operations'],
+        economic: ['Experience economy growth over material purchases', 'Corporate event and team offsite budget growth'],
+        social: ['Consumers prioritizing unforgettable shared experiences', 'Surging demand for team bonding and celebration retreats'],
+        technological: ['AI search and entity discoverability (Perplexity, ChatGPT)', 'Short-form algorithmic video discovery on Reels and TikTok'],
+      ),
+      competitorUsps: [
+        CompetitorUsp(brandName: leadCompanyName, primaryUsp: 'Premier tailored experiences, outstanding service reliability, customer trust', isLeadBrand: true),
+        const CompetitorUsp(brandName: 'Competitor Alpha', primaryUsp: 'High-volume discount pricing and mass-market reach'),
+        const CompetitorUsp(brandName: 'Competitor Beta', primaryUsp: 'Ultra-exclusive boutique offering with limited availability'),
+        const CompetitorUsp(brandName: 'Competitor Gamma', primaryUsp: 'Event-focused packages with generic group inclusions'),
+      ],
+      perceptualMapNarrative:
+          '$leadCompanyName occupies a strong strategic position between high-end premium experiences and broad service versatility. Unlike niche luxury operators that cater solely to a narrow audience, $leadCompanyName serves a wide spectrum of customer occasions.',
+      perceptualMapInsight:
+          'Customers do not book services based on technical specifications alone—they purchase the emotional certainty and seamless execution of high-stakes moments.',
+      perceptualMapOpportunity:
+          'Strengthen brand visibility and digital authority to reinforce $leadCompanyName as the definitive first choice in its category.',
+      creativePillars: [
+        const ContentPillar(
+          title: 'Experience & Celebration Stories',
+          objective: 'Showcase memorable moments while creating emotional connections with potential customers.',
+          contentStyle: ['Event recap reels', 'Celebration highlights', 'Customer storytelling', 'Emotional moments'],
+          exampleTopics: ['A Celebration They Will Talk About For Years', 'Behind This Surprise Milestone', 'Why Families Choose Curated Experiences'],
+        ),
+        const ContentPillar(
+          title: 'Expert Experience Education',
+          objective: 'Position the brand as the trusted expert while eliminating buyer hesitation and booking friction.',
+          contentStyle: ['Educational reels', 'Saveable checklists', 'Comparison carousels'],
+          exampleTopics: ['First Time Booking? Here Is What To Expect', 'Key Differences To Look For', 'What Happens If Weather Changes?'],
+        ),
+        const ContentPillar(
+          title: 'Corporate & Executive Experiences',
+          objective: 'Strengthen visibility within the B2B corporate market and attract high-value bookings.',
+          contentStyle: ['Corporate event recaps', 'Team bonding reels', 'Client entertainment case studies'],
+          exampleTopics: ['Your Team Does Not Need Another Hotel Ballroom', 'Why Companies Choose Curated Offsites', 'A Different Way To Host High-Stakes Clients'],
+        ),
+        ContentPillar(
+          title: 'Lifestyle & Aspiration',
+          objective: 'Build premium aspiration and position $leadCompanyName as an unforgettable lifestyle experience.',
+          contentStyle: const ['Cinematic drone footage', 'Atmospheric storytelling', 'Weekend reset concepts'],
+          exampleTopics: const ['The Perspective Most People Never See', 'Escape The City Without Leaving Town', 'Weekend Reset In Style'],
+        ),
+        ContentPillar(
+          title: 'Customer Proof & Transformation',
+          objective: 'Build trust and credibility through genuine transformation stories and testimonials.',
+          contentStyle: const ['Review overlays', 'Customer journey recaps', 'Before and after journeys'],
+          exampleTopics: ['Why They Chose $leadCompanyName', 'From Planning To Celebration: Their Real Experience'],
+        ),
+      ],
+      visualGuidelineNotes:
+          'Visual storytelling balances clean premium minimalism with vibrant authentic emotion. Crisp natural lighting, cinematic pacing, and consistent typography reinforce category leadership across all digital channels.',
+      brandPaletteHex: const ['#10B981', '#064E3B', '#8B5CF6', '#1E293B', '#F8FAFC'],
+      sampleReelTopic: 'Behind This Surprise Milestone Celebration with $leadCompanyName',
+      sampleReelHook: 'Most people think planning an extraordinary celebration takes months of stress. Watch what happened when they chose something different.',
+      sampleReelVisualScenes: 'Scene 1: Golden hour horizon with sparkling water and laughter.\nScene 2: Close-up of personalized decor and toast with friends.\nScene 3: Unfiltered joyous reaction of the guest of honor.\nScene 4: Crew seamlessly attending to every detail while guests relax.',
+      sampleReelCta: 'Save this for your next milestone celebration or tap the link in bio to book your private experience with $leadCompanyName.',
+      sampleBlogTitle: 'How to Plan an Unforgettable Milestone Celebration in Singapore (Without the Usual Stress)',
+      sampleBlogStorytellingIntro:
+          'Rather than relying on promotional messaging, our content approach focuses on storytelling and customer-centric narratives that help audiences visualize the experience before they book.',
+      sampleBlogPreview:
+          'When planning a major celebration, most organizers are forced to choose between crowded public venues or sterile hotel rooms. But true luxury is about privacy, personalized attention, and memories that last long after the evening ends...\n\nIn this guide, we unpack everything from selecting the right package to food and beverage coordination, music, and capturing memories on camera.',
+      sampleSocialCaptionHook: 'The best celebrations are the ones where you do not have to worry about a single detail. ✨',
+      sampleSocialCaptionBody:
+          'Whether it is a milestone 30th birthday, an intimate anniversary, or an executive retreat, your moments deserve more than routine routines. Step into curated luxury where everything is taken care of from start to finish.',
+      sampleSocialCaptionCta: '💬 Drop a comment or send us a DM to check date availability for your upcoming date.',
+      sampleSocialHashtags: const ['#SingaporeExperiences', '#CelebrateInStyle', '#LuxuryRetreats', '#MeetMarketers'],
+      seoAudit: SeoAuditSummary(
+        healthScore: 68,
+        summaryText:
+            '$leadCompanyName has established a solid digital foundation, with responsive pages and active branding. However, high-impact technical, on-page, and entity search opportunities remain to scale organic leads.',
+        highPriority: const [
+          'Occasion-specific landing pages (Milestones, Corporate, Intimate)',
+          'Schema.org structured review and organization markup',
+          'H1 and Meta Title optimization across core pages',
+          'Core Web Vitals and image WebP compression',
+        ],
+        mediumPriority: [
+          'Service detail page conversion and schema optimization',
+          'Open Graph rich social sharing cards',
+          'Author and thought leadership entity markup',
+        ],
+        longTermOpportunities: [
+          'AI search engine discoverability (AIO & Perplexity optimization)',
+          'Comprehensive educational content ecosystem and resource center',
+          'Dedicated corporate event planner portal and inquiry flow',
+        ],
+      ),
+      finalThoughtsSummary:
+          '$leadCompanyName already possesses many of the qualities today’s customers seek: memorable experiences, professional service, trusted execution, and a proven track record. Our proposed direction bridges the gap between great service and dominant digital authority through strategic content, authentic storytelling, and a unified digital presence.',
+      finalThoughtsRecommendation:
+          'Based on our review, we recommend prioritizing technical SEO quick wins and occasion-specific landing pages as Phase 1, followed by short-form video storytelling and omni-channel publishing to scale lead volume.',
     );
   }
 
