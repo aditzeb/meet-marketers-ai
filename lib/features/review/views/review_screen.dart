@@ -55,7 +55,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           id: 'del_${widget.clientId}_${t.value}',
           type: t,
           title: '${t.label} Campaign Asset',
-          aiText: 'AI-generated ${t.label.toLowerCase()} framework ready for review.',
+          aiText: 'Generated ${t.label.toLowerCase()} framework ready for review.',
           vettedText: text,
           status: hasText ? VettingStatus.fromString(statusStr) : VettingStatus.draft,
         );
@@ -734,12 +734,12 @@ class _ReviewCardState extends State<_ReviewCard> {
                             children: [
                               const Icon(Icons.auto_awesome, size: 12, color: ClinicSageColors.secondary),
                               const SizedBox(width: 4),
-                              Text('AI Framework', style: theme.textTheme.labelSmall),
+                              Text('Strategic Framework', style: theme.textTheme.labelSmall),
                             ],
                           ),
                           const SizedBox(height: 10),
                           SelectableText(
-                            item.aiText.isNotEmpty ? item.aiText : 'No AI content generated.',
+                            item.aiText.isNotEmpty ? item.aiText : 'No framework generated yet.',
                             style: theme.textTheme.bodySmall?.copyWith(height: 1.7, color: ClinicSageColors.secondary),
                           ),
                         ],

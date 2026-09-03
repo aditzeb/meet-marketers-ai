@@ -92,10 +92,10 @@ class _ProposalEditorScreenState extends ConsumerState<ProposalEditorScreen> wit
     final nameCtrl = TextEditingController(text: _proposal.contactName);
     final emailCtrl = TextEditingController(text: _proposal.contactEmail);
     final subjectCtrl = TextEditingController(
-      text: 'Digital & Content Direction Proposal for ${_proposal.leadCompanyName} — Meet Marketers AI',
+      text: 'Digital & Content Direction Proposal for ${_proposal.leadCompanyName} — Meet Marketers',
     );
     final bodyCtrl = TextEditingController(
-      text: '''Hi ${nameCtrl.text.isNotEmpty ? nameCtrl.text : 'Team'},\n\nWe have compiled the comprehensive Digital & Content Direction Proposal for ${_proposal.leadCompanyName}.\n\nOur strategic audit highlights high-impact opportunities across technical SEO, organic search discovery, and high-converting short-form video storytelling to strengthen your category leadership.\n\nPlease review the attached proposal blueprint. We look forward to partnering with your team.\n\nBest regards,\nMeet Marketers AI Team''',
+      text: '''Hi ${nameCtrl.text.isNotEmpty ? nameCtrl.text : 'Team'},\n\nWe have compiled the comprehensive Digital & Content Direction Proposal for ${_proposal.leadCompanyName}.\n\nOur strategic audit highlights high-impact opportunities across technical SEO, organic search discovery, and high-converting short-form video storytelling to strengthen your category leadership.\n\nPlease review the attached proposal blueprint. We look forward to partnering with your team.\n\nBest regards,\nMeet Marketers Team''',
     );
 
     showDialog(
@@ -2917,7 +2917,7 @@ class _Tab4CopywritingAndSeoState extends State<_Tab4CopywritingAndSeo> with Aut
             ),
             const SizedBox(height: 12),
             _EditableField(
-              label: 'View Full SEO/AIO Audit Hyperlink URL (Clickable in PDF)',
+              label: 'View Full SEO / Digital Audit Hyperlink URL (Clickable in PDF)',
               value: proposal.seoAuditLink,
               onChanged: (v) => onChanged(proposal.copyWith(seoAuditLink: v)),
             ),

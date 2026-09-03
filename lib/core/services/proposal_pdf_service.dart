@@ -2175,14 +2175,14 @@ class ProposalPdfService {
 
       final longs = proposal.seoAudit.longTermOpportunities.isNotEmpty
           ? proposal.seoAudit.longTermOpportunities
-          : ['AI search engine discoverability (AIO & Perplexity optimization)', 'Comprehensive educational content ecosystem & resource center', 'Dedicated corporate partner portal & inquiry flow'];
+          : ['Next-generation search discoverability (Perplexity & answer engine optimization)', 'Comprehensive educational content ecosystem & resource center', 'Dedicated corporate partner portal & inquiry flow'];
       double ly = 510;
       for (final l in longs.take(3)) {
         g.drawString('•  $l', bodyFont, brush: PdfSolidBrush(textOffWhite), bounds: ui.Rect.fromLTWH(contentX + 18, ly, contentWidth - 36, 18));
         ly += 22;
       }
 
-      // Bottom Button: View Full SEO/AIO Audit Here (Borderless Link Pill)
+      // Bottom Button: View Full SEO & Digital Audit Here (Borderless Link Pill)
       const auditBtnW = 320.0;
       const auditBtnH = 36.0;
       final auditBtnX = (pageWidth - auditBtnW) / 2.0;
@@ -2191,7 +2191,7 @@ class ProposalPdfService {
 
       drawPill(g, auditBtnR, bgColor: PdfColor(14, 32, 24), borderColor: accentLime, borderWidth: 0.8);
       g.drawString(
-        '▶   View Full SEO / AIO Audit Here →',
+        '▶   View Full SEO / Digital Presence Audit Here →',
         PdfStandardFont(PdfFontFamily.helvetica, 10.5, style: PdfFontStyle.bold),
         brush: PdfSolidBrush(accentLime),
         bounds: auditBtnR,

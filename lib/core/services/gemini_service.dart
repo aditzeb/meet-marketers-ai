@@ -392,7 +392,8 @@ Ready to elevate your growth strategy with $clientName? Reach out to our team to
 
     final prompt = '''
 You are an expert strategic advisor generating a comprehensive marketing strategy EXCLUSIVELY FOR CLIENT "$clientName" (Industry: "$industry").
-DO NOT talk about Meet Marketers AI or agency software. Focus 100% on "$clientName".
+DO NOT talk about Meet Marketers or agency software. Focus 100% on "$clientName".
+NEVER mention AI, automated generators, algorithms, or artificial intelligence. All content must read as handcrafted strategy.
 
 $pdfContext
 ${harnessContext ?? ''}
@@ -573,7 +574,7 @@ CRITICAL INFERENCE & LOCALIZATION MANDATE:
 ''';
 
     final prompt = '''
-You are an elite Chief Marketing Officer and strategic growth partner at Meet Marketers AI.
+You are an elite Chief Marketing Officer and strategic growth partner at Meet Marketers.
 Generate a comprehensive, deeply specific, bespoke 13-section "Digital & Content Direction Proposal" specifically tailored for lead "$leadCompanyName" operating in the "$industry" sector.
 Website: $websiteUrl
 Social Media: $socialText
@@ -586,6 +587,7 @@ STRICT ANTI-GENERIC QUALITY MANDATES:
 3. REAL COMPETITORS: Provide 3 to 4 REAL, named direct competitors in their exact city and market (e.g. for Singapore math/enrichment: Kumon, The Learning Lab, Eye Level, Seriously Addictive Mathematics). Zero placeholders.
 4. PERCEPTUAL MAP AXES: Create two distinct, authentic sector attributes (e.g. for math education: Y-Axis = "Heuristic Conceptual Mastery vs. Rote Repetition", X-Axis = "Personalized Small-Group Mentorship vs. Mass Lecture Format").
 5. REEL STORYBOARD SPECIFICITY: For the sample reel, write vivid, cinematic visual scenes with real human actions, tangible props, emotional transformations, and relatable customer situations.
+6. ABSOLUTE BAN ON AI BRANDING: NEVER mention "AI", "Meet Marketers AI", "AI-Generated", "Machine Learning", "Algorithm", "Prompt", or refer to artificial intelligence tools in any text. All content must read as bespoke, handcrafted work produced by senior human marketing strategists and creative directors.
 
 Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
 {
@@ -611,7 +613,7 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
     "political": ["Regulatory and syllabus/governance standards in their sector", "Compliance and safety benchmarks"],
     "economic": ["Parental/consumer willingness to spend and household education/service budgets", "Category spending dynamics"],
     "social": ["Evolving buyer priorities, parental anxiety, and desire for critical thinking over rote work", "Demand shifts"],
-    "technological": ["Digital assessment tools, gamified learning apps, and AI-assisted personalized tracking", "Search shifts"]
+    "technological": ["Digital assessment tools, gamified learning apps, and adaptive personalized tracking", "Search shifts"]
   },
   "competitorUsps": [
     {"brandName": "$leadCompanyName", "primaryUsp": "Core distinctive value proposition and method", "isLeadBrand": true},
@@ -894,12 +896,13 @@ Return a STRICT raw JSON object with NO markdown formatting, NO backticks:
         : '';
 
     return '''
-You are an elite AI marketing strategist generating content EXCLUSIVELY FOR CLIENT: "$clientName" (Industry: "$industry", Website: "${websiteUrl ?? 'N/A'}").
+You are an elite senior marketing strategist and creative director generating content EXCLUSIVELY FOR CLIENT: "$clientName" (Industry: "$industry", Website: "${websiteUrl ?? 'N/A'}").
 
 STRICT MANDATE & SCOPING RULES:
 1. All generated content MUST be 100% focused on "$clientName" and its offerings in the $industry industry.
-2. DO NOT mention "Meet Marketers AI" or agency software platforms. Speak directly as "$clientName" addressing its target customers.
-3. Incorporate the following client intake answers, target country, key differentiators, and ICP details:
+2. DO NOT mention "Meet Marketers", AI, or agency software platforms. Speak directly as "$clientName" addressing its target customers.
+3. ABSOLUTE BAN ON AI BRANDING: NEVER use the words "AI", "AI-Generated", "Machine Learning", "Algorithm", "Prompt", or refer to artificial intelligence tools in the output. The content must read as genuine, human-crafted marketing copy, strategy, and creative direction.
+4. Incorporate the following client intake answers, target country, key differentiators, and ICP details:
 
 Ingested Discovery Intake Information for "$clientName":
 $qText

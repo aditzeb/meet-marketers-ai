@@ -562,7 +562,7 @@ class _ContentStudioScreenState extends ConsumerState<ContentStudioScreen> {
     final ai = _aiTexts[_selectedType] ?? '';
     final media = _mediaAssets[_selectedType];
     final fullSync = media != null
-        ? '$ai\n\n--- AI CAPTION ---\n${media.caption}\n\n${media.hashtags}'
+        ? '$ai\n\n--- STRATEGIC CAMPAIGN CAPTION ---\n${media.caption}\n\n${media.hashtags}'
         : ai;
 
     _vettedControllers[_selectedType]!.text = fullSync;
@@ -1097,7 +1097,7 @@ class _AIOutputPanel extends StatelessWidget {
               children: [
                 const Icon(Icons.auto_awesome, size: 14, color: ClinicSageColors.secondary),
                 const SizedBox(width: 8),
-                Text('AI Output — ${type.label}', style: theme.textTheme.labelMedium),
+                Text('Deliverable Strategy — ${type.label}', style: theme.textTheme.labelMedium),
                 const Spacer(),
                 if (hasGenerated)
                   Container(
@@ -1212,7 +1212,7 @@ class _PresentationSlidesView extends StatelessWidget {
       ),
       (
         num: '03',
-        title: 'The Solution — AI-Powered Platform',
+        title: 'The Solution — Integrated Strategic Platform',
         subtitle: 'Core Product Differentiator',
         bullets: ['Seamless automated orchestration', 'Data-driven intelligence engine', 'End-to-end efficiency gains'],
         note: 'Highlight key features and how it transforms client workflow.',
@@ -1235,7 +1235,7 @@ class _PresentationSlidesView extends StatelessWidget {
         num: '06',
         title: 'Competitive Advantage & Traction',
         subtitle: 'Moat & Market Momentum',
-        bullets: ['First-mover advantage in AI workflows', 'Proprietary knowledge flywheel', 'Proven client case studies'],
+        bullets: ['First-mover advantage in category workflows', 'Proprietary knowledge flywheel', 'Proven client case studies'],
         note: 'Demonstrate competitive moat and customer validation.',
       ),
       (
@@ -1418,7 +1418,7 @@ class _PhotoAssetView extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      '$clientName — Imagen 3 Commercial AI Graphic',
+                      '$clientName — Commercial Creative Direction',
                       style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),

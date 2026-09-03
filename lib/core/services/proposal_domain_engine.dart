@@ -290,7 +290,7 @@ class ProposalDomainEngine {
         ],
         opportunities: [
           'Capturing high-ticket corporate co-innovation and venture studio retainers from APAC MNCs',
-          'Dominating AI-driven search engines (Perplexity, ChatGPT) and Google organic search',
+          'Dominating next-generation search engines (Perplexity) and Google organic search',
           'Producing high-impact executive video content spotlighting cross-border portfolio successes',
           'Building dedicated enterprise pilot portals for transparent dealflow evaluation',
         ],
@@ -340,9 +340,9 @@ class ProposalDomainEngine {
           'Growing ecosystem appetite for collaborative venture syndication and corporate-startup co-creation',
         ],
         technological: [
-          'Enterprise adoption of Generative AI, IoT sensors, and autonomous operational agents across industry verticals',
+          'Enterprise adoption of autonomous operational software and IoT sensors across industry verticals',
           'Algorithmic deal sourcing and automated portfolio milestone tracking tools',
-          'AI-driven search engines (Perplexity, ChatGPT) becoming primary research channels for B2B procurement',
+          'Next-generation search engines becoming primary research channels for B2B procurement',
         ],
       ),
 
@@ -384,7 +384,7 @@ class ProposalDomainEngine {
           title: 'Corporate Pilot Breakthroughs',
           objective: 'Demonstrate tangible business outcomes and pilot deployments between global enterprises and portfolio startups.',
           contentStyle: ['MNC pilot case studies', 'Executive co-innovation breakdowns', 'ROI recap carousels'],
-          exampleTopics: ['How an MNC Deployed Series-A AI in 60 Days', 'Inside a Cross-Border Co-Innovation Pilot', 'Why 70% of Internal Corporate R&D Fails'],
+          exampleTopics: ['How an MNC Deployed Series-A Tech in 60 Days', 'Inside a Cross-Border Co-Innovation Pilot', 'Why 70% of Internal Corporate R&D Fails'],
         ),
         ContentPillar(
           title: 'Cross-Border Asia Market Access',
@@ -548,7 +548,7 @@ class ProposalDomainEngine {
       seoAudit: const SeoAuditSummary(
         healthScore: 72,
         summaryText:
-            'Meet Ventures maintains a modern digital web presence with active domain authority. However, significant high-value organic search and AI engine discovery (Perplexity, ChatGPT) opportunities remain uncaptured across high-intent enterprise terms like "corporate accelerator Singapore", "startup scouting Southeast Asia", and "venture builder APAC".',
+            'Meet Ventures maintains a modern digital web presence with active domain authority. However, significant high-value organic search and digital discovery opportunities remain uncaptured across high-intent enterprise terms like "corporate accelerator Singapore", "startup scouting Southeast Asia", and "venture builder APAC".',
         highPriority: [
           'Enterprise program landing pages ("Corporate Innovation Singapore", "Cross-Border Accelerator APAC")',
           'Structured Schema.org Organization, Event (Demo Day), and Leadership entity markup',
@@ -561,7 +561,7 @@ class ProposalDomainEngine {
           'Executive author authority profiles for partners John Lim and Farhan Firdaus',
         ],
         longTermOpportunities: [
-          'AI search engine optimization (AIO & Perplexity entity positioning for VC queries)',
+          'Next-generation search discoverability (Perplexity entity positioning for VC queries)',
           'Comprehensive Asia Tech Ecosystem research and whitepaper knowledge hub',
           'Dedicated private enterprise partner dealflow and pilot tracking portal',
         ],
@@ -611,7 +611,7 @@ class ProposalDomainEngine {
       swot: const SwotMatrix(
         strengths: ['Licensed clinical expertise and certified medical practitioners', 'High patient trust and clinical safety compliance', 'Positive patient outcomes and local referral base', 'Comprehensive diagnostic and treatment offerings'],
         weaknesses: ['Low organic visibility for specialized treatment search keywords', 'Limited doctor-led educational video content on social media', 'Fragmented appointment booking workflow', 'Educational content under-communicating preventative care'],
-        opportunities: ['Local Google Maps (Google Business Profile) 3-pack dominance', 'Short-form educational Reels addressing common patient misconceptions', 'Condition-specific treatment landing pages with transparent FAQs', 'Capturing AI search health queries (Perplexity, ChatGPT)'],
+        opportunities: ['Local Google Maps (Google Business Profile) 3-pack dominance', 'Short-form educational Reels addressing common patient misconceptions', 'Condition-specific treatment landing pages with transparent FAQs', 'Capturing high-intent health search queries'],
         threats: ['Aggressive digital advertising by larger corporate hospital networks', 'Strict medical advertising guidelines (MOH / SMC compliance)', 'Rising cost of Google Search ads for medical keywords', 'Patient skepticism toward promotional medical claims'],
       ),
       marketingMix4Ps: const MarketingMix4Ps(
@@ -628,7 +628,7 @@ class ProposalDomainEngine {
         political: ['Healthcare services regulatory compliance and medical advertising ethical standards', 'Data privacy and patient confidentiality legislation (PDPA / HIPAA)', 'National health insurance schemes and subsidies (Medisave, CHAS)'],
         economic: ['Rising consumer expenditure on preventative wellness and longevity healthcare', 'Inflationary pressures on clinical supplies and healthcare staffing costs', 'Corporate healthcare insurance benefits driving employee clinic selection'],
         social: ['Patients proactively researching symptoms and treatments online before visiting', 'De-stigmatization of specialized care and mental wellness discussions', 'High patient preference for empathetic, transparent clinical communication'],
-        technological: ['Telehealth adoption and automated appointment reminder systems', 'AI-assisted medical diagnostics and digital patient record integration', 'Search engines prioritizing high-E-E-A-T medical content written by verified doctors'],
+        technological: ['Telehealth adoption and automated appointment reminder systems', 'Advanced digital medical diagnostics and patient record integration', 'Search engines prioritizing high-E-E-A-T medical content written by verified doctors'],
       ),
       competitorUsps: [
         CompetitorUsp(brandName: leadCompanyName, primaryUsp: 'Personalized clinical care, senior medical expertise, and patient-first consultation continuity', isLeadBrand: true),
@@ -693,7 +693,7 @@ class ProposalDomainEngine {
         summaryText: 'Solid baseline presence but significant opportunities to capture local patient search intent through Google Business Profile 3-pack optimization, medical condition Schema markup, and treatment-specific landing pages.',
         highPriority: ['Google Business Profile local 3-pack SEO and review automation', 'MedicalWebPage and Physician Schema.org structured data', 'Treatment-specific landing pages (Symptoms, FAQs, Pricing transparency)', 'Mobile page speed and appointment booking UX optimization'],
         mediumPriority: ['Doctor biography pages with verified medical credentials and E-E-A-T signals', 'Open Graph social cards for health education guides', 'Automated SMS / WhatsApp appointment confirmation flows'],
-        longTermOpportunities: ['AI search engine discoverability (ChatGPT & Perplexity for local health queries)', 'Comprehensive patient health library and condition encyclopedia', 'Integrated telemedicine portal with online prescription refills'],
+        longTermOpportunities: ['Next-generation search discoverability (Perplexity for local health queries)', 'Comprehensive patient health library and condition encyclopedia', 'Integrated telemedicine portal with online prescription refills'],
       ),
       seoAssessmentText: 'We recommend prioritizing local clinic SEO and treatment-specific landing pages in Phase 1 to capture high-intent patients actively searching for care in your immediate radius.',
       seoAuditLink: 'https://meet-marketers.com/seo-audit',
@@ -790,7 +790,7 @@ class ProposalDomainEngine {
         technological: [
           'TikTok and Instagram algorithms driving viral discovery for visually stunning rooftop venues',
           'Automated reservation management systems (SevenRooms, Chope) maximizing table turn efficiency',
-          'AI-powered digital search engines (Google SGE, Perplexity) delivering direct venue recommendations for "rooftop bar Singapore"',
+          'Digital search engines and lifestyle discovery portals delivering direct venue recommendations for "rooftop bar Singapore"',
         ],
       ),
       competitorUsps: [
@@ -868,7 +868,7 @@ class ProposalDomainEngine {
           'Instagram Reels and TikTok video embeds on homepage for social proof',
         ],
         longTermOpportunities: [
-          'AI search engine optimization (Perplexity and Google AI Overviews for "where to drink rooftop Singapore")',
+          'Next-generation search discoverability (Perplexity entity optimization for "where to drink rooftop Singapore")',
           'Partnership features on Singapore Tatler Dining, Honeycombers, and TimeOut Singapore',
           'VIP membership and loyalty program integration for regular corporate clients',
         ],
@@ -931,7 +931,7 @@ class ProposalDomainEngine {
         political: ['Maritime and port authority safety standards and vessel certification compliance', 'Tourism board guidelines and international visitor recovery standards', 'Environmental maritime regulations regarding marine conservation and fuel standards'],
         economic: ['Accelerating experiential economy with consumers prioritizing memories over material goods', 'Corporate entertainment and team offsite budget recovery post-pandemic', 'Rising disposable income among affluent domestic and regional travelers'],
         social: ['High consumer demand for private, exclusive celebration venues away from public crowds', 'Desire for shareable, aesthetic visual moments for personal social media', 'Growing appreciation for wellness, coastal escapism, and sea-based lifestyle resets'],
-        technological: ['Algorithmic video distribution (Reels, TikTok) driving viral experiential discovery', 'Instant messaging concierges (WhatsApp Business API) enabling friction-free reservations', 'AI-assisted destination trip planning and search discoverability'],
+        technological: ['Algorithmic video distribution (Reels, TikTok) driving viral experiential discovery', 'Instant messaging concierges (WhatsApp Business API) enabling friction-free reservations', 'Digital destination trip planning and search discoverability'],
       ),
       competitorUsps: [
         CompetitorUsp(brandName: leadCompanyName, primaryUsp: 'Premier tailored experiences, outstanding service reliability, customer trust, and all-inclusive transparent pricing', isLeadBrand: true),
@@ -996,7 +996,7 @@ class ProposalDomainEngine {
         summaryText: '$leadCompanyName has established a solid foundation with mobile-friendly pages, but several high-impact technical and occasion-specific search opportunities remain to scale organic leads.',
         highPriority: ['Occasion-specific landing pages (Milestone Birthdays, Corporate Charters, Proposals)', 'Schema.org structured review and boat reservation markup', 'H1 and Meta Title optimization across core package pages', 'Core Web Vitals acceleration and WebP image optimization'],
         mediumPriority: ['Service detail page conversion and FAQ schema optimization', 'Open Graph rich social sharing cards', 'Author and destination entity markup'],
-        longTermOpportunities: ['AI search engine discoverability (AIO & Perplexity for charter queries)', 'Comprehensive destination guides (Southern Islands, Lazarus Island)', 'Dedicated corporate event planner inquiry flow'],
+        longTermOpportunities: ['Next-generation search discoverability (Perplexity for charter queries)', 'Comprehensive destination guides (Southern Islands, Lazarus Island)', 'Dedicated corporate event planner inquiry flow'],
       ),
       seoAssessmentText: 'Based on our review, we recommend prioritising technical SEO improvements and occasion-specific landing pages as the first phase of optimisation.',
       seoAuditLink: 'https://meet-marketers.com/seo-audit',
@@ -1039,8 +1039,8 @@ class ProposalDomainEngine {
       swot: const SwotMatrix(
         strengths: ['Robust proprietary software architecture and API reliability', 'Demonstrated customer productivity gains and enterprise security compliance', 'Intuitive user onboarding and low time-to-value', 'Agile product engineering roadmap'],
         weaknesses: ['Organic search rankings behind legacy enterprise incumbents', 'Product positioning occasionally overly technical for non-technical buyers', 'Case studies lack interactive ROI demonstration', 'Under-utilized video demos on LinkedIn and YouTube'],
-        opportunities: ['Dominating high-intent SaaS search terms ("Best enterprise workflow automation tool")', 'Interactive product tour landing pages and ROI calculators', 'Technical thought leadership on LinkedIn from founding engineers', 'AI search discoverability (Perplexity, ChatGPT for software comparisons)'],
-        threats: ['Fast-evolving AI tools creating commoditization pressure', 'Prolonged enterprise software procurement and budget approval cycles', 'Aggressive venture-backed competitors spending heavily on paid search', 'Customer churn risks without proactive customer success onboarding'],
+        opportunities: ['Dominating high-intent SaaS search terms ("Best enterprise workflow automation tool")', 'Interactive product tour landing pages and ROI calculators', 'Technical thought leadership on LinkedIn from founding engineers', 'Next-generation search discoverability (Perplexity for software comparisons)'],
+        threats: ['Fast-evolving market alternatives creating commoditization pressure', 'Prolonged enterprise software procurement and budget approval cycles', 'Aggressive venture-backed competitors spending heavily on paid search', 'Customer churn risks without proactive customer success onboarding'],
       ),
       marketingMix4Ps: const MarketingMix4Ps(
         productCurrent: 'Cloud software platform, enterprise API integrations, automated workflow modules, and dedicated customer support.',
@@ -1056,7 +1056,7 @@ class ProposalDomainEngine {
         political: ['Global data sovereignty, GDPR, and cloud compliance regulations', 'Cybersecurity certification mandates (SOC 2, ISO 27001)', 'Government enterprise digitalization grants supporting software adoption'],
         economic: ['Corporate IT budgets prioritizing cost-reduction and workflow automation tools', 'SaaS budget consolidation favoring all-in-one platforms over point solutions', 'Shift toward product-led growth (PLG) and usage-based billing models'],
         social: ['Remote and hybrid engineering teams demanding seamless asynchronous collaboration', 'Enterprise buyers conducting autonomous self-service software research before talking to sales', 'Rising developer preference for transparent documentation over sales pitches'],
-        technological: ['Integration of Generative AI copilots into routine enterprise workflows', 'Low-code / no-code API integrations enabling rapid software deployment', 'AI-assisted code generation and automated testing reshaping tech capabilities'],
+        technological: ['Integration of intelligent automated copilots into routine enterprise workflows', 'Low-code / no-code API integrations enabling rapid software deployment', 'Automated code testing and scalable CI/CD pipelines reshaping tech capabilities'],
       ),
       competitorUsps: [
         CompetitorUsp(brandName: leadCompanyName, primaryUsp: 'Lightweight agile deployment, superior speed-to-value, and dedicated enterprise engineering support', isLeadBrand: true),
@@ -1096,7 +1096,7 @@ class ProposalDomainEngine {
         {'week': 'WEEK 1', 'experienceStories': 'Customer Migration Story: Moving Off Legacy Tech in 14 Days', 'educational': 'How to Audit Your Tech Stack for Bottlenecks', 'corporate': 'Enterprise Security & SOC 2 Compliance Brief', 'testimonials': 'CTO Testimonial (Platform Reliability)', 'promotional': 'Book an Enterprise Architecture Demo', 'contentExamples': '• Migration case study\n• Audit checklist\n• Security post\n• CTO review quote\n• Demo booking link'},
         {'week': 'WEEK 2', 'experienceStories': 'Product Walkthrough: Eliminating 15 Hours of Manual Weekly Tasks', 'educational': 'Modern Cloud APIs vs Outdated Webhooks', 'corporate': 'Volume Tiering & Custom Integration Options', 'testimonials': 'Lead Engineer Testimonial (Developer Ergonomics)', 'promotional': 'Start Free 14-Day Enterprise Sandbox', 'contentExamples': '• Product demo video\n• API comparison carousel\n• Pricing tier guide\n• Engineer quote\n• Free trial link'},
         {'week': 'WEEK 3', 'experienceStories': 'Scaling to 10M API Requests: An Engineering Breakdown', 'educational': 'The True Total Cost of Ownership of In-House Tools', 'corporate': 'White-Glove Onboarding & Dedicated Support SLAs', 'testimonials': 'Operations Lead Testimonial (Team Productivity)', 'promotional': 'Download the 2026 Enterprise Automation Benchmark', 'contentExamples': '• Scaling case study\n• TCO calculator carousel\n• Support SLA spotlight\n• Operations review\n• Whitepaper link'},
-        {'week': 'WEEK 4', 'experienceStories': 'Monthly Product Release: 4 New Features Requested by Users', 'educational': 'How AI Agents Are Redefining Business Workflows', 'corporate': 'Quarterly Business Review (QBR) Framework for Clients', 'testimonials': 'Executive Sponsor Testimonial (Measurable ROI)', 'promotional': 'Schedule Your Strategic Tech Stack Review', 'contentExamples': '• Release notes video\n• AI trends carousel\n• QBR framework post\n• Executive review quote\n• Strategy call link'},
+        {'week': 'WEEK 4', 'experienceStories': 'Monthly Product Release: 4 New Features Requested by Users', 'educational': 'How Modern Automation Is Redefining Business Workflows', 'corporate': 'Quarterly Business Review (QBR) Framework for Clients', 'testimonials': 'Executive Sponsor Testimonial (Measurable ROI)', 'promotional': 'Schedule Your Strategic Tech Stack Review', 'contentExamples': '• Release notes video\n• Tech trends carousel\n• QBR framework post\n• Executive review quote\n• Strategy call link'},
       ],
       sampleReelHeadline: 'Build Faster',
       sampleReelTopic: 'Watch How This Engineering Team Cut Deployment Time by 70%',
@@ -1118,10 +1118,10 @@ class ProposalDomainEngine {
       ],
       seoAudit: const SeoAuditSummary(
         healthScore: 74,
-        summaryText: 'Strong technological baseline but significant keyword opportunities remain in technical comparison pages ("Software vs Competitor"), developer documentation indexing, and entity search discoverability across AI platforms.',
+        summaryText: 'Strong technological baseline but significant keyword opportunities remain in technical comparison pages ("Software vs Competitor"), developer documentation indexing, and entity search discoverability across digital platforms.',
         highPriority: ['Software feature and comparison landing pages ("Alternative to Competitor")', 'SoftwareApplication and TechnicalArticle Schema.org structured data', 'Developer documentation and API guides organic indexation', 'Interactive ROI calculator landing page with high-intent lead capture'],
         mediumPriority: ['G2 and Capterra review profile syndication and badge schema', 'Open Graph cards with dynamic software metrics for social shares', 'Customer case study directory with industry and company size filters'],
-        longTermOpportunities: ['AI search engine ranking (Perplexity & ChatGPT for B2B software recommendations)', 'Comprehensive developer engineering blog and open-source utility hub', 'Self-service enterprise sandbox with frictionless onboarding'],
+        longTermOpportunities: ['Next-generation search engine ranking (Perplexity for B2B software recommendations)', 'Comprehensive developer engineering blog and open-source utility hub', 'Self-service enterprise sandbox with frictionless onboarding'],
       ),
       seoAssessmentText: 'We recommend prioritizing comparison landing pages and developer documentation SEO in Phase 1 to capture buyers actively searching for alternatives to legacy market incumbents.',
       seoAuditLink: 'https://meet-marketers.com/seo-audit',
@@ -1185,7 +1185,7 @@ class ProposalDomainEngine {
         threats: [
           'Aggressive digital advertising by competitors driving up customer acquisition costs',
           'Price-based commoditization pressure from low-cost market operators',
-          'Changing consumer discovery behaviors shifting toward AI-assisted search engines',
+          'Changing consumer discovery behaviors shifting toward next-generation search engines',
           'Fast-evolving market expectations requiring continuous digital agility',
         ],
       ),
@@ -1216,7 +1216,7 @@ class ProposalDomainEngine {
           'Growing preference for video-first educational content across digital channels',
         ],
         technological: [
-          'AI search engines (Perplexity, ChatGPT) transforming how clients discover service providers',
+          'Next-generation search engines transforming how clients discover service providers',
           'Short-form vertical video algorithms driving organic brand discoverability',
           'Automated customer relationship management (CRM) and digital communication pipelines',
         ],
@@ -1281,10 +1281,10 @@ class ProposalDomainEngine {
       ],
       seoAudit: const SeoAuditSummary(
         healthScore: 71,
-        summaryText: 'Solid digital presence with active branding, with clear opportunities to improve search visibility for high-intent category keywords and structured entity discovery across Google and AI search engines.',
+        summaryText: 'Solid digital presence with active branding, with clear opportunities to improve search visibility for high-intent category keywords and structured entity discovery across Google and next-generation search engines.',
         highPriority: ['Service-specific landing pages with transparent FAQs and clear calls-to-action', 'Organization and Service Schema.org structured data markup', 'H1 and Meta Title optimization across core category pages', 'Core Web Vitals acceleration and mobile responsiveness audit'],
         mediumPriority: ['Client case study directory with filtered search capabilities', 'Open Graph social preview cards for key service offerings', 'Executive author profiles establishing team E-E-A-T credentials'],
-        longTermOpportunities: ['AI search engine discoverability (AIO & Perplexity entity optimization)', 'Comprehensive educational resource library and category guides', 'Dedicated client inquiry portal and automated CRM onboarding flow'],
+        longTermOpportunities: ['Next-generation search discoverability (Perplexity entity optimization)', 'Comprehensive educational resource library and category guides', 'Dedicated client inquiry portal and automated CRM onboarding flow'],
       ),
       seoAssessmentText: 'We recommend prioritizing service-specific landing pages and technical on-page SEO quick wins in Phase 1 to capture high-intent clients actively searching for solutions in your category.',
       seoAuditLink: 'https://meet-marketers.com/seo-audit',
@@ -1401,7 +1401,7 @@ class ProposalDomainEngine {
     if (cat == ProposalDomainCategory.b2bTechAndSaaS) {
       final yAxis = proposal.perceptualMapYAxis.isNotEmpty
           ? proposal.perceptualMapYAxis
-          : 'Proprietary AI & Technology Depth';
+          : 'Proprietary Technology & Architecture Depth';
       final xAxis = proposal.perceptualMapXAxis.isNotEmpty
           ? proposal.perceptualMapXAxis
           : 'Enterprise Workflow & Platform Breadth';
